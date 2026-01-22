@@ -1,10 +1,12 @@
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Platform } from 'react-native';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import { Bell, MapPin, Navigation, Flame, Plus } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 
 const { width } = Dimensions.get('window');
 
@@ -32,9 +34,46 @@ const ACTIVITIES = [
     }
 ];
 
+const mapStyle = [
+    { "elementType": "geometry", "stylers": [{ "color": "#05080a" }] },
+    { "elementType": "labels.text.fill", "stylers": [{ "color": "#475569" }] },
+    { "elementType": "labels.text.stroke", "stylers": [{ "color": "#020617" }] },
+    { "featureType": "administrative.locality", "elementType": "labels.text.fill", "stylers": [{ "color": "#64748b" }] },
+    { "featureType": "poi", "stylers": [{ "visibility": "off" }] },
+    { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
+    { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#475569" }] },
+    { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#334155" }] },
+    { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#020617" }] }
+];
+
 export default function HomeScreen() {
+    const [location, setLocation] = useState(null);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                let { status } = await Location.requestForegroundPermissionsAsync();
+                if (status === 'granted') {
+                    let loc = await Location.getCurrentPositionAsync({});
+                    setLocation(loc);
+                }
+            } catch (error) {
+                console.error("Home Location Error:", error);
+            }
+        })();
+    }, []);
+
+    const initialRegion = {
+        latitude: location ? location.coords.latitude : 37.0322,
+        longitude: location ? location.coords.longitude : 28.3242,
+        latitudeDelta: 0.1,
+        longitudeDelta: 0.1,
+    };
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
+            <View style={{ backgroundColor: 'red', padding: 5, alignItems: 'center' }}>
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>CODE UPDATED - REAL MAP ACTIVE</Text>
+            </View>
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
                 {/* Header */}
@@ -60,12 +99,17 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Road Ahead / Map Card */}
+                {/* Road Ahead / Real Map Card */}
                 <View style={styles.mapCardContainer}>
                     <View style={styles.mapCard}>
-                        <Image
-                            source={{ uri: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&q=80' }} // Standard Map
+                        <MapView
                             style={styles.mapBackground}
+                            region={initialRegion}
+                            customMapStyle={mapStyle}
+                            scrollEnabled={false}
+                            zoomEnabled={false}
+                            pitchEnabled={false}
+                            showsUserLocation={true}
                         />
                         <LinearGradient
                             colors={['transparent', Colors.background]}
@@ -264,14 +308,14 @@ const styles = StyleSheet.create({
     mapBackground: {
         width: '100%',
         height: '100%',
-        opacity: 0.6,
+        opacity: 0.8,
     },
     mapOverlay: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        height: '60%',
+        height: '80%',
     },
     routeBadge: {
         position: 'absolute',
@@ -290,10 +334,6 @@ const styles = StyleSheet.create({
         height: 8,
         borderRadius: 4,
         backgroundColor: Colors.primary,
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 6,
     },
     routeText: {
         color: '#FFF',

@@ -40,7 +40,10 @@ export default function WelcomeScreen() {
 
                         <TouchableOpacity
                             style={styles.button}
-                            onPress={() => router.replace('/(tabs)/home')}
+                            onPress={() => {
+                                console.log("Get Started clicked!");
+                                router.replace('/(tabs)/home');
+                            }}
                             activeOpacity={0.8}
                         >
                             <Text style={styles.buttonText}>Get Started</Text>

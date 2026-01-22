@@ -5,6 +5,7 @@ import { View, StyleSheet, Platform } from 'react-native';
 
 // Forced reload check
 export default function TabLayout() {
+    console.log("Tab Layout initialized!");
     return (
         <Tabs
             screenOptions={{
