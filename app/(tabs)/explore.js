@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, TextInput, ScrollView, Platform, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, TextInput, ScrollView, Platform, Modal, ActivityIndicator } from 'react-native';
+import MapView, { Marker, Callout, PROVIDER_GOOGLE } from 'react-native-maps';
+import * as Location from 'expo-location';
 import { Colors } from '../../constants/Colors';
 import { MapPin, Search, Filter, Compass, Navigation, Zap, Wrench, ShoppingCart, Fuel, MessageSquare, ArrowUpRight, Car, X } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,9 +9,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const { width, height } = Dimensions.get('window');
 
 const MAP_MARKERS = [
-    { id: 1, type: 'nomad', name: 'Selin', distance: '2.4 km', top: '35%', left: '45%', image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80' },
-    { id: 2, type: 'mechanic', name: 'Jake\'s Garage', distance: '5mi', top: '55%', left: '20%' },
-    { id: 3, type: 'market', name: 'Bio Store', distance: '8mi', top: '45%', left: '70%' },
+    { id: 1, type: 'nomad', name: 'Selin', distance: '2.4 km', coordinate: { latitude: 37.0322, longitude: 28.3242 }, image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80' },
+    { id: 2, type: 'mechanic', name: 'Jake\'s Garage', distance: '5mi', coordinate: { latitude: 37.0422, longitude: 28.3142 } },
+    { id: 3, type: 'market', name: 'Bio Store', distance: '8mi', coordinate: { latitude: 37.0222, longitude: 28.3342 } },
 ];
 
 const NEARBY_NOMADS = [
@@ -21,7 +23,8 @@ const NEARBY_NOMADS = [
         vehicle: '4x4 Off-road',
         vehicleModel: 'VW Transporter T4',
         route: 'Kuzey (Akyaka)',
-        image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80'
+        image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80',
+        coordinate: { latitude: 37.0322, longitude: 28.3242 }
     },
     {
         id: 2,
@@ -47,78 +50,85 @@ const NEARBY_NOMADS = [
 
 export default function ExploreScreen() {
     const [selectedNomad, setSelectedNomad] = useState(null);
+    const [location, setLocation] = useState(null);
+    const [errorMsg, setErrorMsg] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        (async () => {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                setErrorMsg('Konum izni reddedildi. Harita varsayılan konumda açılacak.');
+                setLoading(false);
+                return;
+            }
+
+            try {
+                let location = await Location.getCurrentPositionAsync({});
+                setLocation(location);
+            } catch (error) {
+                console.error("Location error:", error);
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, []);
+
+    const initialRegion = {
+        latitude: location ? location.coords.latitude : 37.0322,
+        longitude: location ? location.coords.longitude : 28.3242,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+    };
 
     return (
         <View style={styles.container}>
-            {/* Fake Map Background */}
-            <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=1000&q=80' }} // Standard Full Map
-                style={styles.mapBackground}
-                resizeMode="cover"
-            />
-            <View style={[styles.mapDimmer, { backgroundColor: Colors.background + '66' }]} />
+            {/* Real Map View */}
+            {loading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={Colors.primary} />
+                    <Text style={styles.loadingText}>Harita Yükleniyor...</Text>
+                </View>
+            ) : (
+                <MapView
+                    style={styles.map}
+                    provider={PROVIDER_GOOGLE}
+                    initialRegion={initialRegion}
+                    customMapStyle={mapStyle}
+                    showsUserLocation={true}
+                    showsMyLocationButton={false}
+                >
+                    {MAP_MARKERS.map((marker) => (
+                        <Marker
+                            key={marker.id}
+                            coordinate={marker.coordinate}
+                            onPress={() => {
+                                if (marker.type === 'nomad') {
+                                    const nomad = NEARBY_NOMADS.find(n => n.name === marker.name);
+                                    if (nomad) setSelectedNomad(nomad);
+                                }
+                            }}
+                        >
+                            <View style={styles.customMarker}>
+                                <View style={styles.markerPointer}>
+                                    {marker.type === 'nomad' ? (
+                                        <Image source={{ uri: marker.image }} style={styles.markerAvatar} />
+                                    ) : (
+                                        <View style={[styles.markerIcon, { backgroundColor: marker.type === 'mechanic' ? Colors.primary : Colors.secondary }]}>
+                                            {marker.type === 'mechanic' ? <Wrench size={10} color="#FFF" /> : <ShoppingCart size={10} color="#FFF" />}
+                                        </View>
+                                    )}
+                                </View>
+                                <View style={styles.markerLabel}>
+                                    <Text style={styles.markerText}>{marker.name}</Text>
+                                </View>
+                            </View>
+                        </Marker>
+                    ))}
+                </MapView>
+            )}
 
             {/* Top Search Bar */}
-            <SafeAreaView style={styles.topArea} edges={['top']}>
-                <View style={styles.searchContainer}>
-                    <Search size={20} color={Colors.textSecondary} style={styles.searchIcon} />
-                    <TextInput
-                        placeholder="Search nomads, mechanics..."
-                        placeholderTextColor={Colors.textSecondary}
-                        style={styles.searchInput}
-                    />
-                    <TouchableOpacity style={styles.filterBtn}>
-                        <Filter size={20} color={Colors.primary} />
-                    </TouchableOpacity>
-                </View>
-
-                {/* Quick Filters */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-                    <TouchableOpacity style={[styles.filterChip, styles.activeChip]}>
-                        <Zap size={14} color="#FFF" />
-                        <Text style={styles.chipText}>Nomads</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.filterChip}>
-                        <Wrench size={14} color={Colors.textSecondary} />
-                        <Text style={[styles.chipText, { color: Colors.textSecondary }]}>Mechanics</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.filterChip}>
-                        <ShoppingCart size={14} color={Colors.textSecondary} />
-                        <Text style={[styles.chipText, { color: Colors.textSecondary }]}>Markets</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.filterChip}>
-                        <Fuel size={14} color={Colors.textSecondary} />
-                        <Text style={[styles.chipText, { color: Colors.textSecondary }]}>Petrol</Text>
-                    </TouchableOpacity>
-                </ScrollView>
-            </SafeAreaView>
-
-            {/* Fake Markers */}
-            {MAP_MARKERS.map((marker) => (
-                <TouchableOpacity
-                    key={marker.id}
-                    style={[styles.markerContainer, { top: marker.top, left: marker.left }]}
-                    onPress={() => {
-                        if (marker.type === 'nomad') {
-                            const nomad = NEARBY_NOMADS.find(n => n.name === marker.name);
-                            if (nomad) setSelectedNomad(nomad);
-                        }
-                    }}
-                >
-                    <View style={styles.markerPointer}>
-                        {marker.type === 'nomad' ? (
-                            <Image source={{ uri: marker.image }} style={styles.markerAvatar} />
-                        ) : (
-                            <View style={[styles.markerIcon, { backgroundColor: marker.type === 'mechanic' ? Colors.primary : Colors.secondary }]}>
-                                {marker.type === 'mechanic' ? <Wrench size={10} color="#FFF" /> : <ShoppingCart size={10} color="#FFF" />}
-                            </View>
-                        )}
-                    </View>
-                    <View style={styles.markerLabel}>
-                        <Text style={styles.markerText}>{marker.name}</Text>
-                    </View>
-                </TouchableOpacity>
-            ))}
 
             {/* Bottom Nomad Slider */}
             <View style={styles.bottomArea}>
@@ -146,9 +156,9 @@ export default function ExploreScreen() {
                             <View style={styles.cardInfo}>
                                 <View style={styles.cardTop}>
                                     <Text style={styles.cardName}>{nomad.name}</Text>
-                                    <div style={styles.statusBadge}>
+                                    <View style={styles.statusBadge}>
                                         <Text style={styles.statusText}>{nomad.vehicle}</Text>
-                                    </div>
+                                    </View>
                                 </View>
                                 <Text style={styles.cardMeta}>{nomad.distance} away • {nomad.vehicleModel}</Text>
 
@@ -234,16 +244,93 @@ export default function ExploreScreen() {
     );
 }
 
+const mapStyle = [
+    {
+        "elementType": "geometry",
+        "stylers": [{ "color": "#1c2b34" }]
+    },
+    {
+        "elementType": "labels.text.fill",
+        "stylers": [{ "color": "#588594" }]
+    },
+    {
+        "elementType": "labels.text.stroke",
+        "stylers": [{ "color": "#0b131a" }]
+    },
+    {
+        "featureType": "administrative.locality",
+        "elementType": "labels.text.fill",
+        "stylers": [{ "color": "#a5c1c9" }]
+    },
+    {
+        "featureType": "poi",
+        "elementType": "labels.text.fill",
+        "stylers": [{ "color": "#588594" }]
+    },
+    {
+        "featureType": "poi.park",
+        "elementType": "geometry",
+        "stylers": [{ "color": "#121d24" }]
+    },
+    {
+        "featureType": "poi.park",
+        "elementType": "labels.text.fill",
+        "stylers": [{ "color": "#4FDBB1" }]
+    },
+    {
+        "featureType": "road",
+        "elementType": "geometry",
+        "stylers": [{ "color": "#24343e" }]
+    },
+    {
+        "featureType": "road",
+        "elementType": "geometry.stroke",
+        "stylers": [{ "color": "#1c2b34" }]
+    },
+    {
+        "featureType": "road",
+        "elementType": "labels.text.fill",
+        "stylers": [{ "color": "#94A3B8" }]
+    },
+    {
+        "featureType": "road.highway",
+        "elementType": "geometry",
+        "stylers": [{ "color": "#2d3f49" }]
+    },
+    {
+        "featureType": "road.highway",
+        "elementType": "geometry.stroke",
+        "stylers": [{ "color": "#1c2b34" }]
+    },
+    {
+        "featureType": "water",
+        "elementType": "geometry",
+        "stylers": [{ "color": "#050a0f" }]
+    }
+];
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: Colors.background,
     },
-    mapBackground: {
+    map: {
         ...StyleSheet.absoluteFillObject,
     },
-    mapDimmer: {
+    loadingContainer: {
         ...StyleSheet.absoluteFillObject,
+        backgroundColor: Colors.background,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 16,
+    },
+    loadingText: {
+        color: Colors.textSecondary,
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    customMarker: {
+        alignItems: 'center',
     },
     topArea: {
         position: 'absolute',

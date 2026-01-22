@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000/api'; // Update this with your machine IP for physical device testing
+const API_URL = 'http://192.168.1.104:5000/api'; // Updated with local IP for physical device testing
 
 export const NomadService = {
     async getNearbyNomads(lat, lng) {
