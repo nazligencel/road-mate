@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, ImageBackground, TouchableOpacity, Dimensions }
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/Colors';
-import { ArrowRight, Heart, Hammer } from 'lucide-react-native';
+import { ArrowRight, MapPin, Flame } from 'lucide-react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -10,21 +10,22 @@ export default function WelcomeScreen() {
     return (
         <View style={styles.container}>
             <ImageBackground
-                source={{ uri: 'https://images.unsplash.com/photo-1516214104703-d870798883c5?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80' }} // Desert Sunset Van
+                source={{ uri: 'https://images.unsplash.com/photo-1516939884455-1445c8652f83?q=80&w=2000&auto=format&fit=crop' }} // High-def forest van life
                 style={styles.backgroundImage}
                 resizeMode="cover"
+                blurRadius={1}
             >
                 <LinearGradient
-                    colors={['transparent', 'rgba(28, 25, 23, 0.6)', Colors.background]} // Warm dark gradient
+                    colors={['transparent', 'rgba(11, 19, 26, 0.4)', Colors.background]}
                     style={styles.gradient}
                 >
                     <View style={styles.content}>
                         <View style={styles.iconRow}>
                             <View style={[styles.iconContainer, { backgroundColor: Colors.primary + '20' }]}>
-                                <Heart color={Colors.primary} size={24} />
+                                <MapPin color={Colors.primary} size={24} />
                             </View>
                             <View style={[styles.iconContainer, { backgroundColor: Colors.secondary + '20' }]}>
-                                <Hammer color={Colors.secondary} size={24} />
+                                <Flame color={Colors.secondary} size={24} />
                             </View>
                         </View>
 
