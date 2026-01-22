@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import 'react-native-reanimated';
 import { Colors } from '../constants/Colors';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 

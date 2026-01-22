@@ -1,6 +1,8 @@
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Switch, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Switch, Dimensions, Modal } from 'react-native';
+import React, { useState } from 'react';
 import { Colors } from '../../constants/Colors';
-import { Settings, Edit2, LogOut, Camera, Grid } from 'lucide-react-native';
+import { Settings, Edit2, LogOut, Camera, Grid, QrCode } from 'lucide-react-native';
+import QRCode from 'react-native-qrcode-svg';
 
 const PHOTOS = [
     'https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=300&q=80',
@@ -10,13 +12,21 @@ const PHOTOS = [
 ];
 
 export default function ProfileScreen() {
+    const [qrVisible, setQrVisible] = useState(false);
+    const userId = "1"; // Matching Selin's ID in NEARBY_NOMADS for demo
+
     return (
         <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Profile</Text>
-                <TouchableOpacity>
-                    <Settings color={Colors.text} size={24} />
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 15 }}>
+                    <TouchableOpacity onPress={() => setQrVisible(true)}>
+                        <QrCode color={Colors.text} size={24} />
+                    </TouchableOpacity>
+                    <TouchableOpacity>
+                        <Settings color={Colors.text} size={24} />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <View style={styles.profileHeader}>
@@ -73,6 +83,36 @@ export default function ProfileScreen() {
                 <LogOut size={20} color={Colors.error} />
                 <Text style={styles.logoutText}>Log Out</Text>
             </TouchableOpacity>
+
+            {/* QR Modal */}
+            <Modal
+                visible={qrVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setQrVisible(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setQrVisible(false)}
+                >
+                    <View style={styles.qrContainer}>
+                        <Text style={styles.qrTitle}>My Connection QR</Text>
+                        <View style={styles.qrWrapper}>
+                            <QRCode
+                                value={`road-mate://nomad/${userId}`}
+                                size={200}
+                                color={Colors.background}
+                                backgroundColor="#FFF"
+                            />
+                        </View>
+                        <Text style={styles.qrDesc}>Other nomads can scan this to connect with you.</Text>
+                        <TouchableOpacity style={styles.closeModalBtn} onPress={() => setQrVisible(false)}>
+                            <Text style={styles.closeModalText}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </ScrollView>
     );
 }
@@ -219,5 +259,48 @@ const styles = StyleSheet.create({
         color: Colors.error,
         fontWeight: '600',
         fontSize: 16,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    qrContainer: {
+        backgroundColor: Colors.card,
+        padding: 30,
+        borderRadius: 30,
+        alignItems: 'center',
+        width: '80%',
+        borderWidth: 1,
+        borderColor: Colors.border,
+    },
+    qrTitle: {
+        color: '#FFF',
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 20,
+    },
+    qrWrapper: {
+        padding: 20,
+        backgroundColor: '#FFF',
+        borderRadius: 20,
+        marginBottom: 20,
+    },
+    qrDesc: {
+        color: Colors.textSecondary,
+        textAlign: 'center',
+        fontSize: 14,
+        marginBottom: 20,
+    },
+    closeModalBtn: {
+        backgroundColor: Colors.primary,
+        paddingHorizontal: 30,
+        paddingVertical: 12,
+        borderRadius: 15,
+    },
+    closeModalText: {
+        color: '#FFF',
+        fontWeight: 'bold',
     },
 });

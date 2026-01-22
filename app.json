@@ -6,27 +6,43 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nazligencel.roadmate",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Uygulama, yakındaki nomadları görebilmeniz için konumunuza ihtiyaç duyar."
+      }
     },
     "android": {
+      "package": "com.nazligencel.roadmate",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
       "edgeToEdgeEnabled": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "scheme": "road-mate",
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Uygulama, yakındaki nomadları görebilmeniz için konumunuza ihtiyaç duyar."
+        }
+      ]
     ]
   }
 }
