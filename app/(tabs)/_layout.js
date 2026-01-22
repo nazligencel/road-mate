@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Colors } from '../../constants/Colors';
-import { Home, Heart, Plus, MessageCircle, Users } from 'lucide-react-native';
+import { Home, Compass, Plus, MessageCircle, User } from 'lucide-react-native';
 import { View, StyleSheet, Platform } from 'react-native';
 
 // Forced reload check
@@ -18,7 +18,7 @@ export default function TabLayout() {
                     elevation: 0,
                 },
                 tabBarActiveTintColor: Colors.primary,
-                tabBarInactiveTintColor: '#4B5563', // Dark gray
+                tabBarInactiveTintColor: Colors.textSecondary + '80', // Soft green-gray with alpha
                 tabBarShowLabel: true,
                 tabBarLabelStyle: {
                     fontSize: 10,
@@ -35,10 +35,10 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
-                name="dating"
+                name="explore"
                 options={{
-                    title: 'Explore', // Renamed for better fit
-                    tabBarIcon: ({ color, size }) => <Heart color={color} size={size} />,
+                    title: 'Explore',
+                    tabBarIcon: ({ color, size }) => <Compass color={color} size={size} />,
                 }}
             />
 
@@ -66,8 +66,8 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="profile"
                 options={{
-                    title: 'Tribe', // Renamed from Profile for community feel
-                    tabBarIcon: ({ color, size }) => <Users color={color} size={size} />,
+                    title: 'Profile',
+                    tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
                 }}
             />
         </Tabs>

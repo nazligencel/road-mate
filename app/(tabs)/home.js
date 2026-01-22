@@ -1,4 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Platform } from 'react-native';
+import React from 'react';
+import { router } from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import { Bell, MapPin, Navigation, Flame, Plus } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,7 +33,6 @@ const ACTIVITIES = [
 ];
 
 export default function HomeScreen() {
-    // Forced reload check
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -50,7 +51,6 @@ export default function HomeScreen() {
                             <Text style={styles.locationLabel}>CURRENT LOCATION</Text>
                             <View style={styles.locationRow}>
                                 <Text style={styles.locationTitle}>Sedona, AZ</Text>
-                                {/* <ChevronDown size={14} color={Colors.textSecondary} /> */}
                             </View>
                         </View>
                     </View>
@@ -64,11 +64,11 @@ export default function HomeScreen() {
                 <View style={styles.mapCardContainer}>
                     <View style={styles.mapCard}>
                         <Image
-                            source={{ uri: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&q=80' }}
+                            source={{ uri: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&q=80' }} // Standard Map
                             style={styles.mapBackground}
                         />
                         <LinearGradient
-                            colors={['transparent', 'rgba(5, 22, 20, 0.9)']}
+                            colors={['transparent', Colors.background]}
                             style={styles.mapOverlay}
                         />
 
@@ -90,7 +90,10 @@ export default function HomeScreen() {
                                     <Text style={styles.metaLabel}>Remaining</Text>
                                     <Text style={styles.metaValue}>120 miles</Text>
                                 </View>
-                                <TouchableOpacity style={styles.navButton}>
+                                <TouchableOpacity
+                                    style={styles.navButton}
+                                    onPress={() => router.push('/(tabs)/explore')}
+                                >
                                     <Navigation size={18} color="#FFFFFF" fill="#FFFFFF" />
                                     <Text style={styles.navButtonText}>Navigation</Text>
                                 </TouchableOpacity>
@@ -103,7 +106,9 @@ export default function HomeScreen() {
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Nearby Nomads</Text>
-                        <TouchableOpacity><Text style={styles.seeAll}>View Map</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={() => router.push('/(tabs)/explore')}>
+                            <Text style={styles.seeAll}>View Map</Text>
+                        </TouchableOpacity>
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.nomadScroll}>
                         {NEARBY_NOMADS.map((nomad) => (
@@ -203,7 +208,7 @@ const styles = StyleSheet.create({
         width: 12,
         height: 12,
         borderRadius: 6,
-        backgroundColor: Colors.primary,
+        backgroundColor: Colors.online,
         borderWidth: 2,
         borderColor: Colors.background,
     },
@@ -275,7 +280,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        backgroundColor: 'rgba(5, 22, 20, 0.8)',
+        backgroundColor: 'rgba(11, 19, 26, 0.8)',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 20,
@@ -299,7 +304,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 16,
         right: 16,
-        backgroundColor: 'rgba(5, 22, 20, 0.6)',
+        backgroundColor: 'rgba(11, 19, 26, 0.6)',
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 16,
@@ -477,7 +482,7 @@ const styles = StyleSheet.create({
         borderColor: Colors.card,
     },
     joinButton: {
-        backgroundColor: 'rgba(224, 122, 95, 0.15)', // Light Terracotta tint
+        backgroundColor: Colors.primary + '15',
         paddingHorizontal: 16,
         paddingVertical: 6,
         borderRadius: 20,

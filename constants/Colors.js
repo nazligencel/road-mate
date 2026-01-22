@@ -1,15 +1,15 @@
 export const Colors = {
-    background: '#1C1917',  // Warm Zinc/Stone Black (Neutral-Warm dark)
-    card: '#292524',        // Warm Stone Gray for cards
-    cardBorder: '#44403C',  // Stone border
-    primary: '#E07A5F',     // Terracotta (Sunset Orange)
-    secondary: '#F4A261',   // Sandy Orange
-    text: '#FAFAF9',        // Warm Stone White
-    textSecondary: '#A8A29E', // Warm Stone Gray
-    accent: '#F2CC8F',      // Pale Gold/Sand
-    border: '#292524',
+    background: '#0B131A',    // Very Dark Steel Blue
+    card: '#1C2B34',          // Dark Slate Card
+    cardBorder: '#2D3F49',    // Muted border
+    primary: '#588594',       // Muted Steel Blue/Teal (from image)
+    secondary: '#C5A059',     // Golden Sand (Accent)
+    text: '#FFFFFF',          // Pure White
+    textSecondary: '#94A3B8', // Misty Blue-Gray
+    accent: '#A5C1C9',        // Light Steel Blue
+    border: '#24343E',
     error: '#EF4444',
     success: '#10B981',
-    online: '#10B981',
-    overlay: 'rgba(28, 25, 23, 0.85)' // Matches background
+    online: '#4FDBB1',        // Minty Green (from image online badge)
+    overlay: 'rgba(11, 19, 26, 0.8)'
 };
