@@ -7,6 +7,7 @@ import { Bell, MapPin, Navigation, Flame, Plus } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
+import { NomadService } from '../../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -48,19 +49,55 @@ const mapStyle = [
 
 export default function HomeScreen() {
     const [location, setLocation] = useState(null);
+    const [nearbyNomads, setNearbyNomads] = useState([]);
+    const [isFetching, setIsFetching] = useState(false);
 
     useEffect(() => {
+        let locationSubscription = null;
+
         (async () => {
             try {
                 let { status } = await Location.requestForegroundPermissionsAsync();
                 if (status === 'granted') {
-                    let loc = await Location.getCurrentPositionAsync({});
-                    setLocation(loc);
+                    locationSubscription = await Location.watchPositionAsync(
+                        {
+                            accuracy: Location.Accuracy.Balanced,
+                            timeInterval: 10000, // Every 10 seconds for home
+                            distanceInterval: 20,
+                        },
+                        async (newLocation) => {
+                            setLocation(newLocation);
+
+                            // Fetch nearby nomads when location changes
+                            if (!isFetching) {
+                                setIsFetching(true);
+                                const nomads = await NomadService.getNearbyNomads(
+                                    newLocation.coords.latitude,
+                                    newLocation.coords.longitude
+                                );
+                                setNearbyNomads(nomads);
+                                setIsFetching(false);
+
+                                // Also update our location on server (mocking userId 1)
+                                NomadService.updateLocation(
+                                    1,
+                                    newLocation.coords.latitude,
+                                    newLocation.coords.longitude
+                                );
+                            }
+                        }
+                    );
                 }
             } catch (error) {
                 console.error("Home Location Error:", error);
             }
         })();
+
+        return () => {
+            if (locationSubscription) {
+                locationSubscription.remove();
+            }
+        };
     }, []);
 
     const initialRegion = {
@@ -71,9 +108,6 @@ export default function HomeScreen() {
     };
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <View style={{ backgroundColor: 'red', padding: 5, alignItems: 'center' }}>
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>CODE UPDATED - REAL MAP ACTIVE</Text>
-            </View>
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
                 {/* Header */}
@@ -104,6 +138,7 @@ export default function HomeScreen() {
                     <View style={styles.mapCard}>
                         <MapView
                             style={styles.mapBackground}
+                            provider={PROVIDER_GOOGLE}
                             region={initialRegion}
                             customMapStyle={mapStyle}
                             scrollEnabled={false}
@@ -155,19 +190,21 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.nomadScroll}>
-                        {NEARBY_NOMADS.map((nomad) => (
+                        {nearbyNomads.length > 0 ? nearbyNomads.map((nomad) => (
                             <TouchableOpacity key={nomad.id} style={styles.nomadItem}>
                                 <View style={styles.nomadImageContainer}>
                                     <Image source={{ uri: nomad.image }} style={styles.nomadImage} />
-                                    {nomad.online && (
+                                    {nomad.status === 'Şu an çevrimiçi' && (
                                         <View style={styles.nomadOnlineBadge}>
                                             <View style={styles.lightningIcon}><Text style={{ fontSize: 8 }}>⚡</Text></View>
                                         </View>
                                     )}
                                 </View>
-                                <Text style={styles.nomadName}>{nomad.name} • {nomad.distance}</Text>
+                                <Text style={styles.nomadName}>{nomad.name} • {typeof nomad.distance === 'number' ? nomad.distance.toFixed(1) + 'km' : nomad.distance}</Text>
                             </TouchableOpacity>
-                        ))}
+                        )) : (
+                            <Text style={{ color: Colors.textSecondary, marginLeft: 20 }}>Yakınlarda kimse yok...</Text>
+                        )}
                     </ScrollView>
                 </View>
 
