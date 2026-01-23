@@ -14,12 +14,20 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nazligencel.roadmate",
+      "config": {
+        "googleMapsApiKey": "AIzaSyAAJkYi2BhvLppQNV8wwQ_xW7RKmBqkroI"
+      },
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Uygulama, yakındaki nomadları görebilmeniz için konumunuza ihtiyaç duyar."
       }
     },
     "android": {
       "package": "com.nazligencel.roadmate",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAAJkYi2BhvLppQNV8wwQ_xW7RKmBqkroI"
+        }
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
