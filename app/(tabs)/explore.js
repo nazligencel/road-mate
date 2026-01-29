@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, TextInput, ScrollView, Platform, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, TextInput, ScrollView, Platform, Modal, ActivityIndicator, Linking } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Colors } from '../../constants/Colors';
@@ -36,7 +36,8 @@ const NEARBY_NOMADS = [
         vehicle: 'Ford Transit',
         vehicleModel: 'Ford Transit Custom',
         route: 'Güney (Kaş)',
-        image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&q=80'
+        image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&q=80',
+        coordinate: { latitude: 37.0422, longitude: 28.3142 }
     },
     {
         id: 3,
@@ -46,16 +47,17 @@ const NEARBY_NOMADS = [
         vehicle: 'Vanagon',
         vehicleModel: 'VW Westfalia',
         route: 'Batı (Urla)',
-        image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&q=80'
+        image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&q=80',
+        coordinate: { latitude: 37.0222, longitude: 28.3342 }
     },
 ];
 
 const mapStyle = [
-    { "elementType": "geometry", "stylers": [{ "color": "#05080a" }] }, // Deep almost-black for max contrast
+    { "elementType": "geometry", "stylers": [{ "color": "#05080a" }] },
     { "elementType": "labels.text.fill", "stylers": [{ "color": "#475569" }] },
     { "elementType": "labels.text.stroke", "stylers": [{ "color": "#020617" }] },
     { "featureType": "administrative.locality", "elementType": "labels.text.fill", "stylers": [{ "color": "#64748b" }] },
-    { "featureType": "poi", "stylers": [{ "visibility": "off" }] }, // Clean up the map
+    { "featureType": "poi", "stylers": [{ "visibility": "off" }] },
     { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
     { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#475569" }] },
     { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#334155" }] },
@@ -66,7 +68,7 @@ export default function ExploreScreen() {
     const [selectedNomad, setSelectedNomad] = useState(null);
     const [location, setLocation] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [nearbyNomads, setNearbyNomads] = useState([]);
+    const [nearbyNomads, setNearbyNomads] = useState(NEARBY_NOMADS);
     const [isFetching, setIsFetching] = useState(false);
 
     useEffect(() => {
@@ -76,12 +78,11 @@ export default function ExploreScreen() {
             try {
                 let { status } = await Location.requestForegroundPermissionsAsync();
                 if (status === 'granted') {
-                    // Watch position for real-time updates
                     locationSubscription = await Location.watchPositionAsync(
                         {
-                            accuracy: Location.Accuracy.High,
-                            timeInterval: 5000,
-                            distanceInterval: 10,
+                            accuracy: Location.Accuracy.Balanced,
+                            timeInterval: 10000,
+                            distanceInterval: 100,
                         },
                         async (newLocation) => {
                             setLocation(newLocation);
@@ -89,12 +90,19 @@ export default function ExploreScreen() {
 
                             if (!isFetching) {
                                 setIsFetching(true);
-                                const nomads = await NomadService.getNearbyNomads(
-                                    newLocation.coords.latitude,
-                                    newLocation.coords.longitude
-                                );
-                                setNearbyNomads(nomads);
-                                setIsFetching(false);
+                                try {
+                                    const nomads = await NomadService.getNearbyNomads(
+                                        newLocation.coords.latitude,
+                                        newLocation.coords.longitude
+                                    );
+                                    if (nomads && Array.isArray(nomads) && nomads.length > 0) {
+                                        setNearbyNomads(nomads);
+                                    }
+                                } catch (e) {
+                                    console.log("API not reached, using dummy data");
+                                } finally {
+                                    setIsFetching(false);
+                                }
                             }
                         }
                     );
@@ -107,7 +115,6 @@ export default function ExploreScreen() {
             }
         })();
 
-        // Cleanup subscription
         return () => {
             if (locationSubscription) {
                 locationSubscription.remove();
@@ -115,16 +122,26 @@ export default function ExploreScreen() {
         };
     }, []);
 
+    const handleGetDirections = (lat, lng, label) => {
+        const scheme = Platform.select({ ios: 'maps:0,0?q=', android: 'geo:0,0?q=' });
+        const latLng = `${lat},${lng}`;
+        const url = Platform.select({
+            ios: `${scheme}${label}@${latLng}`,
+            android: `${scheme}${latLng}(${label})`
+        });
+
+        Linking.openURL(url);
+    };
+
     const initialRegion = {
-        latitude: location ? location.coords.latitude : 37.0322,
-        longitude: location ? location.coords.longitude : 28.3242,
+        latitude: location?.coords?.latitude || 37.0322,
+        longitude: location?.coords?.longitude || 28.3242,
         latitudeDelta: 0.05,
         longitudeDelta: 0.05,
     };
 
     return (
         <View style={styles.container}>
-            {/* Real Map View */}
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={Colors.primary} />
@@ -137,16 +154,16 @@ export default function ExploreScreen() {
                     customMapStyle={mapStyle}
                     showsUserLocation={true}
                     showsMyLocationButton={false}
+                    toolbarEnabled={false}
                 >
-                    {nearbyNomads.map((marker) => (
+                    {MAP_MARKERS.filter(m => m.type !== 'nomad' && m.coordinate?.latitude && m.coordinate?.longitude).map((marker) => (
                         <Marker
-                            key={marker.id}
-                            coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
-                            onPress={() => setSelectedNomad(marker)}
+                            key={`extra-${marker.id}`}
+                            coordinate={marker.coordinate}
                         >
                             <View style={styles.customMarker}>
-                                <View style={styles.markerPointer}>
-                                    <Image source={{ uri: marker.image }} style={styles.markerAvatar} />
+                                <View style={[styles.markerPointer, { backgroundColor: marker.type === 'mechanic' ? Colors.primary : Colors.secondary }]}>
+                                    {marker.type === 'mechanic' ? <Wrench size={14} color="#FFF" /> : <ShoppingCart size={14} color="#FFF" />}
                                 </View>
                                 <View style={styles.markerLabel}>
                                     <Text style={styles.markerText}>{marker.name}</Text>
@@ -154,10 +171,31 @@ export default function ExploreScreen() {
                             </View>
                         </Marker>
                     ))}
+
+                    {nearbyNomads.map((marker) => {
+                        const coord = marker.coordinate || { latitude: marker.latitude, longitude: marker.longitude };
+                        if (!coord.latitude || !coord.longitude) return null;
+
+                        return (
+                            <Marker
+                                key={`nomad-${marker.id}`}
+                                coordinate={coord}
+                                onPress={() => setSelectedNomad(marker)}
+                            >
+                                <View style={styles.customMarker}>
+                                    <View style={styles.markerPointer}>
+                                        <Image source={{ uri: marker.image || 'https://via.placeholder.com/100' }} style={styles.markerAvatar} />
+                                    </View>
+                                    <View style={styles.markerLabel}>
+                                        <Text style={styles.markerText}>{marker.name}</Text>
+                                    </View>
+                                </View>
+                            </Marker>
+                        );
+                    })}
                 </MapView>
             )}
 
-            {/* Top Search Bar */}
             <SafeAreaView style={styles.topArea} edges={['top']}>
                 <View style={styles.searchContainer}>
                     <Search size={20} color={Colors.textSecondary} style={styles.searchIcon} />
@@ -174,7 +212,6 @@ export default function ExploreScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Quick Filters */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
                     <TouchableOpacity style={[styles.filterChip, styles.activeChip]}>
                         <Zap size={14} color="#FFF" />
@@ -195,7 +232,6 @@ export default function ExploreScreen() {
                 </ScrollView>
             </SafeAreaView>
 
-            {/* Bottom Nomad Slider */}
             <View style={styles.bottomArea}>
                 <View style={styles.bottomHeader}>
                     <Text style={styles.bottomTitle}>Yakındakiler</Text>
@@ -211,33 +247,42 @@ export default function ExploreScreen() {
                     snapToInterval={width * 0.8 + 16}
                     decelerationRate="fast"
                 >
-                    {nearbyNomads.map((nomad) => (
-                        <TouchableOpacity
-                            key={nomad.id}
-                            style={styles.nomadCard}
-                            onPress={() => setSelectedNomad(nomad)}
-                        >
-                            <Image source={{ uri: nomad.image }} style={styles.nomadCardImage || styles.cardImage} />
-                            <View style={styles.cardInfo}>
-                                <View style={styles.cardTop}>
-                                    <Text style={styles.cardName}>{nomad.name}</Text>
-                                    <View style={styles.statusBadge}>
-                                        <Text style={styles.statusText}>{nomad.vehicle}</Text>
-                                    </View>
-                                </View>
-                                <Text style={styles.cardMeta}>{typeof nomad.distance === 'number' ? nomad.distance.toFixed(1) + 'km' : nomad.distance} • {nomad.vehicle_model}</Text>
+                    {nearbyNomads.map((nomad) => {
+                        const nomadLat = nomad.coordinate?.latitude || nomad.latitude;
+                        const nomadLng = nomad.coordinate?.longitude || nomad.longitude;
 
-                                <TouchableOpacity style={styles.cardNavBtn}>
-                                    <Navigation size={14} color="#FFF" fill="#FFF" />
-                                    <Text style={styles.navBtnText}>Yol Tarifi</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </TouchableOpacity>
-                    ))}
+                        return (
+                            <TouchableOpacity
+                                key={nomad.id}
+                                style={styles.nomadCard}
+                                onPress={() => setSelectedNomad(nomad)}
+                            >
+                                <Image source={{ uri: nomad.image }} style={styles.nomadCardImage || styles.cardImage} />
+                                <View style={styles.cardInfo}>
+                                    <View style={styles.cardTop}>
+                                        <Text style={styles.cardName}>{nomad.name}</Text>
+                                        <View style={styles.statusBadge}>
+                                            <Text style={styles.statusText}>{nomad.vehicle}</Text>
+                                        </View>
+                                    </View>
+                                    <Text style={styles.cardMeta}>
+                                        {typeof nomad.distance === 'number' ? nomad.distance.toFixed(1) + 'km' : (nomad.distance || '?.? km')} • {nomad.vehicle_model || nomad.vehicleModel}
+                                    </Text>
+
+                                    <TouchableOpacity
+                                        style={styles.cardNavBtn}
+                                        onPress={() => handleGetDirections(nomadLat, nomadLng, nomad.name)}
+                                    >
+                                        <Navigation size={14} color={Colors.primary} fill={Colors.primary} />
+                                        <Text style={styles.navBtnText}>Yol Tarifi</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </TouchableOpacity>
+                        );
+                    })}
                 </ScrollView>
             </View>
 
-            {/* Nomad Detail Modal */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -255,12 +300,21 @@ export default function ExploreScreen() {
                             <View style={styles.detailContainer}>
                                 <View style={styles.detailHeader}>
                                     <View style={styles.detailAvatarContainer}>
-                                        <Image source={{ uri: selectedNomad.image }} style={styles.detailAvatar} />
+                                        <Image
+                                            source={{ uri: selectedNomad.image || 'https://via.placeholder.com/150' }}
+                                            style={styles.detailAvatar}
+                                        />
                                         <View style={[styles.detailOnlineStatus, { backgroundColor: Colors.online }]} />
                                     </View>
                                     <View style={styles.detailTitleInfo}>
-                                        <Text style={styles.detailName}>{selectedNomad.name}</Text>
-                                        <Text style={styles.detailSubInfo}>{selectedNomad.status} • {selectedNomad.distance}</Text>
+                                        <Text style={styles.detailName}>{selectedNomad.name || 'Gezgin'}</Text>
+                                        <Text style={styles.detailSubInfo}>
+                                            {selectedNomad.status || 'Aktif'} • {
+                                                typeof selectedNomad.distance === 'number'
+                                                    ? selectedNomad.distance.toFixed(1) + ' km'
+                                                    : (selectedNomad.distance || '?.? km')
+                                            }
+                                        </Text>
                                     </View>
                                     <TouchableOpacity style={styles.detailChatBtn}>
                                         <MessageSquare size={24} color={Colors.primary} />
@@ -269,16 +323,25 @@ export default function ExploreScreen() {
                                 <View style={styles.infoCardsRow}>
                                     <View style={styles.infoCard}>
                                         <Text style={styles.infoCardLabel}>KARAVAN</Text>
-                                        <Text style={styles.infoCardValue}>{selectedNomad.vehicle_model}</Text>
+                                        <Text style={styles.infoCardValue}>
+                                            {selectedNomad.vehicle_model || selectedNomad.vehicleModel || 'Karavan'}
+                                        </Text>
                                     </View>
                                     <View style={styles.infoCard}>
                                         <Text style={styles.infoCardLabel}>ROTA</Text>
                                         <Text style={styles.infoCardValue}>{selectedNomad.route || 'Belirtilmedi'}</Text>
                                     </View>
                                 </View>
-                                <TouchableOpacity style={styles.mainActionBtn}>
-                                    <Car size={24} color="#0C1210" />
-                                    <Text style={styles.mainActionBtnText}>Buluşma Noktası Oluştur</Text>
+                                <TouchableOpacity
+                                    style={styles.mainActionBtn}
+                                    onPress={() => {
+                                        const nomadLat = selectedNomad.coordinate?.latitude || selectedNomad.latitude;
+                                        const nomadLng = selectedNomad.coordinate?.longitude || selectedNomad.longitude;
+                                        handleGetDirections(nomadLat, nomadLng, selectedNomad.name);
+                                    }}
+                                >
+                                    <Navigation size={24} color="#0C1210" fill="#0C1210" />
+                                    <Text style={styles.mainActionBtnText}>Yol Tarifi Al</Text>
                                 </TouchableOpacity>
                             </View>
                         )}
@@ -316,13 +379,13 @@ const styles = StyleSheet.create({
     nomadScroll: { paddingHorizontal: 16, gap: 12 },
     nomadCard: {
         width: width * 0.75,
-        backgroundColor: '#1E293B', // Solid dark slate for clear separation
+        backgroundColor: '#1E293B',
         borderRadius: 24,
         flexDirection: 'row',
         padding: 14,
         gap: 16,
         borderWidth: 1.5,
-        borderColor: Colors.primary + '40', // Primary colored border for pop
+        borderColor: Colors.primary + '40',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 12 },
         shadowOpacity: 0.6,
@@ -338,9 +401,16 @@ const styles = StyleSheet.create({
     cardMeta: { color: Colors.textSecondary, fontSize: 12, marginVertical: 4 },
     cardNavBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     navBtnText: { color: Colors.primary, fontSize: 12, fontWeight: 'bold' },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: Colors.background, borderTopLeftRadius: 25, borderTopRightRadius: 25, paddingBottom: 30 },
-    modalHandle: { width: 40, height: 4, backgroundColor: '#333', borderRadius: 2, alignSelf: 'center', marginVertical: 12 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+    modalContent: {
+        backgroundColor: Colors.background,
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 30,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    modalHandle: { width: 45, height: 5, backgroundColor: '#334155', borderRadius: 2.5, alignSelf: 'center', marginVertical: 15 },
     detailContainer: { paddingHorizontal: 20 },
     detailHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
     detailAvatarContainer: { position: 'relative' },

@@ -22,7 +22,11 @@ export const NomadService = {
     async getNearbyNomads(lat, lng) {
         try {
             const response = await fetch(`${API_URL}/nearby-nomads?lat=${lat}&lng=${lng}`);
-            if (!response.ok) throw new Error('Network response was not ok');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error(`❌ Fetch Nomads Failed (${response.status}):`, errorData);
+                throw new Error(`Network response was not ok: ${response.status}`);
+            }
             return await response.json();
         } catch (error) {
             console.error('Error fetching nomads:', error);
@@ -37,7 +41,11 @@ export const NomadService = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, latitude: lat, longitude: lng }),
             });
-            if (!response.ok) throw new Error('Network response was not ok');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error(`❌ Update Location Failed (${response.status}):`, errorData);
+                throw new Error(`Network response was not ok: ${response.status}`);
+            }
             return await response.json();
         } catch (error) {
             console.error('Error updating location:', error);

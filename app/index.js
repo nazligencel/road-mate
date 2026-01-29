@@ -1,19 +1,21 @@
-import { View, Text, StyleSheet, ImageBackground, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ImageBackground, Pressable, Dimensions, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/Colors';
 import { ArrowRight, MapPin, Flame } from 'lucide-react-native';
 
-const { width, height } = Dimensions.get('window');
-
 export default function WelcomeScreen() {
+    const handleGetStarted = () => {
+        console.log("Get Started clicked!");
+        router.replace('/(tabs)/home');
+    };
+
     return (
         <View style={styles.container}>
             <ImageBackground
-                source={{ uri: 'https://images.unsplash.com/photo-1516939884455-1445c8652f83?q=80&w=2000&auto=format&fit=crop' }} // High-def forest van life
+                source={{ uri: 'https://images.unsplash.com/photo-1516939884455-1445c8652f83?q=80&w=2000&auto=format&fit=crop' }}
                 style={styles.backgroundImage}
                 resizeMode="cover"
-                blurRadius={1}
             >
                 <LinearGradient
                     colors={['transparent', 'rgba(11, 19, 26, 0.4)', Colors.background]}
@@ -38,17 +40,19 @@ export default function WelcomeScreen() {
                             The ultimate community for van lifers. Find your co-pilot or your next build partner.
                         </Text>
 
-                        <TouchableOpacity
-                            style={styles.button}
-                            onPress={() => {
-                                console.log("Get Started clicked!");
-                                router.replace('/(tabs)/home');
-                            }}
-                            activeOpacity={0.8}
+                        <Pressable
+                            style={({ pressed }) => [
+                                styles.button,
+                                {
+                                    opacity: pressed ? 0.7 : 1,
+                                    transform: [{ scale: pressed ? 0.98 : 1 }]
+                                }
+                            ]}
+                            onPress={handleGetStarted}
                         >
                             <Text style={styles.buttonText}>Get Started</Text>
                             <ArrowRight color="#FFF" size={20} />
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </LinearGradient>
             </ImageBackground>
@@ -62,14 +66,15 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.background,
     },
     backgroundImage: {
-        width: width,
-        height: height,
+        flex: 1,
+        width: '100%',
+        height: '100%',
     },
     gradient: {
         flex: 1,
         justifyContent: 'flex-end',
         padding: 24,
-        paddingBottom: 50,
+        paddingBottom: Platform.OS === 'android' ? 40 : 50,
     },
     content: {
         gap: 16,
@@ -115,11 +120,17 @@ const styles = StyleSheet.create({
         paddingVertical: 18,
         borderRadius: 16,
         gap: 8,
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 8,
+        ...Platform.select({
+            ios: {
+                shadowColor: Colors.primary,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 10,
+            },
+            android: {
+                elevation: 8,
+            }
+        }),
     },
     buttonText: {
         color: '#FFF',
@@ -127,3 +138,4 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
 });
+
