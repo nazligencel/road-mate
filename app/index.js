@@ -122,14 +122,6 @@ export default function LoginScreen() {
                 style={styles.backgroundImage}
                 resizeMode="cover"
             >
-                {/* ... (Overlay & Gradient code remains same, skipping for brevity in replacement if unchanged) ... */}
-                {/* Actually I need to match valid block. Let's start replacement from return to social grid for context, or just insert functions before return and update buttons. */}
-                {/* Best to use multiple chunks or a focused replace for buttons if I insert functions earlier. */}
-                {/* I will replace the component body to insert functions safely before return. */}
-                {/* Wait, simple replace of social grid area + insert functions is hard in one block if they are far apart. */}
-                {/* I will insert functions before 'return' and then update the Social Grid structure. */}
-                {/* Actually I'll use multi_replace for cleaner edits. */}
-
                 {/* Vibrant Overlay */}
                 <LinearGradient
                     colors={['rgba(74, 122, 140, 0.4)', 'rgba(13, 26, 31, 0.7)', 'rgba(13, 26, 31, 0.9)']}
@@ -150,7 +142,6 @@ export default function LoginScreen() {
 
                         {/* Logo Area */}
                         <View style={styles.logoArea}>
-                            {/* User requested to keep the logo design (Tent/RV Hookup style) from previous or as specified */}
                             <View style={styles.logoBox}>
                                 <Tent color="#FFF" size={32} strokeWidth={2.5} />
                             </View>
@@ -168,10 +159,9 @@ export default function LoginScreen() {
                             {/* Social Buttons */}
                             <View style={styles.socialGrid}>
                                 <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
-                                    {/* Google G Color Logo Image with Rotation */}
                                     <View style={{ marginRight: 12 }}>
                                         <Image
-                                            source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/768px-Google_%22G%22_logo.svg.png' }}
+                                            source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }}
                                             style={{ width: 24, height: 24 }}
                                             resizeMode="contain"
                                         />
@@ -179,10 +169,9 @@ export default function LoginScreen() {
                                     <Text style={styles.socialButtonText}>Google</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity style={styles.socialButton} onPress={handleAppleLogin}>
-                                    {/* Realistic Apple Logo Image with Rotation */}
                                     <View style={{ marginRight: 12 }}>
                                         <Image
-                                            source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Apple_logo_white.svg/1200px-Apple_logo_white.svg.png' }}
+                                            source={{ uri: 'https://img.icons8.com/ios-filled/50/ffffff/mac-os.png' }}
                                             style={{ width: 24, height: 24 }}
                                             resizeMode="contain"
                                         />

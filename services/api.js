@@ -1,9 +1,7 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-// Professional IP Detection: 
-// 10.0.2.2 is the special IP for Android Emulator to access host's localhost
-// For physical devices, we use the debugger host's IP address
+
 const getApiUrl = () => {
     // 1. Get the IP address of the machine running the Expo server
     const debuggerHost = Constants.expoConfig?.hostUri;

@@ -17,7 +17,7 @@ export default {
             supportsTablet: true,
             bundleIdentifier: "com.nazligencel.roadmate",
             config: {
-                googleMapsApiKey: process.env.GOOGLE_MAPS_IOS_API_KEY
+                googleMapsApiKey: process.env.GOOGLE_MAPS_IOS_KEY
             },
             infoPlist: {
                 NSLocationWhenInUseUsageDescription: "Uygulama, yakındaki nomadları görebilmeniz için konumunuza ihtiyaç duyar."
@@ -27,7 +27,7 @@ export default {
             package: "com.nazligencel.roadmate",
             config: {
                 googleMaps: {
-                    apiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY
+                    apiKey: process.env.GOOGLE_MAPS_ANDROID_KEY
                 }
             },
             adaptiveIcon: {
@@ -49,9 +49,10 @@ export default {
             [
                 "expo-location",
                 {
-                    locationAlwaysAndWhenInUsePermission: "Uygulama, yakındaki nomadları görebilmeniz için konumunuza ihtiyaç duyar."
+                    locationAlwaysAndWhenInUsePermission: "Allow Road Mate to access your location to find nearby nomads."
                 }
-            ]
+            ],
+            "@react-native-google-signin/google-signin"
         ]
     }
 };
