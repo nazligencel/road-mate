@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Dimensions, ImageBackground, Pressable, Image } from 'react-native';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Dimensions, ImageBackground, Pressable, Image, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Colors } from '../constants/Colors';
-import { Utils } from 'lucide-react-native'; // Clean up if needed, but for now just swapping
 import { Mail, ArrowRight, Home, Apple, Tent, Compass, Droplets, Mountain } from 'lucide-react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -18,6 +18,24 @@ const ADVENTURE_THEME = {
 };
 
 export default function LoginScreen() {
+    const shimmerValue = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.timing(shimmerValue, {
+                toValue: 1,
+                duration: 2000,
+                easing: Easing.linear,
+                useNativeDriver: true,
+            })
+        ).start();
+    }, []);
+
+    const shimmerTranslate = shimmerValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-width, width] // Move across the screen width (or slightly less, sufficient to cross button)
+    });
+
     const handleLogin = () => {
         router.replace('/(tabs)/home');
     };
@@ -103,12 +121,39 @@ export default function LoginScreen() {
                                 <View style={styles.dividerLine} />
                             </View>
 
-                            {/* Email Login Button */}
+                            {/* Email Login Button with Animated Neon Gradient */}
                             <TouchableOpacity
-                                style={styles.loginButton}
                                 onPress={handleLogin}
+                                activeOpacity={0.8}
+                                style={styles.loginBtnContainer}
                             >
-                                <Text style={styles.loginButtonText}>Login with Email</Text>
+                                <View style={styles.loginButtonWrapper}>
+                                    <LinearGradient
+                                        colors={['#4A7A8C', '#45e3ff']}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                        style={styles.loginButton}
+                                    >
+                                        <Text style={styles.loginButtonText}>Login with Email</Text>
+                                    </LinearGradient>
+
+                                    {/* Shimmer Effect Overlay */}
+                                    <Animated.View
+                                        style={[
+                                            StyleSheet.absoluteFill,
+                                            {
+                                                transform: [{ translateX: shimmerTranslate }]
+                                            }
+                                        ]}
+                                    >
+                                        <LinearGradient
+                                            colors={['transparent', 'rgba(255,255,255,0.4)', 'transparent']}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                            style={{ flex: 1 }}
+                                        />
+                                    </Animated.View>
+                                </View>
                             </TouchableOpacity>
 
                             {/* Footer Links */}
@@ -269,24 +314,36 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         letterSpacing: 4,
     },
-    loginButton: {
+    loginBtnContainer: {
+        width: '100%',
+        shadowColor: '#45e3ff',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    loginButtonWrapper: {
         width: '100%',
         height: 64,
-        backgroundColor: ADVENTURE_THEME.primary,
         borderRadius: 16,
+        overflow: 'hidden', // Masks the shimmer
+    },
+    loginButton: {
+        width: '100%',
+        height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: ADVENTURE_THEME.primary,
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.4,
-        shadowRadius: 20,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderColor: 'rgba(255,255,255,0.3)',
+        borderRadius: 16, // Ensure border radius matches wrapper
     },
     loginButtonText: {
         color: '#FFF',
         fontSize: 18,
         fontWeight: 'bold',
+        textShadowColor: 'rgba(0, 0, 0, 0.2)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
     },
     footer: {
         alignItems: 'center',
