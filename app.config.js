@@ -1,0 +1,57 @@
+import 'dotenv/config';
+
+export default {
+    expo: {
+        name: "road-mate",
+        slug: "road-mate",
+        version: "1.0.0",
+        orientation: "portrait",
+        icon: "./assets/icon.png",
+        userInterfaceStyle: "light",
+        splash: {
+            image: "./assets/splash-icon.png",
+            resizeMode: "contain",
+            backgroundColor: "#ffffff"
+        },
+        ios: {
+            supportsTablet: true,
+            bundleIdentifier: "com.nazligencel.roadmate",
+            config: {
+                googleMapsApiKey: process.env.GOOGLE_MAPS_IOS_API_KEY
+            },
+            infoPlist: {
+                NSLocationWhenInUseUsageDescription: "Uygulama, yakındaki nomadları görebilmeniz için konumunuza ihtiyaç duyar."
+            }
+        },
+        android: {
+            package: "com.nazligencel.roadmate",
+            config: {
+                googleMaps: {
+                    apiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY
+                }
+            },
+            adaptiveIcon: {
+                foregroundImage: "./assets/adaptive-icon.png",
+                backgroundColor: "#ffffff"
+            },
+            permissions: [
+                "ACCESS_COARSE_LOCATION",
+                "ACCESS_FINE_LOCATION"
+            ],
+            edgeToEdgeEnabled: true
+        },
+        web: {
+            favicon: "./assets/favicon.png"
+        },
+        scheme: "road-mate",
+        plugins: [
+            "expo-router",
+            [
+                "expo-location",
+                {
+                    locationAlwaysAndWhenInUsePermission: "Uygulama, yakındaki nomadları görebilmeniz için konumunuza ihtiyaç duyar."
+                }
+            ]
+        ]
+    }
+};

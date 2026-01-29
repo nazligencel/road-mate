@@ -10,10 +10,21 @@ import { NomadService } from '../../services/api';
 
 const { width, height } = Dimensions.get('window');
 
-const MAP_MARKERS = [
-    { id: 1, type: 'nomad', name: 'Selin', distance: '2.4 km', coordinate: { latitude: 37.0322, longitude: 28.3242 }, image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80' },
-    { id: 2, type: 'mechanic', name: 'Jake\'s Garage', distance: '5mi', coordinate: { latitude: 37.0422, longitude: 28.3142 } },
-    { id: 3, type: 'market', name: 'Bio Store', distance: '8mi', coordinate: { latitude: 37.0222, longitude: 28.3342 } },
+
+
+const MECHANICS = [
+    { id: 101, name: "Jake's Garage", type: 'mechanic', distance: '3.2 km', coordinate: { latitude: 37.0422, longitude: 28.3142 }, image: 'https://images.unsplash.com/photo-1487754180477-db33d3d63b0a?w=100&q=80', status: 'Open', vehicle: 'Repair', vehicle_model: 'All Types' },
+    { id: 102, name: "AutoFix Center", type: 'mechanic', distance: '5.5 km', coordinate: { latitude: 37.0122, longitude: 28.3442 }, image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=100&q=80', status: 'Closed', vehicle: 'Service', vehicle_model: 'Engine Specialist' },
+];
+
+const MARKETS = [
+    { id: 201, name: "Bio Store", type: 'market', distance: '1.8 km', coordinate: { latitude: 37.0222, longitude: 28.3342 }, image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100&q=80', status: 'Open 24/7', vehicle: 'Groceries', vehicle_model: 'Organic' },
+    { id: 202, name: "City Supermarket", type: 'market', distance: '4.0 km', coordinate: { latitude: 37.0522, longitude: 28.3042 }, image: 'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?w=100&q=80', status: 'Open', vehicle: 'Supplies', vehicle_model: 'General' },
+];
+
+const FUEL_STATIONS = [
+    { id: 301, name: "Shell Station", type: 'fuel', distance: '2.5 km', coordinate: { latitude: 37.0352, longitude: 28.3152 }, image: 'https://images.unsplash.com/photo-1545459720-aac3e5c2fa0c?w=100&q=80', status: 'Open 24/7', vehicle: 'Fuel', vehicle_model: 'Diesel/Petrol' },
+    { id: 302, name: "BP Express", type: 'fuel', distance: '6.2 km', coordinate: { latitude: 37.0152, longitude: 28.3552 }, image: 'https://images.unsplash.com/photo-1626847037657-fd3622613ce3?w=100&q=80', status: 'Open', vehicle: 'Fuel', vehicle_model: 'EV Charging' },
 ];
 
 const NEARBY_NOMADS = [
@@ -21,34 +32,37 @@ const NEARBY_NOMADS = [
         id: 1,
         name: 'Selin',
         distance: '2.4 km',
-        status: 'Şu an çevrimiçi',
+        status: 'Active',
         vehicle: '4x4 Off-road',
         vehicleModel: 'VW Transporter T4',
-        route: 'Kuzey (Akyaka)',
+        route: 'North (Akyaka)',
         image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80',
-        coordinate: { latitude: 37.0322, longitude: 28.3242 }
+        coordinate: { latitude: 37.0322, longitude: 28.3242 },
+        type: 'nomad'
     },
     {
         id: 2,
         name: 'Jax',
         distance: '5.1 km',
-        status: 'Çevrimdışı',
+        status: 'Offline',
         vehicle: 'Ford Transit',
         vehicleModel: 'Ford Transit Custom',
-        route: 'Güney (Kaş)',
+        route: 'South (Kaş)',
         image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&q=80',
-        coordinate: { latitude: 37.0422, longitude: 28.3142 }
+        coordinate: { latitude: 37.0422, longitude: 28.3142 },
+        type: 'nomad'
     },
     {
         id: 3,
         name: 'Sage',
         distance: '8.2 km',
-        status: 'Şu an çevrimiçi',
+        status: 'Active',
         vehicle: 'Vanagon',
         vehicleModel: 'VW Westfalia',
-        route: 'Batı (Urla)',
+        route: 'West (Urla)',
         image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&q=80',
-        coordinate: { latitude: 37.0222, longitude: 28.3342 }
+        coordinate: { latitude: 37.0222, longitude: 28.3342 },
+        type: 'nomad'
     },
 ];
 
@@ -290,8 +304,9 @@ export default function ExploreScreen() {
     const [selectedNomad, setSelectedNomad] = useState(null);
     const [location, setLocation] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [nearbyNomads, setNearbyNomads] = useState(NEARBY_NOMADS);
+    const [nearbyNomads, setNearbyNomads] = useState(NEARBY_NOMADS); // This acts as the "Active List"
     const [isFetching, setIsFetching] = useState(false);
+    const [activeCategory, setActiveCategory] = useState('nomads'); // nomads, mechanics, markets, fuel
 
     useEffect(() => {
         let locationSubscription = null;
@@ -313,15 +328,21 @@ export default function ExploreScreen() {
                             if (!isFetching) {
                                 setIsFetching(true);
                                 try {
-                                    const nomads = await NomadService.getNearbyNomads(
-                                        newLocation.coords.latitude,
-                                        newLocation.coords.longitude
-                                    );
-                                    if (nomads && Array.isArray(nomads) && nomads.length > 0) {
-                                        setNearbyNomads(nomads);
+                                    // Fetch nomads if category is nomads
+                                    if (activeCategory === 'nomads') {
+                                        const nomads = await NomadService.getNearbyNomads(
+                                            newLocation.coords.latitude,
+                                            newLocation.coords.longitude
+                                        );
+                                        if (nomads && Array.isArray(nomads) && nomads.length > 0) {
+                                            setNearbyNomads(nomads);
+                                        } else {
+                                            setNearbyNomads(NEARBY_NOMADS);
+                                        }
                                     }
                                 } catch (e) {
                                     console.log("API not reached, using dummy data");
+                                    setNearbyNomads(NEARBY_NOMADS);
                                 } finally {
                                     setIsFetching(false);
                                 }
@@ -355,6 +376,27 @@ export default function ExploreScreen() {
         Linking.openURL(url);
     };
 
+    const handleCategoryChange = (category) => {
+        setActiveCategory(category);
+        // Switch data source based on category
+        switch (category) {
+            case 'nomads':
+                setNearbyNomads(NEARBY_NOMADS);
+                break;
+            case 'mechanics':
+                setNearbyNomads(MECHANICS);
+                break;
+            case 'markets':
+                setNearbyNomads(MARKETS);
+                break;
+            case 'fuel':
+                setNearbyNomads(FUEL_STATIONS);
+                break;
+            default:
+                setNearbyNomads(NEARBY_NOMADS);
+        }
+    };
+
     const initialRegion = {
         latitude: location?.coords?.latitude || 37.0322,
         longitude: location?.coords?.longitude || 28.3242,
@@ -367,7 +409,7 @@ export default function ExploreScreen() {
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={Colors.primary} />
-                    <Text style={styles.loadingText}>Harita Yükleniyor...</Text>
+                    <Text style={styles.loadingText}>Loading Map...</Text>
                 </View>
             ) : (
                 <MapView
@@ -379,35 +421,44 @@ export default function ExploreScreen() {
                     showsMyLocationButton={false}
                     toolbarEnabled={false}
                 >
-                    {MAP_MARKERS.filter(m => m.type !== 'nomad' && m.coordinate?.latitude && m.coordinate?.longitude).map((marker) => (
-                        <Marker
-                            key={`extra-${marker.id}`}
-                            coordinate={marker.coordinate}
-                        >
-                            <View style={styles.customMarker}>
-                                <View style={[styles.markerPointer, { backgroundColor: marker.type === 'mechanic' ? Colors.primary : Colors.secondary }]}>
-                                    {marker.type === 'mechanic' ? <Wrench size={14} color="#FFF" /> : <ShoppingCart size={14} color="#FFF" />}
-                                </View>
-                                <View style={styles.markerLabel}>
-                                    <Text style={styles.markerText}>{marker.name}</Text>
-                                </View>
-                            </View>
-                        </Marker>
-                    ))}
+
 
                     {nearbyNomads.map((marker) => {
                         const coord = marker.coordinate || { latitude: marker.latitude, longitude: marker.longitude };
                         if (!coord.latitude || !coord.longitude) return null;
 
+                        let MarkerIcon = null;
+                        let iconBg = Colors.primary;
+
+                        if (activeCategory === 'nomads') {
+                            // Use image for nomads
+                        } else if (activeCategory === 'mechanics') {
+                            MarkerIcon = <Wrench size={16} color="#FFF" />;
+                            iconBg = '#ef4444'; // Red for mech
+                        } else if (activeCategory === 'markets') {
+                            MarkerIcon = <ShoppingCart size={16} color="#FFF" />;
+                            iconBg = '#22c55e'; // Green for market
+                        } else if (activeCategory === 'fuel') {
+                            MarkerIcon = <Fuel size={16} color="#FFF" />;
+                            iconBg = '#f59e0b'; // Orange for fuel
+                        }
+
                         return (
                             <Marker
-                                key={`nomad-${marker.id}`}
+                                key={`${activeCategory}-${marker.id}`}
                                 coordinate={coord}
                                 onPress={() => setSelectedNomad(marker)}
                             >
                                 <View style={styles.customMarker}>
-                                    <View style={styles.markerPointer}>
-                                        <Image source={{ uri: marker.image || 'https://via.placeholder.com/100' }} style={styles.markerAvatar} />
+                                    <View style={[
+                                        styles.markerPointer,
+                                        { backgroundColor: activeCategory === 'nomads' ? '#FFF' : iconBg, borderColor: activeCategory === 'nomads' ? Colors.primary : '#FFF' }
+                                    ]}>
+                                        {activeCategory === 'nomads' ? (
+                                            <Image source={{ uri: marker.image || 'https://via.placeholder.com/100' }} style={styles.markerAvatar} />
+                                        ) : (
+                                            MarkerIcon
+                                        )}
                                     </View>
                                     <View style={styles.markerLabel}>
                                         <Text style={styles.markerText}>{marker.name}</Text>
@@ -423,7 +474,7 @@ export default function ExploreScreen() {
                 <View style={styles.searchContainer}>
                     <Search size={20} color={Colors.textSecondary} style={styles.searchIcon} />
                     <TextInput
-                        placeholder="Nomad, mekan ara..."
+                        placeholder="Search nomads, places..."
                         placeholderTextColor={Colors.textSecondary}
                         style={styles.searchInput}
                     />
@@ -436,30 +487,42 @@ export default function ExploreScreen() {
                 </View>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-                    <TouchableOpacity style={[styles.filterChip, styles.activeChip]}>
-                        <Zap size={14} color="#FFF" />
-                        <Text style={styles.chipText}>Nomadlar</Text>
+                    <TouchableOpacity
+                        style={[styles.filterChip, activeCategory === 'nomads' && styles.activeChip]}
+                        onPress={() => handleCategoryChange('nomads')}
+                    >
+                        <Zap size={14} color={activeCategory === 'nomads' ? '#FFF' : Colors.textSecondary} />
+                        <Text style={[styles.chipText, activeCategory !== 'nomads' && { color: Colors.textSecondary }]}>Nomads</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.filterChip}>
-                        <Wrench size={14} color={Colors.textSecondary} />
-                        <Text style={[styles.chipText, { color: Colors.textSecondary }]}>Tamirciler</Text>
+                    <TouchableOpacity
+                        style={[styles.filterChip, activeCategory === 'mechanics' && styles.activeChip]}
+                        onPress={() => handleCategoryChange('mechanics')}
+                    >
+                        <Wrench size={14} color={activeCategory === 'mechanics' ? '#FFF' : Colors.textSecondary} />
+                        <Text style={[styles.chipText, activeCategory !== 'mechanics' && { color: Colors.textSecondary }]}>Mechanics</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.filterChip}>
-                        <ShoppingCart size={14} color={Colors.textSecondary} />
-                        <Text style={[styles.chipText, { color: Colors.textSecondary }]}>Marketler</Text>
+                    <TouchableOpacity
+                        style={[styles.filterChip, activeCategory === 'markets' && styles.activeChip]}
+                        onPress={() => handleCategoryChange('markets')}
+                    >
+                        <ShoppingCart size={14} color={activeCategory === 'markets' ? '#FFF' : Colors.textSecondary} />
+                        <Text style={[styles.chipText, activeCategory !== 'markets' && { color: Colors.textSecondary }]}>Markets</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.filterChip}>
-                        <Fuel size={14} color={Colors.textSecondary} />
-                        <Text style={[styles.chipText, { color: Colors.textSecondary }]}>Yakıt</Text>
+                    <TouchableOpacity
+                        style={[styles.filterChip, activeCategory === 'fuel' && styles.activeChip]}
+                        onPress={() => handleCategoryChange('fuel')}
+                    >
+                        <Fuel size={14} color={activeCategory === 'fuel' ? '#FFF' : Colors.textSecondary} />
+                        <Text style={[styles.chipText, activeCategory !== 'fuel' && { color: Colors.textSecondary }]}>Fuel</Text>
                     </TouchableOpacity>
                 </ScrollView>
             </SafeAreaView>
 
             <View style={styles.bottomArea}>
                 <View style={styles.bottomHeader}>
-                    <Text style={styles.bottomTitle}>Yakındakiler</Text>
+                    <Text style={styles.bottomTitle}>Nearby</Text>
                     <TouchableOpacity>
-                        <Text style={styles.seeAllText}>Hepsini Gör</Text>
+                        <Text style={styles.seeAllText}>See All</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -497,7 +560,7 @@ export default function ExploreScreen() {
                                         onPress={() => handleGetDirections(nomadLat, nomadLng, nomad.name)}
                                     >
                                         <Navigation size={14} color={Colors.primary} fill={Colors.primary} />
-                                        <Text style={styles.navBtnText}>Yol Tarifi</Text>
+                                        <Text style={styles.navBtnText}>Get Directions</Text>
                                     </TouchableOpacity>
                                 </View>
                             </TouchableOpacity>
@@ -530,9 +593,9 @@ export default function ExploreScreen() {
                                         <View style={[styles.detailOnlineStatus, { backgroundColor: Colors.online }]} />
                                     </View>
                                     <View style={styles.detailTitleInfo}>
-                                        <Text style={styles.detailName}>{selectedNomad.name || 'Gezgin'}</Text>
+                                        <Text style={styles.detailName}>{selectedNomad.name || 'Nomad'}</Text>
                                         <Text style={styles.detailSubInfo}>
-                                            {selectedNomad.status || 'Aktif'} • {
+                                            {selectedNomad.status || 'Active'} • {
                                                 typeof selectedNomad.distance === 'number'
                                                     ? selectedNomad.distance.toFixed(1) + ' km'
                                                     : (selectedNomad.distance || '?.? km')
@@ -545,14 +608,14 @@ export default function ExploreScreen() {
                                 </View>
                                 <View style={styles.infoCardsRow}>
                                     <View style={styles.infoCard}>
-                                        <Text style={styles.infoCardLabel}>KARAVAN</Text>
+                                        <Text style={styles.infoCardLabel}>VEHICLE</Text>
                                         <Text style={styles.infoCardValue}>
-                                            {selectedNomad.vehicle_model || selectedNomad.vehicleModel || 'Karavan'}
+                                            {selectedNomad.vehicle_model || selectedNomad.vehicleModel || 'Caravan'}
                                         </Text>
                                     </View>
                                     <View style={styles.infoCard}>
-                                        <Text style={styles.infoCardLabel}>ROTA</Text>
-                                        <Text style={styles.infoCardValue}>{selectedNomad.route || 'Belirtilmedi'}</Text>
+                                        <Text style={styles.infoCardLabel}>ROUTE</Text>
+                                        <Text style={styles.infoCardValue}>{selectedNomad.route || 'Not specified'}</Text>
                                     </View>
                                 </View>
                                 <TouchableOpacity
@@ -560,11 +623,11 @@ export default function ExploreScreen() {
                                     onPress={() => {
                                         console.log("Create Meeting Point clicked");
                                         // Placeholder for future logic
-                                        alert(`${selectedNomad.name} ile buluşma noktası oluşturuluyor...`);
+                                        alert(`Creating meeting point with ${selectedNomad.name}...`);
                                     }}
                                 >
                                     <MapPin size={24} color="#0C1210" />
-                                    <Text style={styles.mainActionBtnText}>Buluşma Noktası Oluştur</Text>
+                                    <Text style={styles.mainActionBtnText}>Create Meeting Point</Text>
                                 </TouchableOpacity>
                             </View>
                         )}

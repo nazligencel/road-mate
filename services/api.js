@@ -5,23 +5,29 @@ import { Platform } from 'react-native';
 // 10.0.2.2 is the special IP for Android Emulator to access host's localhost
 // For physical devices, we use the debugger host's IP address
 const getApiUrl = () => {
+    // 1. Get the IP address of the machine running the Expo server
     const debuggerHost = Constants.expoConfig?.hostUri;
     const localhost = debuggerHost ? debuggerHost.split(':')[0] : 'localhost';
 
-    const ip = Platform.OS === 'android' && localhost === 'localhost'
-        ? '10.0.2.2'
-        : localhost;
+    // 2. Determine base URL based on platform
+    let ip = localhost;
 
-    return `http://${ip}:5000/api`;
+    // Android Emulator special IP
+    if (Platform.OS === 'android' && (ip === 'localhost' || ip === '127.0.0.1')) {
+        ip = '10.0.2.2';
+    }
+
+    // 3. Return full URL with Java Spring Boot Port (5000)
+    return `http://${ip}:5000`;
 };
 
-const API_URL = getApiUrl();
-console.log('📡 API URL set to:', API_URL);
+export const BASE_URL = getApiUrl();
+console.log('📡 BASE URL set to:', BASE_URL);
 
 export const NomadService = {
     async getNearbyNomads(lat, lng) {
         try {
-            const response = await fetch(`${API_URL}/nearby-nomads?lat=${lat}&lng=${lng}`);
+            const response = await fetch(`${BASE_URL}/api/nearby-nomads?lat=${lat}&lng=${lng}`);
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 console.error(`❌ Fetch Nomads Failed (${response.status}):`, errorData);
@@ -36,7 +42,7 @@ export const NomadService = {
 
     async updateLocation(userId, lat, lng) {
         try {
-            const response = await fetch(`${API_URL}/update-location`, {
+            const response = await fetch(`${BASE_URL}/api/update-location`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, latitude: lat, longitude: lng }),

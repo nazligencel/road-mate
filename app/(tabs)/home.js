@@ -203,7 +203,7 @@ export default function HomeScreen() {
                                 <Text style={styles.nomadName}>{nomad.name} • {typeof nomad.distance === 'number' ? nomad.distance.toFixed(1) + 'km' : nomad.distance}</Text>
                             </TouchableOpacity>
                         )) : (
-                            <Text style={{ color: Colors.textSecondary, marginLeft: 20 }}>Yakınlarda kimse yok...</Text>
+                            <Text style={{ color: Colors.textSecondary, marginLeft: 20 }}>No one nearby...</Text>
                         )}
                     </ScrollView>
                 </View>

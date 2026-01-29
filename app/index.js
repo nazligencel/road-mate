@@ -17,10 +17,23 @@ const ADVENTURE_THEME = {
     oceanMute: '#162830'
 };
 
+import * as Location from 'expo-location';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { AuthService } from '../services/AuthService';
+
+// ... (existing imports)
+
 export default function LoginScreen() {
     const shimmerValue = useRef(new Animated.Value(0)).current;
+    const [weather, setWeather] = useState(null);
 
     useEffect(() => {
+        GoogleSignin.configure({
+            webClientId: '458787731751-76itfab6udafkf3l02t5jbstcdks374a.apps.googleusercontent.com',
+            offlineAccess: true
+        });
+
+        // Animation Loop
         Animated.loop(
             Animated.timing(shimmerValue, {
                 toValue: 1,
@@ -29,15 +42,77 @@ export default function LoginScreen() {
                 useNativeDriver: true,
             })
         ).start();
+
+        // Fetch Weather
+        (async () => {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                setWeather('ERR');
+                return;
+            }
+
+            let location = await Location.getCurrentPositionAsync({});
+            try {
+                const response = await fetch(
+                    `https://api.open-meteo.com/v1/forecast?latitude=${location.coords.latitude}&longitude=${location.coords.longitude}&current_weather=true`
+                );
+                const data = await response.json();
+                if (data.current_weather) {
+                    setWeather(Math.round(data.current_weather.temperature));
+                }
+            } catch (error) {
+                console.log(error);
+                setWeather('N/A');
+            }
+        })();
     }, []);
 
     const shimmerTranslate = shimmerValue.interpolate({
         inputRange: [0, 1],
-        outputRange: [-width, width] // Move across the screen width (or slightly less, sufficient to cross button)
+        outputRange: [-width, width]
     });
 
     const handleLogin = () => {
         router.replace('/(tabs)/home');
+    };
+
+
+
+    const handleGoogleLogin = async () => {
+        try {
+            console.log("Google Login Initiated");
+            await GoogleSignin.hasPlayServices();
+            const userInfo = await GoogleSignin.signIn();
+            console.log("Google User Info:", userInfo);
+
+            // Send token to backend
+            const response = await AuthService.googleLogin(userInfo.idToken);
+            console.log("Backend Auth Response:", response);
+
+            if (response.token) {
+                router.replace('/(tabs)/home');
+            }
+        } catch (error) {
+            if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+                console.log("User cancelled the login flow");
+            } else if (error.code === statusCodes.IN_PROGRESS) {
+                console.log("Sign in is in progress");
+            } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+                console.log("Play services not available or outdated");
+            } else {
+                console.error("Some other error happened:", error);
+                alert("Login Failed: " + error.message);
+            }
+        }
+    };
+
+    const handleAppleLogin = () => {
+        console.log("Apple Login Initiated");
+        // TODO: Integration Steps (Apple):
+        // 1. Install 'expo-apple-authentication' package.
+        // 2. Use AppleAuthentication.signInAsync() method.
+        // 3. Works correctly on iOS devices only.
+        alert("Apple Login coming soon!");
     };
 
     return (
@@ -47,6 +122,14 @@ export default function LoginScreen() {
                 style={styles.backgroundImage}
                 resizeMode="cover"
             >
+                {/* ... (Overlay & Gradient code remains same, skipping for brevity in replacement if unchanged) ... */}
+                {/* Actually I need to match valid block. Let's start replacement from return to social grid for context, or just insert functions before return and update buttons. */}
+                {/* Best to use multiple chunks or a focused replace for buttons if I insert functions earlier. */}
+                {/* I will replace the component body to insert functions safely before return. */}
+                {/* Wait, simple replace of social grid area + insert functions is hard in one block if they are far apart. */}
+                {/* I will insert functions before 'return' and then update the Social Grid structure. */}
+                {/* Actually I'll use multi_replace for cleaner edits. */}
+
                 {/* Vibrant Overlay */}
                 <LinearGradient
                     colors={['rgba(74, 122, 140, 0.4)', 'rgba(13, 26, 31, 0.7)', 'rgba(13, 26, 31, 0.9)']}
@@ -56,18 +139,12 @@ export default function LoginScreen() {
 
                         {/* Status Bar */}
                         <View style={styles.statusBarMock}>
-                            <View style={styles.signalContainer}>
-                                <Text style={styles.statusLabel}>SIGNAL</Text>
-                                <View style={styles.signalBars}>
-                                    <View style={[styles.bar, { height: 6 }]} />
-                                    <View style={[styles.bar, { height: 9 }]} />
-                                    <View style={[styles.bar, { height: 12 }]} />
-                                    <View style={[styles.bar, { height: 16, backgroundColor: 'rgba(255,255,255,0.4)' }]} />
-                                </View>
-                            </View>
+                            {/* Signal Removed as requested */}
+                            <View />
+
                             <View style={styles.tempContainer}>
-                                <Text style={styles.statusLabel}>CURRENT TEMP</Text>
-                                <Text style={styles.tempText}>54°F</Text>
+                                <Text style={styles.statusLabel}>TEMP</Text>
+                                <Text style={styles.tempText}>{weather !== null ? `${weather}°C` : '...'}</Text>
                             </View>
                         </View>
 
@@ -90,7 +167,7 @@ export default function LoginScreen() {
 
                             {/* Social Buttons */}
                             <View style={styles.socialGrid}>
-                                <TouchableOpacity style={styles.socialButton}>
+                                <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
                                     {/* Google G Color Logo Image with Rotation */}
                                     <View style={{ marginRight: 12 }}>
                                         <Image
@@ -101,7 +178,7 @@ export default function LoginScreen() {
                                     </View>
                                     <Text style={styles.socialButtonText}>Google</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity style={styles.socialButton}>
+                                <TouchableOpacity style={styles.socialButton} onPress={handleAppleLogin}>
                                     {/* Realistic Apple Logo Image with Rotation */}
                                     <View style={{ marginRight: 12 }}>
                                         <Image
