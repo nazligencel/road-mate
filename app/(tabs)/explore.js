@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, TextInput, ScrollView, Platform, Modal, ActivityIndicator, Linking } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Colors } from '../../constants/Colors';
-import { Search, Filter, Compass, Navigation, Zap, Wrench, ShoppingCart, Fuel, MessageSquare, ArrowUpRight, Car, X } from 'lucide-react-native';
+import { Search, Filter, Compass, Navigation, Zap, Wrench, ShoppingCart, Fuel, MessageSquare, ArrowUpRight, Car, X, MapPin } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { NomadService } from '../../services/api';
@@ -53,15 +53,237 @@ const NEARBY_NOMADS = [
 ];
 
 const mapStyle = [
-    { "elementType": "geometry", "stylers": [{ "color": "#05080a" }] },
-    { "elementType": "labels.text.fill", "stylers": [{ "color": "#475569" }] },
-    { "elementType": "labels.text.stroke", "stylers": [{ "color": "#020617" }] },
-    { "featureType": "administrative.locality", "elementType": "labels.text.fill", "stylers": [{ "color": "#64748b" }] },
-    { "featureType": "poi", "stylers": [{ "visibility": "off" }] },
-    { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
-    { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#475569" }] },
-    { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#334155" }] },
-    { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#020617" }] }
+    {
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#1d2c4d"
+            }
+        ]
+    },
+    {
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#8ec3b9"
+            }
+        ]
+    },
+    {
+        "elementType": "labels.text.stroke",
+        "stylers": [
+            {
+                "color": "#1a3646"
+            }
+        ]
+    },
+    {
+        "featureType": "administrative.country",
+        "elementType": "geometry.stroke",
+        "stylers": [
+            {
+                "color": "#4b6878"
+            }
+        ]
+    },
+    {
+        "featureType": "administrative.land_parcel",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#64779e"
+            }
+        ]
+    },
+    {
+        "featureType": "administrative.province",
+        "elementType": "geometry.stroke",
+        "stylers": [
+            {
+                "color": "#4b6878"
+            }
+        ]
+    },
+    {
+        "featureType": "landscape.man_made",
+        "elementType": "geometry.stroke",
+        "stylers": [
+            {
+                "color": "#334e87"
+            }
+        ]
+    },
+    {
+        "featureType": "landscape.natural",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#023e58"
+            }
+        ]
+    },
+    {
+        "featureType": "poi",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#283d6a"
+            }
+        ]
+    },
+    {
+        "featureType": "poi",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#6f9ba5"
+            }
+        ]
+    },
+    {
+        "featureType": "poi",
+        "elementType": "labels.text.stroke",
+        "stylers": [
+            {
+                "color": "#1d2c4d"
+            }
+        ]
+    },
+    {
+        "featureType": "poi.park",
+        "elementType": "geometry.fill",
+        "stylers": [
+            {
+                "color": "#023e58"
+            }
+        ]
+    },
+    {
+        "featureType": "poi.park",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#3C7680"
+            }
+        ]
+    },
+    {
+        "featureType": "road",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#304a7d"
+            }
+        ]
+    },
+    {
+        "featureType": "road",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#98a5be"
+            }
+        ]
+    },
+    {
+        "featureType": "road",
+        "elementType": "labels.text.stroke",
+        "stylers": [
+            {
+                "color": "#1d2c4d"
+            }
+        ]
+    },
+    {
+        "featureType": "road.highway",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#2c6675"
+            }
+        ]
+    },
+    {
+        "featureType": "road.highway",
+        "elementType": "geometry.stroke",
+        "stylers": [
+            {
+                "color": "#255763"
+            }
+        ]
+    },
+    {
+        "featureType": "road.highway",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#b0d5ce"
+            }
+        ]
+    },
+    {
+        "featureType": "road.highway",
+        "elementType": "labels.text.stroke",
+        "stylers": [
+            {
+                "color": "#023e58"
+            }
+        ]
+    },
+    {
+        "featureType": "transit",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#98a5be"
+            }
+        ]
+    },
+    {
+        "featureType": "transit",
+        "elementType": "labels.text.stroke",
+        "stylers": [
+            {
+                "color": "#1d2c4d"
+            }
+        ]
+    },
+    {
+        "featureType": "transit.line",
+        "elementType": "geometry.fill",
+        "stylers": [
+            {
+                "color": "#283d6a"
+            }
+        ]
+    },
+    {
+        "featureType": "transit.station",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#3a4762"
+            }
+        ]
+    },
+    {
+        "featureType": "water",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#0e1626"
+            }
+        ]
+    },
+    {
+        "featureType": "water",
+        "elementType": "labels.text.fill",
+        "stylers": [
+            {
+                "color": "#4e6d70"
+            }
+        ]
+    }
 ];
 
 export default function ExploreScreen() {
@@ -149,6 +371,7 @@ export default function ExploreScreen() {
                 </View>
             ) : (
                 <MapView
+                    provider={PROVIDER_GOOGLE}
                     style={styles.map}
                     initialRegion={initialRegion}
                     customMapStyle={mapStyle}
@@ -335,13 +558,13 @@ export default function ExploreScreen() {
                                 <TouchableOpacity
                                     style={styles.mainActionBtn}
                                     onPress={() => {
-                                        const nomadLat = selectedNomad.coordinate?.latitude || selectedNomad.latitude;
-                                        const nomadLng = selectedNomad.coordinate?.longitude || selectedNomad.longitude;
-                                        handleGetDirections(nomadLat, nomadLng, selectedNomad.name);
+                                        console.log("Create Meeting Point clicked");
+                                        // Placeholder for future logic
+                                        alert(`${selectedNomad.name} ile buluşma noktası oluşturuluyor...`);
                                     }}
                                 >
-                                    <Navigation size={24} color="#0C1210" fill="#0C1210" />
-                                    <Text style={styles.mainActionBtnText}>Yol Tarifi Al</Text>
+                                    <MapPin size={24} color="#0C1210" />
+                                    <Text style={styles.mainActionBtnText}>Buluşma Noktası Oluştur</Text>
                                 </TouchableOpacity>
                             </View>
                         )}
