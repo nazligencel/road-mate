@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Dimensions, ImageBackground } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Dimensions, ImageBackground, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { User, Mail, Lock, Eye, EyeOff, Tent, ArrowLeft, Compass, Droplets, Mountain } from 'lucide-react-native';
@@ -24,6 +24,26 @@ export default function SignupScreen() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    // Shimmer animation for Sign Up button
+    const shimmerValue = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        const shimmerAnimation = Animated.loop(
+            Animated.timing(shimmerValue, {
+                toValue: 1,
+                duration: 3000,
+                useNativeDriver: true,
+            })
+        );
+        shimmerAnimation.start();
+        return () => shimmerAnimation.stop();
+    }, []);
+
+    const shimmerTranslate = shimmerValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-width, width]
+    });
 
     const handleSignup = async () => {
         if (!name || !email || !password) {
@@ -169,7 +189,28 @@ export default function SignupScreen() {
                                         onPress={handleSignup}
                                         activeOpacity={0.9}
                                     >
-                                        <Text style={styles.primaryBtnText}>{loading ? 'Creating...' : 'Sign Up'}</Text>
+                                        <LinearGradient
+                                            colors={['#4A7A8C', '#45e3ff']}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                            style={styles.primaryBtnGradient}
+                                        >
+                                            <Text style={styles.primaryBtnText}>{loading ? 'Creating...' : 'Sign Up'}</Text>
+                                            {/* Shimmer Effect */}
+                                            <Animated.View
+                                                style={[
+                                                    styles.shimmer,
+                                                    { transform: [{ translateX: shimmerTranslate }] }
+                                                ]}
+                                            >
+                                                <LinearGradient
+                                                    colors={['transparent', 'rgba(255,255,255,0.3)', 'transparent']}
+                                                    start={{ x: 0, y: 0 }}
+                                                    end={{ x: 1, y: 0 }}
+                                                    style={{ width: 80, height: '100%' }}
+                                                />
+                                            </Animated.View>
+                                        </LinearGradient>
                                     </TouchableOpacity>
                                 </View>
 
@@ -382,6 +423,23 @@ const styles = StyleSheet.create({
         marginTop: 8,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.2)',
+        overflow: 'hidden',
+    },
+    primaryBtnGradient: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    shimmer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        overflow: 'hidden',
     },
     primaryBtnText: {
         color: '#FFF',

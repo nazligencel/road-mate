@@ -57,3 +57,26 @@ export const NomadService = {
         }
     }
 };
+
+// Places Service - Calls backend which proxies to Google Places API (API key stays secure on server)
+export const PlacesService = {
+    async getNearbyPlaces(lat, lng, category, radius = 5000) {
+        try {
+            const url = `${BASE_URL}/api/places/nearby?lat=${lat}&lng=${lng}&category=${category}&radius=${radius}`;
+            console.log('📍 Fetching places from backend:', category);
+
+            const response = await fetch(url);
+            if (!response.ok) {
+                console.error(`❌ Places fetch failed (${response.status})`);
+                return [];
+            }
+
+            const places = await response.json();
+            console.log(`✅ Received ${places.length} ${category} from backend`);
+            return places;
+        } catch (error) {
+            console.error('Error fetching places from backend:', error);
+            return [];
+        }
+    }
+};

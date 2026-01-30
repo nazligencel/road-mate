@@ -83,18 +83,20 @@ export default function LoginScreen() {
     const [password, setPassword] = useState('');
 
     const handleLogin = async () => {
-        if (!email || !password) {
-            alert("Lütfen email ve şifre giriniz.");
-            return;
-        }
-
+        // TEMPORARY: Skip authentication for development
+        // TODO: Remove this and use real authentication later
         try {
-            const response = await AuthService.login(email, password);
-            if (response.token) {
-                router.replace('/(tabs)/home');
-            }
+            const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+            await AsyncStorage.setItem('userToken', 'dev-token-123');
+            await AsyncStorage.setItem('userData', JSON.stringify({
+                name: 'Dev User',
+                email: 'dev@roadmate.com'
+            }));
+            console.log("Dev login successful");
+            router.replace('/(tabs)/home');
         } catch (error) {
-            alert("Giriş Hatası: " + error.message);
+            console.error("Login Error:", error);
+            router.replace('/(tabs)/home'); // Navigate anyway for dev
         }
     };
 
