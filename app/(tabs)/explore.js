@@ -302,8 +302,14 @@ const mapStyle = [
 
 export default function ExploreScreen() {
     const [selectedNomad, setSelectedNomad] = useState(null);
-    const [location, setLocation] = useState(null);
-    const [loading, setLoading] = useState(true);
+    // Initialize with default location to prevent white screen if location fetch fails/delays
+    const [location, setLocation] = useState({
+        coords: {
+            latitude: 37.0322,
+            longitude: 28.3242
+        }
+    });
+    const [loading, setLoading] = useState(false); // Do not block UI with loading state
     const [nearbyNomads, setNearbyNomads] = useState(NEARBY_NOMADS); // This acts as the "Active List"
     const [isFetching, setIsFetching] = useState(false);
     const [activeCategory, setActiveCategory] = useState('nomads'); // nomads, mechanics, markets, fuel
@@ -452,7 +458,21 @@ export default function ExploreScreen() {
                                 <View style={styles.customMarker}>
                                     <View style={[
                                         styles.markerPointer,
-                                        { backgroundColor: activeCategory === 'nomads' ? '#FFF' : iconBg, borderColor: activeCategory === 'nomads' ? Colors.primary : '#FFF' }
+                                        {
+                                            backgroundColor: activeCategory === 'nomads' ? '#FFF' : iconBg,
+                                            borderColor: activeCategory === 'nomads'
+                                                ? (marker.status === 'Active' ? Colors.online : Colors.primary) // Neon Green if Online
+                                                : '#FFF',
+                                            // Neon Glow Effect for Online Nomads
+                                            ...(activeCategory === 'nomads' && marker.status === 'Active' && {
+                                                borderWidth: 3, // Slightly thicker
+                                                shadowColor: Colors.online,
+                                                shadowOffset: { width: 0, height: 0 },
+                                                shadowOpacity: 0.9,
+                                                shadowRadius: 10,
+                                                elevation: 15
+                                            })
+                                        }
                                     ]}>
                                         {activeCategory === 'nomads' ? (
                                             <Image source={{ uri: marker.image || 'https://via.placeholder.com/100' }} style={styles.markerAvatar} />

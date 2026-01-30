@@ -1,10 +1,50 @@
-import { Stack } from 'expo-router';
+import { Stack, useSegments, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Colors } from '../constants/Colors';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 export default function RootLayout() {
+    const segments = useSegments();
+    const router = useRouter();
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+        // Initialize Google Sign-In
+        GoogleSignin.configure({
+            webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+            offlineAccess: true
+        });
+    }, []);
+
+    useEffect(() => {
+        if (!isMounted) return;
+
+        const checkAuth = async () => {
+            try {
+                const token = await AsyncStorage.getItem('userToken');
+                const inTabsGroup = segments[0] === '(tabs)';
+
+                if (!token && inTabsGroup) {
+                    // No token, but trying to access tabs -> Redirect to Login
+                    router.replace('/');
+                } else if (token && segments[0] === undefined) {
+                    // Token exists, but on Login screen -> Redirect to Home
+                    // Optional: You can enable this if you want auto-login
+                    // router.replace('/(tabs)/home');
+                }
+            } catch (e) {
+                console.error("Auth Check Error", e);
+            }
+        };
+
+        checkAuth();
+    }, [segments, isMounted]);
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider style={{ backgroundColor: Colors.background }}>

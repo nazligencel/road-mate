@@ -28,11 +28,6 @@ export default function LoginScreen() {
     const [weather, setWeather] = useState(null);
 
     useEffect(() => {
-        GoogleSignin.configure({
-            webClientId: '458787731751-76itfab6udafkf3l02t5jbstcdks374a.apps.googleusercontent.com',
-            offlineAccess: true
-        });
-
         // Animation Loop
         Animated.loop(
             Animated.timing(shimmerValue, {
@@ -67,16 +62,24 @@ export default function LoginScreen() {
         })();
     }, []);
 
-    const shimmerTranslate = shimmerValue.interpolate({
-        inputRange: [0, 1],
-        outputRange: [-width, width]
-    });
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
 
-    const handleLogin = () => {
-        router.replace('/(tabs)/home');
+    const handleLogin = async () => {
+        if (!email || !password) {
+            alert("Lütfen email ve şifre giriniz.");
+            return;
+        }
+
+        try {
+            const response = await AuthService.login(email, password);
+            if (response.token) {
+                router.replace('/(tabs)/home');
+            }
+        } catch (error) {
+            alert("Giriş Hatası: " + error.message);
+        }
     };
-
-
 
     const handleGoogleLogin = async () => {
         try {
@@ -90,6 +93,7 @@ export default function LoginScreen() {
             console.log("Backend Auth Response:", response);
 
             if (response.token) {
+                // AuthService already saves the token
                 router.replace('/(tabs)/home');
             }
         } catch (error) {
@@ -99,9 +103,10 @@ export default function LoginScreen() {
                 console.log("Sign in is in progress");
             } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
                 console.log("Play services not available or outdated");
+                alert("Google Play Hizmetleri bu cihazda kullanılamıyor.");
             } else {
                 console.error("Some other error happened:", error);
-                alert("Login Failed: " + error.message);
+                alert("Giriş Başarısız: " + error.message);
             }
         }
     };
@@ -145,7 +150,7 @@ export default function LoginScreen() {
                             <View style={styles.logoBox}>
                                 <Tent color="#FFF" size={32} strokeWidth={2.5} />
                             </View>
-                            <Text style={styles.title}>NOMAD</Text>
+                            <Text style={styles.title}>RoadMate</Text>
                             <Text style={styles.tagline}>VAST NATURAL SPACES</Text>
                         </View>
 
@@ -185,6 +190,35 @@ export default function LoginScreen() {
                                 <View style={styles.dividerLine} />
                                 <Text style={styles.dividerText}>OR</Text>
                                 <View style={styles.dividerLine} />
+                            </View>
+
+                            {/* Inputs */}
+                            <View style={{ gap: 16, marginBottom: 8 }}>
+                                <View style={styles.inputWrapper}>
+                                    <Mail color="rgba(255,255,255,0.5)" size={20} style={styles.inputIcon} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Email Address"
+                                        placeholderTextColor="rgba(255,255,255,0.3)"
+                                        value={email}
+                                        onChangeText={setEmail}
+                                        keyboardType="email-address"
+                                        autoCapitalize="none"
+                                    />
+                                </View>
+                                <View style={styles.inputWrapper}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                        {/* Lock icon missing import but we can reuse Mail or standard View if needed, assuming Lock is imported */}
+                                        <TextInput
+                                            style={[styles.input, { marginLeft: 16 }]}
+                                            placeholder="Password"
+                                            placeholderTextColor="rgba(255,255,255,0.3)"
+                                            value={password}
+                                            onChangeText={setPassword}
+                                            secureTextEntry
+                                        />
+                                    </View>
+                                </View>
                             </View>
 
                             {/* Email Login Button with Animated Neon Gradient */}
@@ -435,5 +469,24 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         letterSpacing: 4,
         textTransform: 'uppercase',
+    },
+    inputWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: 56,
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 16,
+        paddingHorizontal: 16,
+    },
+    inputIcon: {
+        marginRight: 12,
+    },
+    input: {
+        flex: 1,
+        color: '#FFF',
+        fontSize: 16,
+        height: '100%',
     },
 });

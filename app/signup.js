@@ -3,6 +3,9 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingVi
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { User, Mail, Lock, Eye, EyeOff, Tent, ArrowLeft, Compass, Droplets, Mountain } from 'lucide-react-native';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { AuthService } from '../services/AuthService';
+import { Image } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -29,6 +32,21 @@ export default function SignupScreen() {
             console.log("Signup successful");
             router.replace('/(tabs)/home');
         }, 1500);
+    };
+
+    const handleGoogleLogin = async () => {
+        try {
+            await GoogleSignin.hasPlayServices();
+            const userInfo = await GoogleSignin.signIn();
+            const response = await AuthService.googleLogin(userInfo.idToken);
+            if (response.token) {
+                router.replace('/(tabs)/home');
+            }
+        } catch (error) {
+            if (error.code !== statusCodes.SIGN_IN_CANCELLED) {
+                alert("Google Giriş Hatası: " + error.message);
+            }
+        }
     };
 
     return (
@@ -138,6 +156,31 @@ export default function SignupScreen() {
                                         activeOpacity={0.9}
                                     >
                                         <Text style={styles.primaryBtnText}>{loading ? 'Creating...' : 'Sign Up'}</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                {/* Social Login Divider */}
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 10 }}>
+                                    <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                                    <Text style={{ color: 'rgba(255,255,255,0.4)', marginHorizontal: 10, fontSize: 10 }}>OR CONTINUE WITH</Text>
+                                    <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                                </View>
+
+                                {/* Social Buttons */}
+                                <View style={styles.socialGrid}>
+                                    <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
+                                        <Image
+                                            source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }}
+                                            style={{ width: 24, height: 24 }}
+                                        />
+                                        <Text style={styles.socialButtonText}>Google</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.socialButton} onPress={() => alert('Apple Login Coming Soon')}>
+                                        <Image
+                                            source={{ uri: 'https://img.icons8.com/ios-filled/50/ffffff/mac-os.png' }}
+                                            style={{ width: 24, height: 24 }}
+                                        />
+                                        <Text style={styles.socialButtonText}>Apple</Text>
                                     </TouchableOpacity>
                                 </View>
 
@@ -358,5 +401,26 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         letterSpacing: 4,
         textTransform: 'uppercase',
+    },
+    socialGrid: {
+        flexDirection: 'row',
+        gap: 16,
+    },
+    socialButton: {
+        flex: 1,
+        height: 50,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+    },
+    socialButtonText: {
+        color: '#FFF',
+        fontSize: 14,
+        fontWeight: 'bold',
     },
 });

@@ -16,7 +16,7 @@ const getApiUrl = () => {
     }
 
     // 3. Return full URL with Java Spring Boot Port (5000)
-    return `http://${ip}:5000`;
+    return `http://${ip}:8080`;
 };
 
 export const BASE_URL = getApiUrl();
