@@ -6,65 +6,43 @@ import { Colors } from '../../constants/Colors';
 import { Search, Filter, Compass, Navigation, Zap, Wrench, ShoppingCart, Fuel, MessageSquare, ArrowUpRight, Car, X, MapPin } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { NomadService } from '../../services/api';
+import { NomadService, PlacesService } from '../../services/api';
 
 const { width, height } = Dimensions.get('window');
 
+// Helper function to generate places near the user's location
+const generateNearbyPlaces = (userLat, userLng) => {
+    const mechanics = [
+        { id: 101, name: "Jake's Garage", type: 'mechanic', distance: 3.2, coordinate: { latitude: userLat + 0.01, longitude: userLng + 0.008 }, image: 'https://images.unsplash.com/photo-1487754180477-db33d3d63b0a?w=100&q=80', status: 'Open', vehicle: 'Repair', vehicle_model: 'All Types' },
+        { id: 102, name: "AutoFix Center", type: 'mechanic', distance: 5.5, coordinate: { latitude: userLat - 0.015, longitude: userLng + 0.012 }, image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=100&q=80', status: 'Closed', vehicle: 'Service', vehicle_model: 'Engine Specialist' },
+        { id: 103, name: "Pro Mechanics", type: 'mechanic', distance: 2.1, coordinate: { latitude: userLat + 0.005, longitude: userLng - 0.01 }, image: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=100&q=80', status: 'Open', vehicle: 'Repair', vehicle_model: 'German Cars' },
+    ];
 
+    const markets = [
+        { id: 201, name: "Bio Store", type: 'market', distance: 1.8, coordinate: { latitude: userLat - 0.005, longitude: userLng + 0.005 }, image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100&q=80', status: 'Open 24/7', vehicle: 'Groceries', vehicle_model: 'Organic' },
+        { id: 202, name: "City Supermarket", type: 'market', distance: 4.0, coordinate: { latitude: userLat + 0.02, longitude: userLng - 0.015 }, image: 'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?w=100&q=80', status: 'Open', vehicle: 'Supplies', vehicle_model: 'General' },
+        { id: 203, name: "Fresh Market", type: 'market', distance: 0.8, coordinate: { latitude: userLat + 0.002, longitude: userLng + 0.003 }, image: 'https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=100&q=80', status: 'Open', vehicle: 'Fresh Food', vehicle_model: 'Local' },
+    ];
 
-const MECHANICS = [
-    { id: 101, name: "Jake's Garage", type: 'mechanic', distance: '3.2 km', coordinate: { latitude: 37.0422, longitude: 28.3142 }, image: 'https://images.unsplash.com/photo-1487754180477-db33d3d63b0a?w=100&q=80', status: 'Open', vehicle: 'Repair', vehicle_model: 'All Types' },
-    { id: 102, name: "AutoFix Center", type: 'mechanic', distance: '5.5 km', coordinate: { latitude: 37.0122, longitude: 28.3442 }, image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=100&q=80', status: 'Closed', vehicle: 'Service', vehicle_model: 'Engine Specialist' },
-];
+    const fuelStations = [
+        { id: 301, name: "Shell Station", type: 'fuel', distance: 2.5, coordinate: { latitude: userLat + 0.008, longitude: userLng + 0.015 }, image: 'https://images.unsplash.com/photo-1545459720-aac3e5c2fa0c?w=100&q=80', status: 'Open 24/7', vehicle: 'Fuel', vehicle_model: 'Diesel/Petrol' },
+        { id: 302, name: "BP Express", type: 'fuel', distance: 6.2, coordinate: { latitude: userLat - 0.025, longitude: userLng + 0.02 }, image: 'https://images.unsplash.com/photo-1626847037657-fd3622613ce3?w=100&q=80', status: 'Open', vehicle: 'Fuel', vehicle_model: 'EV Charging' },
+        { id: 303, name: "Total Petrol", type: 'fuel', distance: 1.5, coordinate: { latitude: userLat - 0.003, longitude: userLng - 0.008 }, image: 'https://images.unsplash.com/photo-1611735341450-74d61e660ad2?w=100&q=80', status: 'Open 24/7', vehicle: 'Fuel', vehicle_model: 'LPG/Diesel' },
+    ];
 
-const MARKETS = [
-    { id: 201, name: "Bio Store", type: 'market', distance: '1.8 km', coordinate: { latitude: 37.0222, longitude: 28.3342 }, image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100&q=80', status: 'Open 24/7', vehicle: 'Groceries', vehicle_model: 'Organic' },
-    { id: 202, name: "City Supermarket", type: 'market', distance: '4.0 km', coordinate: { latitude: 37.0522, longitude: 28.3042 }, image: 'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?w=100&q=80', status: 'Open', vehicle: 'Supplies', vehicle_model: 'General' },
-];
+    const nomads = [
+        { id: 1, name: 'Selin', distance: 2.4, status: 'Active', vehicle: '4x4 Off-road', vehicleModel: 'VW Transporter T4', route: 'North', image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80', coordinate: { latitude: userLat + 0.012, longitude: userLng - 0.008 }, type: 'nomad' },
+        { id: 2, name: 'Jax', distance: 5.1, status: 'Offline', vehicle: 'Ford Transit', vehicleModel: 'Ford Transit Custom', route: 'South', image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&q=80', coordinate: { latitude: userLat - 0.018, longitude: userLng + 0.015 }, type: 'nomad' },
+        { id: 3, name: 'Sage', distance: 8.2, status: 'Active', vehicle: 'Vanagon', vehicleModel: 'VW Westfalia', route: 'West', image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&q=80', coordinate: { latitude: userLat + 0.025, longitude: userLng + 0.02 }, type: 'nomad' },
+        { id: 4, name: 'Luna', distance: 1.2, status: 'Active', vehicle: 'Sprinter', vehicleModel: 'Mercedes Sprinter', route: 'East', image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&q=80', coordinate: { latitude: userLat - 0.004, longitude: userLng - 0.006 }, type: 'nomad' },
+    ];
 
-const FUEL_STATIONS = [
-    { id: 301, name: "Shell Station", type: 'fuel', distance: '2.5 km', coordinate: { latitude: 37.0352, longitude: 28.3152 }, image: 'https://images.unsplash.com/photo-1545459720-aac3e5c2fa0c?w=100&q=80', status: 'Open 24/7', vehicle: 'Fuel', vehicle_model: 'Diesel/Petrol' },
-    { id: 302, name: "BP Express", type: 'fuel', distance: '6.2 km', coordinate: { latitude: 37.0152, longitude: 28.3552 }, image: 'https://images.unsplash.com/photo-1626847037657-fd3622613ce3?w=100&q=80', status: 'Open', vehicle: 'Fuel', vehicle_model: 'EV Charging' },
-];
+    return { mechanics, markets, fuelStations, nomads };
+};
 
-const NEARBY_NOMADS = [
-    {
-        id: 1,
-        name: 'Selin',
-        distance: '2.4 km',
-        status: 'Active',
-        vehicle: '4x4 Off-road',
-        vehicleModel: 'VW Transporter T4',
-        route: 'North (Akyaka)',
-        image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80',
-        coordinate: { latitude: 37.0322, longitude: 28.3242 },
-        type: 'nomad'
-    },
-    {
-        id: 2,
-        name: 'Jax',
-        distance: '5.1 km',
-        status: 'Offline',
-        vehicle: 'Ford Transit',
-        vehicleModel: 'Ford Transit Custom',
-        route: 'South (Kaş)',
-        image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&q=80',
-        coordinate: { latitude: 37.0422, longitude: 28.3142 },
-        type: 'nomad'
-    },
-    {
-        id: 3,
-        name: 'Sage',
-        distance: '8.2 km',
-        status: 'Active',
-        vehicle: 'Vanagon',
-        vehicleModel: 'VW Westfalia',
-        route: 'West (Urla)',
-        image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&q=80',
-        coordinate: { latitude: 37.0222, longitude: 28.3342 },
-        type: 'nomad'
-    },
-];
+// Default location fallback
+const DEFAULT_LAT = 41.0082;
+const DEFAULT_LNG = 28.9784;
 
 const mapStyle = [
     {
@@ -305,12 +283,13 @@ export default function ExploreScreen() {
     // Initialize with default location to prevent white screen if location fetch fails/delays
     const [location, setLocation] = useState({
         coords: {
-            latitude: 37.0322,
-            longitude: 28.3242
+            latitude: DEFAULT_LAT,
+            longitude: DEFAULT_LNG
         }
     });
     const [loading, setLoading] = useState(false); // Do not block UI with loading state
-    const [nearbyNomads, setNearbyNomads] = useState(NEARBY_NOMADS); // This acts as the "Active List"
+    const [nearbyPlaces, setNearbyPlaces] = useState(() => generateNearbyPlaces(DEFAULT_LAT, DEFAULT_LNG));
+    const [activeMarkers, setActiveMarkers] = useState([]); // Current markers on map
     const [isFetching, setIsFetching] = useState(false);
     const [activeCategory, setActiveCategory] = useState('nomads'); // nomads, mechanics, markets, fuel
 
@@ -338,28 +317,14 @@ export default function ExploreScreen() {
                             setLocation(newLocation);
                             setLoading(false);
 
-                            if (!isFetching) {
-                                setIsFetching(true);
-                                try {
-                                    // Fetch nomads if category is nomads
-                                    if (activeCategory === 'nomads') {
-                                        const nomads = await NomadService.getNearbyNomads(
-                                            newLocation.coords.latitude,
-                                            newLocation.coords.longitude
-                                        );
-                                        if (nomads && Array.isArray(nomads) && nomads.length > 0) {
-                                            setNearbyNomads(nomads);
-                                        } else {
-                                            setNearbyNomads(NEARBY_NOMADS);
-                                        }
-                                    }
-                                } catch (e) {
-                                    console.log("API not reached, using dummy data");
-                                    setNearbyNomads(NEARBY_NOMADS);
-                                } finally {
-                                    setIsFetching(false);
-                                }
-                            }
+                            // Generate mock places as fallback for initialization
+                            const mockPlaces = generateNearbyPlaces(
+                                newLocation.coords.latitude,
+                                newLocation.coords.longitude
+                            );
+                            setNearbyPlaces(mockPlaces);
+
+                            // We don't auto-fetch API in background move to avoid overwriting UI data
                         }
                     ).catch(err => {
                         console.log("Explore WatchPosition Error:", err.message);
@@ -378,6 +343,31 @@ export default function ExploreScreen() {
                 locationSubscription.remove();
             }
         };
+    }, [activeCategory]);
+
+    // Helper to update markers based on category
+    const updateMarkers = (category, places) => {
+        switch (category) {
+            case 'nomads':
+                setActiveMarkers(places.nomads);
+                break;
+            case 'mechanics':
+                setActiveMarkers(places.mechanics);
+                break;
+            case 'markets':
+                setActiveMarkers(places.markets);
+                break;
+            case 'fuel':
+                setActiveMarkers(places.fuelStations);
+                break;
+            default:
+                setActiveMarkers(places.nomads);
+        }
+    };
+
+    // Initialize markers on mount
+    useEffect(() => {
+        updateMarkers(activeCategory, nearbyPlaces);
     }, []);
 
     const handleGetDirections = (lat, lng, label) => {
@@ -391,30 +381,42 @@ export default function ExploreScreen() {
         Linking.openURL(url);
     };
 
-    const handleCategoryChange = (category) => {
+    const handleCategoryChange = async (category) => {
         setActiveCategory(category);
-        // Switch data source based on category
-        switch (category) {
-            case 'nomads':
-                setNearbyNomads(NEARBY_NOMADS);
-                break;
-            case 'mechanics':
-                setNearbyNomads(MECHANICS);
-                break;
-            case 'markets':
-                setNearbyNomads(MARKETS);
-                break;
-            case 'fuel':
-                setNearbyNomads(FUEL_STATIONS);
-                break;
-            default:
-                setNearbyNomads(NEARBY_NOMADS);
+
+        // For non-nomad categories, try to fetch real places from Google Places API
+        if (category !== 'nomads' && location?.coords) {
+            setIsFetching(true);
+            try {
+                const realPlaces = await PlacesService.getNearbyPlaces(
+                    location.coords.latitude,
+                    location.coords.longitude,
+                    category
+                );
+
+                if (realPlaces && realPlaces.length > 0) {
+                    console.log(`✅ Fetched ${realPlaces.length} real ${category}`);
+                    setActiveMarkers(realPlaces);
+                } else {
+                    // Fallback to mock data if no real results
+                    console.log(`⚠️ No real ${category} found, using mock data`);
+                    updateMarkers(category, nearbyPlaces);
+                }
+            } catch (error) {
+                console.error('Error fetching real places:', error);
+                updateMarkers(category, nearbyPlaces);
+            } finally {
+                setIsFetching(false);
+            }
+        } else {
+            // For nomads, use local/backend data
+            updateMarkers(category, nearbyPlaces);
         }
     };
 
     const initialRegion = {
-        latitude: location?.coords?.latitude || 37.0322,
-        longitude: location?.coords?.longitude || 28.3242,
+        latitude: location?.coords?.latitude || DEFAULT_LAT,
+        longitude: location?.coords?.longitude || DEFAULT_LNG,
         latitudeDelta: 0.05,
         longitudeDelta: 0.05,
     };
@@ -438,24 +440,26 @@ export default function ExploreScreen() {
                 >
 
 
-                    {nearbyNomads.map((marker) => {
+                    {activeMarkers.map((marker) => {
                         const coord = marker.coordinate || { latitude: marker.latitude, longitude: marker.longitude };
                         if (!coord.latitude || !coord.longitude) return null;
 
-                        let MarkerIcon = null;
-                        let iconBg = Colors.primary;
+                        // Identify item type for icon selection
+                        const itemType = marker.type || activeCategory;
+                        let MarkerComponent = null;
+                        let iconBgColor = Colors.primary;
 
                         if (activeCategory === 'nomads') {
-                            // Use image for nomads
-                        } else if (activeCategory === 'mechanics') {
-                            MarkerIcon = <Wrench size={16} color="#FFF" />;
-                            iconBg = '#ef4444'; // Red for mech
-                        } else if (activeCategory === 'markets') {
-                            MarkerIcon = <ShoppingCart size={16} color="#FFF" />;
-                            iconBg = '#22c55e'; // Green for market
-                        } else if (activeCategory === 'fuel') {
-                            MarkerIcon = <Fuel size={16} color="#FFF" />;
-                            iconBg = '#f59e0b'; // Orange for fuel
+                            // Nomads handled separately with photos
+                        } else if (itemType === 'mechanics') {
+                            MarkerComponent = <Wrench size={16} color="#FFF" />;
+                            iconBgColor = '#ef4444';
+                        } else if (itemType === 'markets') {
+                            MarkerComponent = <ShoppingCart size={16} color="#FFF" />;
+                            iconBgColor = '#22c55e';
+                        } else if (itemType === 'fuel' || itemType === 'gas_station') {
+                            MarkerComponent = <Fuel size={16} color="#FFF" />;
+                            iconBgColor = '#f59e0b';
                         }
 
                         return (
@@ -463,35 +467,30 @@ export default function ExploreScreen() {
                                 key={`${activeCategory}-${marker.id}`}
                                 coordinate={coord}
                                 onPress={() => setSelectedNomad(marker)}
+                                tracksViewChanges={true} // Fixed: Keep true to prevent disappearing on Android
+                                anchor={{ x: 0.5, y: 0.5 }}
                             >
-                                <View style={styles.customMarker}>
-                                    <View style={[
-                                        styles.markerPointer,
-                                        {
-                                            backgroundColor: activeCategory === 'nomads' ? '#FFF' : iconBg,
-                                            borderColor: activeCategory === 'nomads'
-                                                ? (marker.status === 'Active' ? Colors.online : Colors.primary) // Neon Green if Online
-                                                : '#FFF',
-                                            // Neon Glow Effect for Online Nomads
-                                            ...(activeCategory === 'nomads' && marker.status === 'Active' && {
-                                                borderWidth: 3, // Slightly thicker
-                                                shadowColor: Colors.online,
-                                                shadowOffset: { width: 0, height: 0 },
-                                                shadowOpacity: 0.9,
-                                                shadowRadius: 10,
-                                                elevation: 15
-                                            })
-                                        }
-                                    ]}>
-                                        {activeCategory === 'nomads' ? (
-                                            <Image source={{ uri: marker.image || 'https://via.placeholder.com/100' }} style={styles.markerAvatar} />
-                                        ) : (
-                                            MarkerIcon
-                                        )}
-                                    </View>
-                                    <View style={styles.markerLabel}>
-                                        <Text style={styles.markerText}>{marker.name}</Text>
-                                    </View>
+                                <View style={{
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: 14,
+                                    backgroundColor: activeCategory === 'nomads' ? '#FFF' : iconBgColor,
+                                    borderWidth: 1.5,
+                                    borderColor: '#FFF',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    elevation: 3,
+                                }}>
+                                    {activeCategory === 'nomads' ? (
+                                        <Image
+                                            source={{ uri: marker.image || 'https://via.placeholder.com/100' }}
+                                            style={{ width: 22, height: 22, borderRadius: 11 }}
+                                        />
+                                    ) : (
+                                        <View style={{ transform: [{ scale: 0.8 }] }}>
+                                            {MarkerComponent}
+                                        </View>
+                                    )}
                                 </View>
                             </Marker>
                         );
@@ -562,26 +561,36 @@ export default function ExploreScreen() {
                     snapToInterval={width * 0.8 + 16}
                     decelerationRate="fast"
                 >
-                    {nearbyNomads.map((nomad) => {
-                        const nomadLat = nomad.coordinate?.latitude || nomad.latitude;
-                        const nomadLng = nomad.coordinate?.longitude || nomad.longitude;
+                    {activeMarkers.map((item) => {
+                        const itemLat = item.coordinate?.latitude || item.latitude;
+                        const itemLng = item.coordinate?.longitude || item.longitude;
+
+                        // Determine display values based on category
+                        const isNomad = activeCategory === 'nomads';
+                        const title = item.name;
+                        const badgeText = isNomad ? item.vehicle : item.status; // Vehicle for nomads, Open/Closed for places
+                        const subtitle = isNomad
+                            ? (item.vehicle_model || item.vehicleModel)
+                            : (item.address ? item.address.substring(0, 25) + (item.address.length > 25 ? '...' : '') : 'No address');
 
                         return (
                             <TouchableOpacity
-                                key={nomad.id}
+                                key={item.id}
                                 style={styles.nomadCard}
-                                onPress={() => setSelectedNomad(nomad)}
+                                onPress={() => setSelectedNomad(item)}
                             >
-                                <Image source={{ uri: nomad.image }} style={styles.nomadCardImage || styles.cardImage} />
+                                <Image source={{ uri: item.image || 'https://via.placeholder.com/150' }} style={styles.nomadCardImage || styles.cardImage} />
                                 <View style={styles.cardInfo}>
                                     <View style={styles.cardTop}>
-                                        <Text style={styles.cardName}>{nomad.name}</Text>
-                                        <View style={styles.statusBadge}>
-                                            <Text style={styles.statusText}>{nomad.vehicle}</Text>
-                                        </View>
+                                        <Text style={styles.cardName} numberOfLines={1}>{title}</Text>
+                                        {badgeText && (
+                                            <View style={[styles.statusBadge, !isNomad && { backgroundColor: badgeText === 'Open' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)' }]}>
+                                                <Text style={[styles.statusText, !isNomad && { color: badgeText === 'Open' ? '#22c55e' : '#ef4444' }]}>{badgeText}</Text>
+                                            </View>
+                                        )}
                                     </View>
                                     <Text style={styles.cardMeta}>
-                                        {typeof nomad.distance === 'number' ? nomad.distance.toFixed(1) + 'km' : (nomad.distance || '?.? km')} • {nomad.vehicle_model || nomad.vehicleModel}
+                                        {typeof item.distance === 'number' ? item.distance.toFixed(1) + 'km' : (item.distance || '?.? km')} • {subtitle}
                                     </Text>
 
                                     <TouchableOpacity
@@ -672,12 +681,22 @@ const styles = StyleSheet.create({
     map: { ...StyleSheet.absoluteFillObject },
     loadingContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center' },
     loadingText: { color: Colors.textSecondary, marginTop: 10 },
-    customMarker: { alignItems: 'center' },
-    markerPointer: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFF', borderWidth: 2, borderColor: Colors.primary, justifyContent: 'center', alignItems: 'center' },
-    markerAvatar: { width: 34, height: 34, borderRadius: 17 },
-    markerIcon: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
-    markerLabel: { backgroundColor: 'rgba(0,0,0,0.8)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginTop: 4 },
-    markerText: { color: '#FFF', fontSize: 10, fontWeight: 'bold' },
+    customMarker: { alignItems: 'center', overflow: 'visible' },
+    markerPointer: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#FFF',
+        borderWidth: 2,
+        borderColor: Colors.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'visible'
+    },
+    markerAvatar: { width: 26, height: 26, borderRadius: 13 },
+    markerIcon: { width: 26, height: 26, borderRadius: 13, justifyContent: 'center', alignItems: 'center' },
+    markerLabel: { backgroundColor: 'rgba(0,0,0,0.8)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, marginTop: 2 },
+    markerText: { color: '#FFF', fontSize: 8, fontWeight: 'bold' },
     topArea: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, zIndex: 10 },
     searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.card + 'F2', borderRadius: 15, paddingHorizontal: 12, height: 50, marginTop: 10 },
     searchIcon: { marginRight: 10 },

@@ -41,8 +41,6 @@ export default function TabLayout() {
                 name="community"
                 options={{
                     title: 'Assist',
-                    tabBarItemStyle: { marginRight: 15 }, // Shift left (add spacing from center)
-                    // Increased margin slightly to match the chat push if needed, but 15 is safe
                     tabBarIcon: ({ color, size }) => <Wrench color={color} size={size} />,
                 }}
             />
@@ -72,7 +70,6 @@ export default function TabLayout() {
                 name="chat"
                 options={{
                     title: 'Chat',
-                    tabBarItemStyle: { marginLeft: 30 }, // Significantly shift right
                     tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
                 }}
             />

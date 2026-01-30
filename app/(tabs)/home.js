@@ -51,6 +51,7 @@ export default function HomeScreen() {
     const [location, setLocation] = useState(null);
     const [nearbyNomads, setNearbyNomads] = useState([]);
     const [isFetching, setIsFetching] = useState(false);
+    const [weather, setWeather] = useState(null);
 
     useEffect(() => {
         let locationSubscription = null;
@@ -95,6 +96,19 @@ export default function HomeScreen() {
                                     newLocation.coords.latitude,
                                     newLocation.coords.longitude
                                 );
+                            }
+
+                            // Fetch weather
+                            try {
+                                const weatherResponse = await fetch(
+                                    `https://api.open-meteo.com/v1/forecast?latitude=${newLocation.coords.latitude}&longitude=${newLocation.coords.longitude}&current_weather=true`
+                                );
+                                const weatherData = await weatherResponse.json();
+                                if (weatherData.current_weather) {
+                                    setWeather(Math.round(weatherData.current_weather.temperature));
+                                }
+                            } catch (err) {
+                                console.log("Weather Fetch Error:", err);
                             }
                         }
                     ).catch(err => {
@@ -170,7 +184,7 @@ export default function HomeScreen() {
                         </View>
 
                         <View style={styles.weatherBadge}>
-                            <Text style={styles.weatherText}>☀️ 72°F</Text>
+                            <Text style={styles.weatherText}>☀️ {weather !== null ? `${weather}°C` : '--°C'}</Text>
                         </View>
 
                         <View style={styles.mapContent}>
@@ -228,6 +242,12 @@ export default function HomeScreen() {
                             <Flame size={20} color={Colors.secondary} fill={Colors.secondary} />
                             <Text style={styles.sectionTitle}>Campfire Feed</Text>
                         </View>
+                        <TouchableOpacity
+                            style={styles.addActivityButton}
+                            onPress={() => alert('Aktivite oluşturma ekranı yakında...')}
+                        >
+                            <Plus size={18} color="#FFF" />
+                        </TouchableOpacity>
                     </View>
                     <Text style={styles.sectionSubtitle}>Local activities happening now</Text>
 
@@ -583,5 +603,18 @@ const styles = StyleSheet.create({
         color: Colors.primary,
         fontSize: 12,
         fontWeight: '600',
+    },
+    addActivityButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: Colors.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 5,
     },
 });
