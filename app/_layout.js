@@ -5,7 +5,7 @@ import { Colors } from '../constants/Colors';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+// Dynamic GoogleSignin import moved inside useEffect
 
 export default function RootLayout() {
     const segments = useSegments();
@@ -14,11 +14,16 @@ export default function RootLayout() {
 
     useEffect(() => {
         setIsMounted(true);
-        // Initialize Google Sign-In
-        GoogleSignin.configure({
-            webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-            offlineAccess: true
-        });
+        // Initialize Google Sign-In with Error Handling (Dynamic Import)
+        try {
+            const { GoogleSignin } = require('@react-native-google-signin/google-signin');
+            GoogleSignin.configure({
+                webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+                offlineAccess: true
+            });
+        } catch (error) {
+            console.log("Google Signin logic skipped (native module not found).");
+        }
     }, []);
 
     useEffect(() => {

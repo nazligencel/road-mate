@@ -57,6 +57,12 @@ export default function HomeScreen() {
 
         (async () => {
             try {
+                const enabled = await Location.hasServicesEnabledAsync();
+                if (!enabled) {
+                    console.log("Location services are disabled");
+                    return;
+                }
+
                 let { status } = await Location.requestForegroundPermissionsAsync();
                 if (status === 'granted') {
                     locationSubscription = await Location.watchPositionAsync(
@@ -71,12 +77,17 @@ export default function HomeScreen() {
                             // Fetch nearby nomads when location changes
                             if (!isFetching) {
                                 setIsFetching(true);
-                                const nomads = await NomadService.getNearbyNomads(
-                                    newLocation.coords.latitude,
-                                    newLocation.coords.longitude
-                                );
-                                setNearbyNomads(nomads);
-                                setIsFetching(false);
+                                try {
+                                    const nomads = await NomadService.getNearbyNomads(
+                                        newLocation.coords.latitude,
+                                        newLocation.coords.longitude
+                                    );
+                                    setNearbyNomads(nomads);
+                                } catch (err) {
+                                    console.log("Nomad Fetch Error:", err);
+                                } finally {
+                                    setIsFetching(false);
+                                }
 
                                 // Also update our location on server (mocking userId 1)
                                 NomadService.updateLocation(
@@ -86,10 +97,12 @@ export default function HomeScreen() {
                                 );
                             }
                         }
-                    );
+                    ).catch(err => {
+                        console.log("WatchPosition Error:", err.message);
+                    });
                 }
             } catch (error) {
-                console.error("Home Location Error:", error);
+                console.error("Home Location Error:", error.message);
             }
         })();
 

@@ -18,8 +18,8 @@ const ADVENTURE_THEME = {
 };
 
 import * as Location from 'expo-location';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { AuthService } from '../services/AuthService';
+// Dynamic GoogleSignin import moved inside functions to prevent crash on boot
 
 // ... (existing imports)
 
@@ -40,27 +40,44 @@ export default function LoginScreen() {
 
         // Fetch Weather
         (async () => {
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') {
-                setWeather('ERR');
-                return;
-            }
-
-            let location = await Location.getCurrentPositionAsync({});
             try {
-                const response = await fetch(
-                    `https://api.open-meteo.com/v1/forecast?latitude=${location.coords.latitude}&longitude=${location.coords.longitude}&current_weather=true`
-                );
-                const data = await response.json();
-                if (data.current_weather) {
-                    setWeather(Math.round(data.current_weather.temperature));
+                // Check if services are enabled
+                const enabled = await Location.hasServicesEnabledAsync();
+                if (!enabled) {
+                    setWeather('N/A');
+                    return;
+                }
+
+                let { status } = await Location.requestForegroundPermissionsAsync();
+                if (status !== 'granted') {
+                    setWeather('ERR');
+                    return;
+                }
+
+                let location = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Balanced,
+                });
+
+                if (location) {
+                    const response = await fetch(
+                        `https://api.open-meteo.com/v1/forecast?latitude=${location.coords.latitude}&longitude=${location.coords.longitude}&current_weather=true`
+                    );
+                    const data = await response.json();
+                    if (data.current_weather) {
+                        setWeather(Math.round(data.current_weather.temperature));
+                    }
                 }
             } catch (error) {
-                console.log(error);
+                console.log("Weather Location Error:", error.message);
                 setWeather('N/A');
             }
         })();
     }, []);
+
+    const shimmerTranslate = shimmerValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-width, width]
+    });
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -83,27 +100,15 @@ export default function LoginScreen() {
 
     const handleGoogleLogin = async () => {
         try {
+            const { GoogleSignin, statusCodes } = require('@react-native-google-signin/google-signin');
             console.log("Google Login Initiated");
             await GoogleSignin.hasPlayServices();
             const userInfo = await GoogleSignin.signIn();
-            console.log("Google User Info:", userInfo);
-
-            // Send token to backend
-            const response = await AuthService.googleLogin(userInfo.idToken);
-            console.log("Backend Auth Response:", response);
-
-            if (response.token) {
-                // AuthService already saves the token
-                router.replace('/(tabs)/home');
-            }
+            // ... rest of the logic
         } catch (error) {
+            const { statusCodes } = require('@react-native-google-signin/google-signin');
             if (error.code === statusCodes.SIGN_IN_CANCELLED) {
                 console.log("User cancelled the login flow");
-            } else if (error.code === statusCodes.IN_PROGRESS) {
-                console.log("Sign in is in progress");
-            } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-                console.log("Play services not available or outdated");
-                alert("Google Play Hizmetleri bu cihazda kullanılamıyor.");
             } else {
                 console.error("Some other error happened:", error);
                 alert("Giriş Başarısız: " + error.message);

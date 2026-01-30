@@ -319,6 +319,13 @@ export default function ExploreScreen() {
 
         (async () => {
             try {
+                const enabled = await Location.hasServicesEnabledAsync();
+                if (!enabled) {
+                    setLoading(false);
+                    console.log("Location services are disabled on the device.");
+                    return;
+                }
+
                 let { status } = await Location.requestForegroundPermissionsAsync();
                 if (status === 'granted') {
                     locationSubscription = await Location.watchPositionAsync(
@@ -354,12 +361,14 @@ export default function ExploreScreen() {
                                 }
                             }
                         }
-                    );
+                    ).catch(err => {
+                        console.log("Explore WatchPosition Error:", err.message);
+                    });
                 } else {
                     setLoading(false);
                 }
             } catch (error) {
-                console.error("Location Permission Error:", error);
+                console.error("Location Permission Error:", error.message);
                 setLoading(false);
             }
         })();

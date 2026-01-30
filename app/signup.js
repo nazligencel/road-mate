@@ -25,13 +25,27 @@ export default function SignupScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const handleSignup = () => {
+    const handleSignup = async () => {
+        if (!name || !email || !password) {
+            alert("Lütfen tüm alanları doldurunuz.");
+            return;
+        }
+
         setLoading(true);
-        setTimeout(() => {
+        try {
+            const response = await AuthService.register(name, email, password);
+            if (response.token) {
+                console.log("Signup successful, token received");
+                router.replace('/(tabs)/home');
+            } else {
+                alert("Kayıt başarısız: " + (response.message || "Bilinmeyen hata"));
+            }
+        } catch (error) {
+            console.error("Signup Error:", error);
+            alert("Kayıt Hatası: " + error.message);
+        } finally {
             setLoading(false);
-            console.log("Signup successful");
-            router.replace('/(tabs)/home');
-        }, 1500);
+        }
     };
 
     const handleGoogleLogin = async () => {
