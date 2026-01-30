@@ -1,7 +1,8 @@
 import { Tabs } from 'expo-router';
 import { Colors } from '../../constants/Colors';
-import { Home, Compass, Plus, MessageCircle, User } from 'lucide-react-native';
+import { Home, Compass, Wrench, MessageCircle, User } from 'lucide-react-native';
 import { View, StyleSheet, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // Forced reload check
 export default function TabLayout() {
@@ -35,25 +36,35 @@ export default function TabLayout() {
                     tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
                 }}
             />
+            {/* Community/Help - Standard Tab */}
+            <Tabs.Screen
+                name="community"
+                options={{
+                    title: 'Assist',
+                    tabBarItemStyle: { marginRight: 15 }, // Shift left (add spacing from center)
+                    // Increased margin slightly to match the chat push if needed, but 15 is safe
+                    tabBarIcon: ({ color, size }) => <Wrench color={color} size={size} />,
+                }}
+            />
+
+            {/* Explore - Big Neon Theme Central Tab */}
             <Tabs.Screen
                 name="explore"
                 options={{
                     title: 'Explore',
-                    tabBarIcon: ({ color, size }) => <Compass color={color} size={size} />,
-                }}
-            />
-
-            {/* Middle "Plus" Button - Custom Tab */}
-            <Tabs.Screen
-                name="community"
-                options={{
-                    title: '',
                     tabBarIcon: ({ focused }) => (
-                        <View style={styles.plusButton}>
-                            <Plus color="#FFFFFF" size={28} />
+                        <View style={styles.centerButtonContainer}>
+                            <LinearGradient
+                                colors={[Colors.primary, '#45e3ff']} // Theme to Neon Cyan
+                                style={styles.centerButton}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Compass color="#FFF" size={30} strokeWidth={2.5} />
+                            </LinearGradient>
                         </View>
                     ),
-                    tabBarLabel: () => null, // Hide label
+                    tabBarLabel: () => null,
                 }}
             />
 
@@ -61,6 +72,7 @@ export default function TabLayout() {
                 name="chat"
                 options={{
                     title: 'Chat',
+                    tabBarItemStyle: { marginLeft: 30 }, // Significantly shift right
                     tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
                 }}
             />
@@ -76,18 +88,19 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-    plusButton: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: Colors.primary,
+    centerButtonContainer: {
+        top: -15, // Float slightly higher due to size
+        shadowColor: '#45e3ff', // Neon Glow
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.4,
+        shadowRadius: 10,
+        elevation: 10,
+    },
+    centerButton: {
+        width: 60, // Bigger
+        height: 60,
+        borderRadius: 30, // Circle
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 24, // Lift it up
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
-        shadowRadius: 10,
-        elevation: 5,
     },
 });
