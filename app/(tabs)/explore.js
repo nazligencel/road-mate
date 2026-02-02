@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, TextInput,
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Colors } from '../../constants/Colors';
-import { Search, Filter, Compass, Navigation, Zap, Wrench, ShoppingCart, Fuel, MessageSquare, ArrowUpRight, Car, X, MapPin } from 'lucide-react-native';
+import { Search, Filter, Compass, Navigation, Zap, Wrench, ShoppingCart, ShoppingBag, ShoppingBasket, Fuel, MessageSquare, ArrowUpRight, Car, X, MapPin } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { NomadService, PlacesService } from '../../services/api';
@@ -444,22 +444,30 @@ export default function ExploreScreen() {
                         const coord = marker.coordinate || { latitude: marker.latitude, longitude: marker.longitude };
                         if (!coord.latitude || !coord.longitude) return null;
 
-                        // Identify item type for icon selection
-                        const itemType = marker.type || activeCategory;
+                        // Identify item type for icon selection (handle both singular/plural and variations)
+                        const categoryLower = activeCategory.toLowerCase();
+                        const markerTypeLower = (marker.type || '').toLowerCase();
                         let MarkerComponent = null;
                         let iconBgColor = Colors.primary;
 
+                        // Check for mechanics
+                        if (markerTypeLower.includes('mechanic') || categoryLower.includes('mechanic')) {
+                            MarkerComponent = <Wrench size={20} color="#FFF" fill="#FFF" />;
+                            iconBgColor = '#e11d48'; // Variant 3 Red
+                        }
+                        // Check for markets
+                        else if (markerTypeLower.includes('market') || categoryLower.includes('market') || markerTypeLower.includes('store')) {
+                            MarkerComponent = <ShoppingBasket size={20} color="#FFF" fill="#FFF" />;
+                            iconBgColor = '#22c55e'; // Variant 1 Green
+                        }
+                        // Check for fuel
+                        else if (markerTypeLower.includes('fuel') || markerTypeLower.includes('gas') || categoryLower.includes('fuel')) {
+                            MarkerComponent = <Fuel size={20} color="#FFF" fill="#FFF" />;
+                            iconBgColor = '#1D8CF8'; // Variant 2 Classic Blue
+                        }
+
                         if (activeCategory === 'nomads') {
-                            // Nomads handled separately with photos
-                        } else if (itemType === 'mechanics') {
-                            MarkerComponent = <Wrench size={16} color="#FFF" />;
-                            iconBgColor = '#ef4444';
-                        } else if (itemType === 'markets') {
-                            MarkerComponent = <ShoppingCart size={16} color="#FFF" />;
-                            iconBgColor = '#22c55e';
-                        } else if (itemType === 'fuel' || itemType === 'gas_station') {
-                            MarkerComponent = <Fuel size={16} color="#FFF" />;
-                            iconBgColor = '#f59e0b';
+                            // Nomads handled by the return block below
                         }
 
                         return (
@@ -467,29 +475,33 @@ export default function ExploreScreen() {
                                 key={`${activeCategory}-${marker.id}`}
                                 coordinate={coord}
                                 onPress={() => setSelectedNomad(marker)}
-                                tracksViewChanges={true} // Fixed: Keep true to prevent disappearing on Android
+                                tracksViewChanges={true}
                                 anchor={{ x: 0.5, y: 0.5 }}
                             >
                                 <View style={{
-                                    width: 28,
-                                    height: 28,
-                                    borderRadius: 14,
+                                    width: 34,
+                                    height: 34,
+                                    borderRadius: 17,
                                     backgroundColor: activeCategory === 'nomads' ? '#FFF' : iconBgColor,
-                                    borderWidth: 1.5,
-                                    borderColor: '#FFF',
+                                    borderWidth: 2,
+                                    borderColor: activeCategory === 'nomads'
+                                        ? (marker.status === 'Active' ? Colors.online : Colors.primary)
+                                        : '#FFF',
                                     justifyContent: 'center',
                                     alignItems: 'center',
-                                    elevation: 3,
+                                    elevation: 5,
+                                    shadowColor: '#000',
+                                    shadowOffset: { width: 0, height: 2 },
+                                    shadowOpacity: 0.3,
+                                    shadowRadius: 3,
                                 }}>
                                     {activeCategory === 'nomads' ? (
                                         <Image
                                             source={{ uri: marker.image || 'https://via.placeholder.com/100' }}
-                                            style={{ width: 22, height: 22, borderRadius: 11 }}
+                                            style={{ width: 26, height: 26, borderRadius: 13 }}
                                         />
                                     ) : (
-                                        <View style={{ transform: [{ scale: 0.8 }] }}>
-                                            {MarkerComponent}
-                                        </View>
+                                        MarkerComponent
                                     )}
                                 </View>
                             </Marker>
