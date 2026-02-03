@@ -1,8 +1,9 @@
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Switch, Dimensions, Modal } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Switch, Dimensions, Modal, Alert, ActivityIndicator } from 'react-native';
 import React, { useState } from 'react';
 import { Colors } from '../../constants/Colors';
 import { Settings, Edit2, LogOut, Camera, Grid, QrCode } from 'lucide-react-native';
 import QRCode from 'react-native-qrcode-svg';
+import * as ImagePicker from 'expo-image-picker';
 
 const PHOTOS = [
     'https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=300&q=80',
@@ -13,7 +14,46 @@ const PHOTOS = [
 
 export default function ProfileScreen() {
     const [qrVisible, setQrVisible] = useState(false);
+    const [profileImage, setProfileImage] = useState('https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80');
+    const [isLoading, setIsLoading] = useState(false);
     const userId = "1"; // Matching Selin's ID in NEARBY_NOMADS for demo
+
+    const pickImage = async () => {
+        try {
+            // Request permission
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+            if (status !== 'granted') {
+                Alert.alert(
+                    'Permission Required',
+                    'We need access to your photo library to change your profile picture.',
+                    [{ text: 'OK' }]
+                );
+                return;
+            }
+
+            // Launch image picker
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: 'images',
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                setIsLoading(true);
+                // Simulate upload delay (in real app, upload to server here)
+                setTimeout(() => {
+                    setProfileImage(result.assets[0].uri);
+                    setIsLoading(false);
+                    Alert.alert('Success', 'Profile photo updated!');
+                }, 500);
+            }
+        } catch (error) {
+            console.error('Error picking image:', error);
+            Alert.alert('Error', 'Failed to pick image. Please try again.');
+        }
+    };
 
     return (
         <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -32,10 +72,15 @@ export default function ProfileScreen() {
             <View style={styles.profileHeader}>
                 <View style={styles.avatarContainer}>
                     <Image
-                        source={{ uri: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80' }}
+                        source={{ uri: profileImage }}
                         style={styles.avatar}
                     />
-                    <TouchableOpacity style={styles.editBtn}>
+                    {isLoading && (
+                        <View style={styles.loadingOverlay}>
+                            <ActivityIndicator size="large" color={Colors.primary} />
+                        </View>
+                    )}
+                    <TouchableOpacity style={styles.editBtn} onPress={pickImage}>
                         <Edit2 size={16} color="#FFF" />
                     </TouchableOpacity>
                 </View>
@@ -160,6 +205,19 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         borderWidth: 3,
         borderColor: Colors.background,
+    },
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     name: {
         fontSize: 24,
