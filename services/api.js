@@ -80,3 +80,136 @@ export const PlacesService = {
         }
     }
 };
+
+// Connection Service - QR bağlantı sistemi
+export const ConnectionService = {
+    /**
+     * QR tarandığında bağlantı isteği gönder
+     */
+    async connectByQR(targetUserId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/connections/scan/${targetUserId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                console.error('❌ QR Connection Failed:', data.message);
+                return { success: false, message: data.message };
+            }
+
+            console.log('✅ QR Connection Success:', data);
+            return data;
+        } catch (error) {
+            console.error('Error connecting by QR:', error);
+            return { success: false, message: 'Bağlantı hatası' };
+        }
+    },
+
+    /**
+     * Kullanıcının bağlantılarını getir
+     */
+    async getMyConnections(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/connections/my`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                console.error('❌ Get Connections Failed');
+                return [];
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error getting connections:', error);
+            return [];
+        }
+    },
+
+    /**
+     * Bekleyen bağlantı isteklerini getir
+     */
+    async getPendingRequests(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/connections/pending`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                console.error('❌ Get Pending Failed');
+                return [];
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error getting pending requests:', error);
+            return [];
+        }
+    },
+
+    /**
+     * Bağlantı sayısını getir
+     */
+    async getConnectionCount(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/connections/count`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) return { count: 0 };
+            return await response.json();
+        } catch (error) {
+            console.error('Error getting connection count:', error);
+            return { count: 0 };
+        }
+    },
+
+    /**
+     * Bağlantı isteğini kabul et
+     */
+    async acceptConnection(connectionId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/connections/${connectionId}/accept`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error accepting connection:', error);
+            return { success: false };
+        }
+    },
+
+    /**
+     * Bağlantı isteğini reddet
+     */
+    async rejectConnection(connectionId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/connections/${connectionId}/reject`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error rejecting connection:', error);
+            return { success: false };
+        }
+    }
+};
