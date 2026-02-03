@@ -1,9 +1,12 @@
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Switch, Dimensions, Modal, Alert, ActivityIndicator } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Colors } from '../../constants/Colors';
-import { Settings, Edit2, LogOut, Camera, Grid, QrCode } from 'lucide-react-native';
+import { Settings, Edit2, LogOut, Camera, Grid, QrCode, Scan } from 'lucide-react-native';
 import QRCode from 'react-native-qrcode-svg';
 import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ConnectionService } from '../../services/api';
 
 const PHOTOS = [
     'https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=300&q=80',
@@ -13,10 +16,45 @@ const PHOTOS = [
 ];
 
 export default function ProfileScreen() {
+    const router = useRouter();
     const [qrVisible, setQrVisible] = useState(false);
     const [profileImage, setProfileImage] = useState('https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80');
     const [isLoading, setIsLoading] = useState(false);
-    const userId = "1"; // Matching Selin's ID in NEARBY_NOMADS for demo
+    const [userData, setUserData] = useState(null);
+    const [connectionCount, setConnectionCount] = useState(0);
+
+    // Kullanıcı bilgilerini AsyncStorage'dan yükle
+    useEffect(() => {
+        loadUserData();
+    }, []);
+
+    const loadUserData = async () => {
+        try {
+            const userDataStr = await AsyncStorage.getItem('userData');
+            const token = await AsyncStorage.getItem('userToken');
+
+            if (userDataStr) {
+                const user = JSON.parse(userDataStr);
+                setUserData(user);
+                if (user.image) {
+                    setProfileImage(user.image);
+                }
+            }
+
+            // Bağlantı sayısını getir
+            if (token) {
+                const countResult = await ConnectionService.getConnectionCount(token);
+                setConnectionCount(countResult.count || 0);
+            }
+        } catch (error) {
+            console.error('Error loading user data:', error);
+        }
+    };
+
+    // QR Tarayıcıyı aç
+    const openQRScanner = () => {
+        router.push('/scan-qr');
+    };
 
     const pickImage = async () => {
         try {
@@ -60,6 +98,9 @@ export default function ProfileScreen() {
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Profile</Text>
                 <View style={{ flexDirection: 'row', gap: 15 }}>
+                    <TouchableOpacity onPress={openQRScanner}>
+                        <Scan color={Colors.primary} size={24} />
+                    </TouchableOpacity>
                     <TouchableOpacity onPress={() => setQrVisible(true)}>
                         <QrCode color={Colors.text} size={24} />
                     </TouchableOpacity>
@@ -84,12 +125,12 @@ export default function ProfileScreen() {
                         <Edit2 size={16} color="#FFF" />
                     </TouchableOpacity>
                 </View>
-                <Text style={styles.name}>Alex Roamer</Text>
-                <Text style={styles.bio}>Digital Nomad & Van Builder. Living in a 2018 Sprinter.</Text>
+                <Text style={styles.name}>{userData?.name || 'Road Mate User'}</Text>
+                <Text style={styles.bio}>{userData?.status || 'Digital Nomad & Van Builder'}</Text>
 
                 <View style={styles.statsRow}>
                     <View style={styles.stat}>
-                        <Text style={styles.statValue}>245</Text>
+                        <Text style={styles.statValue}>{connectionCount}</Text>
                         <Text style={styles.statLabel}>Connections</Text>
                     </View>
                     <View style={styles.statDivider} />
@@ -145,7 +186,7 @@ export default function ProfileScreen() {
                         <Text style={styles.qrTitle}>My Connection QR</Text>
                         <View style={styles.qrWrapper}>
                             <QRCode
-                                value={`road-mate://nomad/${userId}`}
+                                value={`road-mate://nomad/${userData?.id || 'guest'}`}
                                 size={200}
                                 color={Colors.background}
                                 backgroundColor="#FFF"
