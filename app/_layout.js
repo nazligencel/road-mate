@@ -1,16 +1,19 @@
 import { Stack, useSegments, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Colors } from '../constants/Colors';
+import { Colors, getColors } from '../constants/Colors';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 // Dynamic GoogleSignin import moved inside useEffect
 
-export default function RootLayout() {
+function RootLayoutNav() {
     const segments = useSegments();
     const router = useRouter();
     const [isMounted, setIsMounted] = useState(false);
+    const { isDarkMode } = useTheme();
+    const colors = getColors(isDarkMode);
 
     useEffect(() => {
         setIsMounted(true);
@@ -52,20 +55,20 @@ export default function RootLayout() {
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <SafeAreaProvider style={{ backgroundColor: Colors.background }}>
-                <StatusBar style="light" />
+            <SafeAreaProvider style={{ backgroundColor: colors.background }}>
+                <StatusBar style={isDarkMode ? "light" : "dark"} />
                 <Stack
                     screenOptions={{
                         headerStyle: {
-                            backgroundColor: Colors.background,
+                            backgroundColor: colors.background,
                         },
-                        headerTintColor: Colors.text,
+                        headerTintColor: colors.text,
                         headerShadowVisible: false,
                         headerTitleStyle: {
                             fontWeight: 'bold',
                         },
                         contentStyle: {
-                            backgroundColor: Colors.background,
+                            backgroundColor: colors.background,
                         },
                         animation: 'fade',
                     }}
@@ -76,5 +79,13 @@ export default function RootLayout() {
                 </Stack>
             </SafeAreaProvider>
         </GestureHandlerRootView>
+    );
+}
+
+export default function RootLayout() {
+    return (
+        <ThemeProvider>
+            <RootLayoutNav />
+        </ThemeProvider>
     );
 }

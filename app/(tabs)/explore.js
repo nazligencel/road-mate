@@ -466,10 +466,6 @@ export default function ExploreScreen() {
                             iconBgColor = '#1D8CF8'; // Variant 2 Classic Blue
                         }
 
-                        if (activeCategory === 'nomads') {
-                            // Nomads handled by the return block below
-                        }
-
                         return (
                             <Marker
                                 key={`${activeCategory}-${marker.id}`}
@@ -607,7 +603,7 @@ export default function ExploreScreen() {
 
                                     <TouchableOpacity
                                         style={styles.cardNavBtn}
-                                        onPress={() => handleGetDirections(nomadLat, nomadLng, nomad.name)}
+                                        onPress={() => handleGetDirections(itemLat, itemLng, item.name)}
                                     >
                                         <Navigation size={14} color={Colors.primary} fill={Colors.primary} />
                                         <Text style={styles.navBtnText}>Get Directions</Text>
@@ -710,12 +706,12 @@ const styles = StyleSheet.create({
     markerLabel: { backgroundColor: 'rgba(0,0,0,0.8)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, marginTop: 2 },
     markerText: { color: '#FFF', fontSize: 8, fontWeight: 'bold' },
     topArea: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, zIndex: 10 },
-    searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.card + 'F2', borderRadius: 15, paddingHorizontal: 12, height: 50, marginTop: 10 },
+    searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 15, paddingHorizontal: 12, height: 50, marginTop: 10, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' },
     searchIcon: { marginRight: 10 },
     searchInput: { flex: 1, color: '#FFF' },
     scanBtn: { padding: 8, marginLeft: 5 },
     filterScroll: { paddingVertical: 12 },
-    filterChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.card, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, marginRight: 10 },
+    filterChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255, 255, 255, 0.08)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' },
     activeChip: { backgroundColor: Colors.primary },
     chipText: { color: '#FFF', fontSize: 12, fontWeight: '600' },
     bottomArea: { position: 'absolute', bottom: Platform.OS === 'ios' ? 90 : 70, left: 0, right: 0 },
@@ -725,18 +721,18 @@ const styles = StyleSheet.create({
     nomadScroll: { paddingHorizontal: 16, gap: 12 },
     nomadCard: {
         width: width * 0.75,
-        backgroundColor: '#1E293B',
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
         borderRadius: 24,
         flexDirection: 'row',
         padding: 14,
         gap: 16,
-        borderWidth: 1.5,
-        borderColor: Colors.primary + '40',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.12)',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.6,
-        shadowRadius: 16,
-        elevation: 15,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 10,
     },
     cardImage: { width: 70, height: 70, borderRadius: 12 },
     cardInfo: { flex: 1, justifyContent: 'center' },
@@ -765,9 +761,9 @@ const styles = StyleSheet.create({
     detailTitleInfo: { flex: 1, marginLeft: 12 },
     detailName: { color: '#FFF', fontSize: 20, fontWeight: 'bold' },
     detailSubInfo: { color: Colors.textSecondary, fontSize: 13 },
-    detailChatBtn: { width: 45, height: 45, borderRadius: 12, backgroundColor: Colors.card, justifyContent: 'center', alignItems: 'center' },
+    detailChatBtn: { width: 45, height: 45, borderRadius: 12, backgroundColor: 'rgba(255, 255, 255, 0.08)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' },
     infoCardsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-    infoCard: { flex: 1, backgroundColor: Colors.card, padding: 12, borderRadius: 15 },
+    infoCard: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.08)', padding: 12, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' },
     infoCardLabel: { color: Colors.textSecondary, fontSize: 10, marginBottom: 4 },
     infoCardValue: { color: '#FFF', fontSize: 14, fontWeight: 'bold' },
     mainActionBtn: { backgroundColor: Colors.primary, height: 55, borderRadius: 15, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },

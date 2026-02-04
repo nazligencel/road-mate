@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingVi
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Colors } from '../constants/Colors';
-import { Mail, ArrowRight, Home, Apple, Tent, Compass, Droplets, Mountain } from 'lucide-react-native';
+import { Mail, ArrowRight, Home, Apple, Tent, Compass, Droplets, Mountain, Lock } from 'lucide-react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -106,14 +106,29 @@ export default function LoginScreen() {
             console.log("Google Login Initiated");
             await GoogleSignin.hasPlayServices();
             const userInfo = await GoogleSignin.signIn();
-            // ... rest of the logic
+
+            // Call backend with Google token
+            const response = await AuthService.googleLogin(userInfo.idToken);
+            if (response.token) {
+                router.replace('/(tabs)/home');
+            }
         } catch (error) {
-            const { statusCodes } = require('@react-native-google-signin/google-signin');
-            if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-                console.log("User cancelled the login flow");
-            } else {
-                console.error("Some other error happened:", error);
-                alert("Giriş Başarısız: " + error.message);
+            // Check if it's a native module error (Expo Go)
+            if (error.message && error.message.includes('RNGoogleSignin')) {
+                alert("Google Sign-In sadece development build'de çalışır. Lütfen email ile giriş yapın.");
+                return;
+            }
+
+            try {
+                const { statusCodes } = require('@react-native-google-signin/google-signin');
+                if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+                    console.log("User cancelled the login flow");
+                } else {
+                    console.error("Google Sign-In error:", error);
+                    alert("Giriş Başarısız: " + error.message);
+                }
+            } catch (e) {
+                console.log("Google Sign-In not available in Expo Go");
             }
         }
     };
@@ -214,17 +229,15 @@ export default function LoginScreen() {
                                     />
                                 </View>
                                 <View style={styles.inputWrapper}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                                        {/* Lock icon missing import but we can reuse Mail or standard View if needed, assuming Lock is imported */}
-                                        <TextInput
-                                            style={[styles.input, { marginLeft: 16 }]}
-                                            placeholder="Password"
-                                            placeholderTextColor="rgba(255,255,255,0.3)"
-                                            value={password}
-                                            onChangeText={setPassword}
-                                            secureTextEntry
-                                        />
-                                    </View>
+                                    <Lock color="rgba(255,255,255,0.5)" size={20} style={styles.inputIcon} />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Password"
+                                        placeholderTextColor="rgba(255,255,255,0.3)"
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        secureTextEntry
+                                    />
                                 </View>
                             </View>
 

@@ -221,7 +221,7 @@ export default function HomeScreen() {
                             <TouchableOpacity key={nomad.id} style={styles.nomadItem}>
                                 <View style={styles.nomadImageContainer}>
                                     <Image source={{ uri: nomad.image }} style={styles.nomadImage} />
-                                    {nomad.status === 'Şu an çevrimiçi' && (
+                                    {nomad.online && (
                                         <View style={styles.nomadOnlineBadge}>
                                             <View style={styles.lightningIcon}><Text style={{ fontSize: 8 }}>⚡</Text></View>
                                         </View>
@@ -346,11 +346,11 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: Colors.card,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: Colors.border,
+        borderColor: 'rgba(255, 255, 255, 0.12)',
     },
     notificationDot: {
         position: 'absolute',
@@ -369,11 +369,11 @@ const styles = StyleSheet.create({
     mapCard: {
         height: 220,
         borderRadius: 24,
-        backgroundColor: Colors.card,
+        backgroundColor: 'rgba(255, 255, 255, 0.06)',
         overflow: 'hidden',
         position: 'relative',
         borderWidth: 1,
-        borderColor: Colors.cardBorder,
+        borderColor: 'rgba(255, 255, 255, 0.12)',
     },
     mapBackground: {
         width: '100%',
@@ -545,11 +545,11 @@ const styles = StyleSheet.create({
     },
     activityCard: {
         flexDirection: 'row',
-        backgroundColor: Colors.card,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
         borderRadius: 20,
         padding: 12,
         borderWidth: 1,
-        borderColor: Colors.cardBorder,
+        borderColor: 'rgba(255, 255, 255, 0.12)',
         alignItems: 'center',
         gap: 16,
     },
