@@ -54,12 +54,6 @@ export default {
             ],
             "@react-native-google-signin/google-signin",
             [
-                "expo-barcode-scanner",
-                {
-                    cameraPermission: "Allow Road Mate to access your camera to scan QR codes."
-                }
-            ],
-            [
                 "expo-image-picker",
                 {
                     photosPermission: "Allow Road Mate to access your photos to set profile picture."

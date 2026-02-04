@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import { NomadService } from '../../services/api';
+import { BlurView } from 'expo-blur';
 
 const { width } = Dimensions.get('window');
 
@@ -47,6 +48,15 @@ const mapStyle = [
     { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#020617" }] }
 ];
 
+const GlassCard = ({ children, style, intensity = 20 }) => (
+    <View style={[styles.glassCardContainer, style]}>
+        <BlurView intensity={intensity} tint="dark" style={StyleSheet.absoluteFill} />
+        <View style={styles.glassCardContent}>
+            {children}
+        </View>
+    </View>
+);
+
 export default function HomeScreen() {
     const [location, setLocation] = useState(null);
     const [nearbyNomads, setNearbyNomads] = useState([]);
@@ -69,13 +79,12 @@ export default function HomeScreen() {
                     locationSubscription = await Location.watchPositionAsync(
                         {
                             accuracy: Location.Accuracy.Balanced,
-                            timeInterval: 10000, // Every 10 seconds for home
+                            timeInterval: 10000,
                             distanceInterval: 20,
                         },
                         async (newLocation) => {
                             setLocation(newLocation);
 
-                            // Fetch nearby nomads when location changes
                             if (!isFetching) {
                                 setIsFetching(true);
                                 try {
@@ -90,7 +99,6 @@ export default function HomeScreen() {
                                     setIsFetching(false);
                                 }
 
-                                // Also update our location on server (mocking userId 1)
                                 NomadService.updateLocation(
                                     1,
                                     newLocation.coords.latitude,
@@ -98,7 +106,6 @@ export default function HomeScreen() {
                                 );
                             }
 
-                            // Fetch weather
                             try {
                                 const weatherResponse = await fetch(
                                     `https://api.open-meteo.com/v1/forecast?latitude=${newLocation.coords.latitude}&longitude=${newLocation.coords.longitude}&current_weather=true`
@@ -134,153 +141,162 @@ export default function HomeScreen() {
         longitudeDelta: 0.1,
     };
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.container}>
+            {/* Background Gradient */}
+            <LinearGradient
+                colors={[Colors.background, '#1e293b', Colors.background]}
+                style={StyleSheet.absoluteFill}
+            />
 
-                {/* Header */}
-                <View style={styles.header}>
-                    <View style={styles.headerLeft}>
-                        <View style={styles.avatarContainer}>
-                            <Image
-                                source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&q=80' }}
-                                style={styles.avatar}
+            <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <View style={styles.headerLeft}>
+                            <View style={styles.avatarContainer}>
+                                <Image
+                                    source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&q=80' }}
+                                    style={styles.avatar}
+                                />
+                                <View style={styles.onlineDot} />
+                            </View>
+                            <View>
+                                <Text style={styles.locationLabel}>CURRENT LOCATION</Text>
+                                <View style={styles.locationRow}>
+                                    <Text style={styles.locationTitle}>Sedona, AZ</Text>
+                                </View>
+                            </View>
+                        </View>
+                        <TouchableOpacity>
+                            <GlassCard style={styles.bellButton} intensity={15}>
+                                <Bell size={20} color={Colors.text} />
+                                <View style={styles.notificationDot} />
+                            </GlassCard>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Road Ahead / Real Map Card */}
+                    <View style={styles.mapCardContainer}>
+                        <GlassCard style={styles.mapCard} intensity={10}>
+                            <MapView
+                                style={styles.mapBackground}
+                                provider={PROVIDER_GOOGLE}
+                                region={initialRegion}
+                                customMapStyle={mapStyle}
+                                scrollEnabled={false}
+                                zoomEnabled={false}
+                                pitchEnabled={false}
+                                showsUserLocation={true}
                             />
-                            <View style={styles.onlineDot} />
-                        </View>
-                        <View>
-                            <Text style={styles.locationLabel}>CURRENT LOCATION</Text>
-                            <View style={styles.locationRow}>
-                                <Text style={styles.locationTitle}>Sedona, AZ</Text>
+                            <LinearGradient
+                                colors={['transparent', 'rgba(11, 19, 26, 0.9)']}
+                                style={styles.mapOverlay}
+                            />
+
+                            <View style={styles.routeBadge}>
+                                <View style={styles.pulsingDot} />
+                                <Text style={styles.routeText}>On Route</Text>
                             </View>
-                        </View>
-                    </View>
-                    <TouchableOpacity style={styles.bellButton}>
-                        <Bell size={20} color={Colors.text} />
-                        <View style={styles.notificationDot} />
-                    </TouchableOpacity>
-                </View>
 
-                {/* Road Ahead / Real Map Card */}
-                <View style={styles.mapCardContainer}>
-                    <View style={styles.mapCard}>
-                        <MapView
-                            style={styles.mapBackground}
-                            provider={PROVIDER_GOOGLE}
-                            region={initialRegion}
-                            customMapStyle={mapStyle}
-                            scrollEnabled={false}
-                            zoomEnabled={false}
-                            pitchEnabled={false}
-                            showsUserLocation={true}
-                        />
-                        <LinearGradient
-                            colors={['transparent', Colors.background]}
-                            style={styles.mapOverlay}
-                        />
-
-                        <View style={styles.routeBadge}>
-                            <View style={styles.pulsingDot} />
-                            <Text style={styles.routeText}>On Route</Text>
-                        </View>
-
-                        <View style={styles.weatherBadge}>
-                            <Text style={styles.weatherText}>☀️ {weather !== null ? `${weather}°C` : '--°C'}</Text>
-                        </View>
-
-                        <View style={styles.mapContent}>
-                            <Text style={styles.sectionLabel}>ROAD AHEAD</Text>
-                            <Text style={styles.nextStop}>Next: Grand Canyon South Rim</Text>
-
-                            <View style={styles.mapFooter}>
-                                <View>
-                                    <Text style={styles.metaLabel}>Remaining</Text>
-                                    <Text style={styles.metaValue}>120 miles</Text>
-                                </View>
-                                <TouchableOpacity
-                                    style={styles.navButton}
-                                    onPress={() => router.push('/(tabs)/explore')}
-                                >
-                                    <Navigation size={18} color="#FFFFFF" fill="#FFFFFF" />
-                                    <Text style={styles.navButtonText}>Navigation</Text>
-                                </TouchableOpacity>
+                            <View style={styles.weatherBadge}>
+                                <Text style={styles.weatherText}>☀️ {weather !== null ? `${weather}°C` : '--°C'}</Text>
                             </View>
-                        </View>
-                    </View>
-                </View>
 
-                {/* Nearby Nomads */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Nearby Nomads</Text>
-                        <TouchableOpacity onPress={() => router.push('/(tabs)/explore')}>
-                            <Text style={styles.seeAll}>View Map</Text>
-                        </TouchableOpacity>
-                    </View>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.nomadScroll}>
-                        {nearbyNomads.length > 0 ? nearbyNomads.map((nomad) => (
-                            <TouchableOpacity key={nomad.id} style={styles.nomadItem}>
-                                <View style={styles.nomadImageContainer}>
-                                    <Image source={{ uri: nomad.image }} style={styles.nomadImage} />
-                                    {nomad.online && (
-                                        <View style={styles.nomadOnlineBadge}>
-                                            <View style={styles.lightningIcon}><Text style={{ fontSize: 8 }}>⚡</Text></View>
-                                        </View>
-                                    )}
+                            <View style={styles.mapContent}>
+                                <Text style={styles.sectionLabel}>ROAD AHEAD</Text>
+                                <Text style={styles.nextStop}>Next: Grand Canyon South Rim</Text>
+
+                                <View style={styles.mapFooter}>
+                                    <View>
+                                        <Text style={styles.metaLabel}>Remaining</Text>
+                                        <Text style={styles.metaValue}>120 miles</Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.navButton}
+                                        onPress={() => router.push('/(tabs)/explore')}
+                                    >
+                                        <Navigation size={18} color="#FFFFFF" fill="#FFFFFF" />
+                                        <Text style={styles.navButtonText}>Navigation</Text>
+                                    </TouchableOpacity>
                                 </View>
-                                <Text style={styles.nomadName}>{nomad.name} • {typeof nomad.distance === 'number' ? nomad.distance.toFixed(1) + 'km' : nomad.distance}</Text>
+                            </View>
+                        </GlassCard>
+                    </View>
+
+                    {/* Nearby Nomads */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Nearby Nomads</Text>
+                            <TouchableOpacity onPress={() => router.push('/(tabs)/explore')}>
+                                <Text style={styles.seeAll}>View Map</Text>
                             </TouchableOpacity>
-                        )) : (
-                            <Text style={{ color: Colors.textSecondary, marginLeft: 20 }}>No one nearby...</Text>
-                        )}
-                    </ScrollView>
-                </View>
-
-                {/* Campfire Feed */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Flame size={20} color={Colors.secondary} fill={Colors.secondary} />
-                            <Text style={styles.sectionTitle}>Campfire Feed</Text>
                         </View>
-                        <TouchableOpacity
-                            style={styles.addActivityButton}
-                            onPress={() => alert('Aktivite oluşturma ekranı yakında...')}
-                        >
-                            <Plus size={18} color="#FFF" />
-                        </TouchableOpacity>
-                    </View>
-                    <Text style={styles.sectionSubtitle}>Local activities happening now</Text>
-
-                    <View style={styles.feedList}>
-                        {ACTIVITIES.map((item) => (
-                            <View key={item.id} style={styles.activityCard}>
-                                <Image source={{ uri: item.image }} style={styles.activityImage} />
-                                <View style={styles.activityInfo}>
-                                    <Text style={styles.activityTitle}>{item.title}</Text>
-                                    <View style={styles.activityMeta}>
-                                        <Text style={styles.activityTime}>{item.time}</Text>
-                                    </View>
-                                    <View style={styles.activityFooter}>
-                                        <View style={styles.attendees}>
-                                            <View style={[styles.attendeeDot, { backgroundColor: '#FCA5A5' }]} />
-                                            <View style={[styles.attendeeDot, { backgroundColor: '#FDE047', marginLeft: -8 }]} />
-                                            <View style={[styles.attendeeDot, { backgroundColor: '#86EFAC', marginLeft: -8, justifyContent: 'center', alignItems: 'center' }]}>
-                                                <Text style={{ fontSize: 8, color: '#000' }}>+{item.attendees}</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.nomadScroll}>
+                            {nearbyNomads.length > 0 ? nearbyNomads.map((nomad) => (
+                                <TouchableOpacity key={nomad.id} style={styles.nomadItem}>
+                                    <View style={styles.nomadImageContainer}>
+                                        <Image source={{ uri: nomad.image }} style={styles.nomadImage} />
+                                        {nomad.online && (
+                                            <View style={styles.nomadOnlineBadge}>
+                                                <View style={styles.lightningIcon}><Text style={{ fontSize: 8 }}>⚡</Text></View>
                                             </View>
-                                        </View>
-                                        <TouchableOpacity style={styles.joinButton}>
-                                            <Text style={styles.joinText}>Join</Text>
-                                        </TouchableOpacity>
+                                        )}
                                     </View>
-                                </View>
-                            </View>
-                        ))}
+                                    <Text style={styles.nomadName}>{nomad.name} • {typeof nomad.distance === 'number' ? nomad.distance.toFixed(1) + 'km' : nomad.distance}</Text>
+                                </TouchableOpacity>
+                            )) : (
+                                <Text style={{ color: Colors.textSecondary, marginLeft: 20 }}>No one nearby...</Text>
+                            )}
+                        </ScrollView>
                     </View>
-                </View>
 
-            </ScrollView>
+                    {/* Campfire Feed */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <Flame size={20} color={Colors.secondary} fill={Colors.secondary} />
+                                <Text style={styles.sectionTitle}>Campfire Feed</Text>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.addActivityButton}
+                                onPress={() => alert('Activity creation coming soon...')}
+                            >
+                                <Plus size={18} color="#FFF" />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.sectionSubtitle}>Local activities happening now</Text>
 
-        </SafeAreaView>
+                        <View style={styles.feedList}>
+                            {ACTIVITIES.map((item) => (
+                                <GlassCard key={item.id} style={styles.activityCard}>
+                                    <Image source={{ uri: item.image }} style={styles.activityImage} />
+                                    <View style={styles.activityInfo}>
+                                        <Text style={styles.activityTitle}>{item.title}</Text>
+                                        <View style={styles.activityMeta}>
+                                            <Text style={styles.activityTime}>{item.time}</Text>
+                                        </View>
+                                        <View style={styles.activityFooter}>
+                                            <View style={styles.attendees}>
+                                                <View style={[styles.attendeeDot, { backgroundColor: '#FCA5A5' }]} />
+                                                <View style={[styles.attendeeDot, { backgroundColor: '#FDE047', marginLeft: -8 }]} />
+                                                <View style={[styles.attendeeDot, { backgroundColor: '#86EFAC', marginLeft: -8, justifyContent: 'center', alignItems: 'center' }]}>
+                                                    <Text style={{ fontSize: 8, color: '#000' }}>+{item.attendees}</Text>
+                                                </View>
+                                            </View>
+                                            <TouchableOpacity style={styles.joinButton}>
+                                                <Text style={styles.joinText}>Join</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                </GlassCard>
+                            ))}
+                        </View>
+                    </View>
+
+                </ScrollView>
+            </SafeAreaView>
+        </View>
     );
 }
 
@@ -346,11 +362,8 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.12)',
     },
     notificationDot: {
         position: 'absolute',
@@ -361,6 +374,17 @@ const styles = StyleSheet.create({
         borderRadius: 3,
         backgroundColor: Colors.primary,
     },
+    glassCardContainer: {
+        borderRadius: 20,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: Platform.select({
+            ios: 'transparent',
+            android: 'rgba(255, 255, 255, 0.05)',
+        }),
+    },
+    glassCardContent: {},
     // Map Card
     mapCardContainer: {
         paddingHorizontal: 20,
@@ -369,11 +393,7 @@ const styles = StyleSheet.create({
     mapCard: {
         height: 220,
         borderRadius: 24,
-        backgroundColor: 'rgba(255, 255, 255, 0.06)',
-        overflow: 'hidden',
-        position: 'relative',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.12)',
+        // backgroundColor handled by GlassCard
     },
     mapBackground: {
         width: '100%',
@@ -545,11 +565,8 @@ const styles = StyleSheet.create({
     },
     activityCard: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
         borderRadius: 20,
         padding: 12,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.12)',
         alignItems: 'center',
         gap: 16,
     },

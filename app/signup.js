@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingVi
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { User, Mail, Lock, Eye, EyeOff, Tent, ArrowLeft, Compass, Droplets, Mountain } from 'lucide-react-native';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+// Dynamic GoogleSignin import moved inside handleGoogleLogin to prevent crash on boot
 import { AuthService } from '../services/AuthService';
 import { Image } from 'react-native';
 
@@ -70,6 +70,8 @@ export default function SignupScreen() {
 
     const handleGoogleLogin = async () => {
         try {
+            // Dynamic import to prevent crash on Expo Go
+            const { GoogleSignin, statusCodes } = require('@react-native-google-signin/google-signin');
             await GoogleSignin.hasPlayServices();
             const userInfo = await GoogleSignin.signIn();
             const response = await AuthService.googleLogin(userInfo.idToken);
@@ -77,8 +79,19 @@ export default function SignupScreen() {
                 router.replace('/(tabs)/home');
             }
         } catch (error) {
-            if (error.code !== statusCodes.SIGN_IN_CANCELLED) {
-                alert("Google Giriş Hatası: " + error.message);
+            // Check if it's a native module error
+            if (error.message && error.message.includes('RNGoogleSignin')) {
+                alert("Google Sign-In sadece development build'de çalışır. Lütfen email ile kayıt olun.");
+                return;
+            }
+            // Dynamic import for statusCodes check
+            try {
+                const { statusCodes } = require('@react-native-google-signin/google-signin');
+                if (error.code !== statusCodes.SIGN_IN_CANCELLED) {
+                    alert("Google Giriş Hatası: " + error.message);
+                }
+            } catch (e) {
+                console.log("Google Sign-In not available:", error.message);
             }
         }
     };
