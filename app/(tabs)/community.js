@@ -1,6 +1,8 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { Wrench, Zap, Droplets, Hammer, Plus, MessageSquare } from 'lucide-react-native';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const CATEGORIES = [
     { id: 1, name: 'Electrical', icon: Zap, color: '#F59E0B' },
@@ -30,9 +32,24 @@ const DISCUSSIONS = [
     },
 ];
 
+const GlassCard = ({ children, style, intensity = 20 }) => (
+    <View style={[styles.glassCardContainer, style]}>
+        <BlurView intensity={intensity} tint="dark" style={StyleSheet.absoluteFill} />
+        <View style={styles.glassCardContent}>
+            {children}
+        </View>
+    </View>
+);
+
 export default function CommunityScreen() {
     return (
         <View style={styles.container}>
+            {/* Background Gradient for Glass Effect */}
+            <LinearGradient
+                colors={[Colors.background, '#1e293b', Colors.background]}
+                style={StyleSheet.absoluteFill}
+            />
+
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Builder Hub</Text>
                 <TouchableOpacity style={styles.createBtn}>
@@ -45,11 +62,13 @@ export default function CommunityScreen() {
                 <Text style={styles.sectionTitle}>Browse Topics</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
                     {CATEGORIES.map((cat) => (
-                        <TouchableOpacity key={cat.id} style={[styles.categoryCard, { backgroundColor: cat.color + '20' }]}>
-                            <View style={[styles.iconBox, { backgroundColor: cat.color }]}>
-                                <cat.icon color="#FFF" size={20} />
-                            </View>
-                            <Text style={[styles.categoryName, { color: cat.color }]}>{cat.name}</Text>
+                        <TouchableOpacity key={cat.id}>
+                            <GlassCard style={styles.categoryCard} intensity={15}>
+                                <View style={[styles.iconBox, { backgroundColor: cat.color + '20' }]}>
+                                    <cat.icon color={cat.color} size={24} />
+                                </View>
+                                <Text style={[styles.categoryName, { color: '#FFF' }]}>{cat.name}</Text>
+                            </GlassCard>
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
@@ -57,26 +76,28 @@ export default function CommunityScreen() {
                 <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Recent Discussions</Text>
                 <View style={styles.discussionList}>
                     {DISCUSSIONS.map((item) => (
-                        <TouchableOpacity key={item.id} style={styles.discussionCard}>
-                            <View style={styles.discussionHeader}>
-                                <View style={styles.tagBadge}>
-                                    <Text style={styles.tagText}>{item.tag}</Text>
+                        <TouchableOpacity key={item.id}>
+                            <GlassCard style={styles.discussionCard}>
+                                <View style={styles.discussionHeader}>
+                                    <View style={[styles.tagBadge, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                                        <Text style={styles.tagText}>{item.tag}</Text>
+                                    </View>
+                                    <Text style={styles.timeText}>{item.time}</Text>
                                 </View>
-                                <Text style={styles.timeText}>{item.time}</Text>
-                            </View>
-                            <Text style={styles.discussionTitle}>{item.title}</Text>
-                            <Text style={styles.discussionPreview}>{item.preview}</Text>
+                                <Text style={styles.discussionTitle}>{item.title}</Text>
+                                <Text style={styles.discussionPreview}>{item.preview}</Text>
 
-                            <View style={styles.discussionFooter}>
-                                <View style={styles.authorRow}>
-                                    <View style={styles.avatarPlaceholder} />
-                                    <Text style={styles.authorName}>{item.author}</Text>
+                                <View style={styles.discussionFooter}>
+                                    <View style={styles.authorRow}>
+                                        <View style={[styles.avatarPlaceholder, { backgroundColor: Colors.primary }]} />
+                                        <Text style={styles.authorName}>{item.author}</Text>
+                                    </View>
+                                    <View style={styles.statsRow}>
+                                        <MessageSquare size={14} color={Colors.textSecondary} />
+                                        <Text style={styles.statsText}>{item.replies}</Text>
+                                    </View>
                                 </View>
-                                <View style={styles.statsRow}>
-                                    <MessageSquare size={14} color={Colors.textSecondary} />
-                                    <Text style={styles.statsText}>{item.replies}</Text>
-                                </View>
-                            </View>
+                            </GlassCard>
                         </TouchableOpacity>
                     ))}
                 </View>
@@ -130,51 +151,59 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         gap: 12,
     },
-    categoryCard: {
-        padding: 16,
+    glassCardContainer: {
         borderRadius: 16,
-        alignItems: 'center',
-        width: 100,
+        overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'transparent',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: Platform.select({
+            ios: 'transparent',
+            android: 'rgba(255, 255, 255, 0.05)',
+        }),
+    },
+    glassCardContent: {
+        padding: 16,
+    },
+    categoryCard: {
+        width: 100,
+        height: 110,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     iconBox: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 12,
     },
     categoryName: {
         fontSize: 12,
         fontWeight: '600',
+        textAlign: 'center',
     },
     discussionList: {
         paddingHorizontal: 24,
         gap: 16,
     },
     discussionCard: {
-        backgroundColor: Colors.card,
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: Colors.border,
+        // Layout handled by glassCardContainer
     },
     discussionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 8,
+        marginBottom: 12,
+        alignItems: 'center',
     },
     tagBadge: {
-        backgroundColor: Colors.background,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
         borderRadius: 8,
     },
     tagText: {
-        color: Colors.textSecondary,
-        fontSize: 10,
+        color: Colors.text,
+        fontSize: 11,
         fontWeight: '600',
     },
     timeText: {
@@ -183,21 +212,22 @@ const styles = StyleSheet.create({
     },
     discussionTitle: {
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: 'bold',
         color: Colors.text,
-        marginBottom: 4,
+        marginBottom: 6,
     },
     discussionPreview: {
         fontSize: 14,
         color: Colors.textSecondary,
-        marginBottom: 12,
+        marginBottom: 16,
+        lineHeight: 20,
     },
     discussionFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         borderTopWidth: 1,
-        borderTopColor: Colors.border,
+        borderTopColor: 'rgba(255,255,255,0.1)',
         paddingTop: 12,
     },
     authorRow: {
@@ -206,20 +236,19 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     avatarPlaceholder: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        backgroundColor: Colors.primary,
+        width: 24,
+        height: 24,
+        borderRadius: 12,
     },
     authorName: {
         color: Colors.textSecondary,
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: '500',
     },
     statsRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: 6,
     },
     statsText: {
         color: Colors.textSecondary,

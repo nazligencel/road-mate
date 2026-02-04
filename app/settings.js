@@ -8,45 +8,52 @@ import {
     Switch,
     Image,
     Alert,
-    Linking,
-    Dimensions
+    Dimensions,
+    Platform
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, getColors } from '../constants/Colors';
+import { Colors } from '../constants/Colors';
 import { useTheme } from '../contexts/ThemeContext';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
     ArrowLeft,
-    User,
     ChevronRight,
     Bell,
     Moon,
     MapPin,
-    Globe,
     Car,
     Lock,
     UserX,
     Trash2,
     FileText,
     Shield,
-    Info,
-    LogOut
+    LogOut,
+    Globe
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
+
+// Standard Switch to match Profile theme colors
+const CustomSwitch = ({ value, onValueChange }) => (
+    <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: 'rgba(255,255,255,0.1)', true: Colors.primary }}
+        thumbColor="#FFF"
+    />
+);
 
 export default function SettingsScreen() {
     const router = useRouter();
     const { isDarkMode, toggleTheme } = useTheme();
-    const colors = getColors(isDarkMode);
     const [userData, setUserData] = useState(null);
     const [notifications, setNotifications] = useState(true);
-    const [locationServices, setLocationServices] = useState(true);
+    const [locationServices, setLocationServices] = useState(false);
 
     useEffect(() => {
         loadUserData();
-        loadSettings();
     }, []);
 
     const loadUserData = async () => {
@@ -60,247 +67,179 @@ export default function SettingsScreen() {
         }
     };
 
-    const loadSettings = async () => {
-        try {
-            const settings = await AsyncStorage.getItem('appSettings');
-            if (settings) {
-                const parsed = JSON.parse(settings);
-                setNotifications(parsed.notifications ?? true);
-                setLocationServices(parsed.locationServices ?? true);
-            }
-        } catch (error) {
-            console.error('Error loading settings:', error);
-        }
-    };
-
-    const saveSettings = async (key, value) => {
-        try {
-            const settings = await AsyncStorage.getItem('appSettings');
-            const parsed = settings ? JSON.parse(settings) : {};
-            parsed[key] = value;
-            await AsyncStorage.setItem('appSettings', JSON.stringify(parsed));
-        } catch (error) {
-            console.error('Error saving settings:', error);
-        }
-    };
-
-    const handleToggle = (setting, value, setter) => {
-        setter(value);
-        saveSettings(setting, value);
-    };
-
     const handleLogout = () => {
-        Alert.alert(
-            'Çıkış Yap',
-            'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
-            [
-                { text: 'İptal', style: 'cancel' },
-                {
-                    text: 'Çıkış Yap',
-                    style: 'destructive',
-                    onPress: async () => {
-                        await AsyncStorage.removeItem('userToken');
-                        await AsyncStorage.removeItem('userData');
-                        router.replace('/login');
-                    }
+        Alert.alert('Log Out', 'Are you sure?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Log Out',
+                style: 'destructive',
+                onPress: async () => {
+                    await AsyncStorage.removeItem('userToken');
+                    router.replace('/login');
                 }
-            ]
-        );
+            }
+        ]);
     };
 
-    const handleDeleteAccount = () => {
-        Alert.alert(
-            'Hesabı Sil',
-            'Bu işlem geri alınamaz! Tüm verileriniz silinecektir.',
-            [
-                { text: 'İptal', style: 'cancel' },
-                {
-                    text: 'Hesabı Sil',
-                    style: 'destructive',
-                    onPress: () => {
-                        Alert.alert('Bilgi', 'Hesap silme işlemi henüz aktif değil.');
-                    }
-                }
-            ]
-        );
-    };
-
-    const SettingItem = ({ icon: Icon, label, value, onPress, isDestructive, showChevron = true }) => (
-        <TouchableOpacity style={styles.settingItem} onPress={onPress}>
-            <View style={styles.settingLeft}>
-                <Icon size={20} color={isDestructive ? '#FF4757' : Colors.textSecondary} />
-                <Text style={[styles.settingLabel, isDestructive && styles.destructiveText]}>
-                    {label}
-                </Text>
+    const Section = ({ title, children, style }) => (
+        <View style={[styles.sectionContainer, style]}>
+            {title && <Text style={styles.sectionHeader}>{title}</Text>}
+            <View style={styles.cardContainer}>
+                <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+                <View style={styles.cardContent}>
+                    {children}
+                </View>
             </View>
-            <View style={styles.settingRight}>
-                {value && <Text style={styles.settingValue}>{value}</Text>}
-                {showChevron && <ChevronRight size={20} color={Colors.textSecondary} />}
+        </View>
+    );
+
+    const MenuItem = ({ icon: Icon, label, value, onPress, isLast, showChevron = true, type = 'link', onToggle, toggleValue }) => (
+        <TouchableOpacity
+            activeOpacity={type === 'toggle' ? 1 : 0.7}
+            onPress={type === 'toggle' ? () => onToggle(!toggleValue) : onPress}
+            style={[styles.menuItem, !isLast && styles.menuItemBorder]}
+        >
+            <View style={styles.menuLeft}>
+                {Icon && <Icon size={20} color={Colors.textSecondary} style={{ marginRight: 12 }} />}
+                <Text style={styles.menuLabel}>{label}</Text>
+            </View>
+            <View style={styles.menuRight}>
+                {type === 'toggle' ? (
+                    <CustomSwitch value={toggleValue} onValueChange={onToggle} />
+                ) : (
+                    <>
+                        {value && <Text style={styles.menuValue}>{value}</Text>}
+                        {showChevron && <ChevronRight size={16} color={Colors.textSecondary} />}
+                    </>
+                )}
             </View>
         </TouchableOpacity>
     );
 
-    const SettingToggle = ({ icon: Icon, label, value, onValueChange }) => (
-        <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-                <Icon size={20} color={Colors.textSecondary} />
-                <Text style={styles.settingLabel}>{label}</Text>
-            </View>
-            <Switch
-                value={value}
-                onValueChange={onValueChange}
-                trackColor={{ false: 'rgba(255,255,255,0.1)', true: Colors.primary }}
-                thumbColor="#FFF"
-            />
-        </View>
-    );
-
-    const GlassCard = ({ children, style }) => (
-        <View style={[styles.glassCard, style]}>
-            {children}
-        </View>
-    );
-
     return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.container}>
+            {/* Background Gradient */}
+            <LinearGradient
+                colors={[Colors.background, '#1e293b', Colors.background]}
+                style={StyleSheet.absoluteFill}
+            />
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                     <ArrowLeft size={24} color={Colors.text} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Settings</Text>
-                <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+
                 {/* Account Section */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Account</Text>
-                    <GlassCard>
-                        <View style={styles.profileRow}>
-                            <LinearGradient
-                                colors={['#6366F1', '#8B5CF6', '#EC4899']}
-                                style={styles.avatarGradient}
-                            >
-                                <Text style={styles.avatarText}>
-                                    {userData?.name ? userData.name.substring(0, 2).toUpperCase() : 'AR'}
-                                </Text>
-                            </LinearGradient>
-                            <View style={styles.profileInfo}>
-                                <Text style={styles.profileName}>{userData?.name || 'Alex Roamer'}</Text>
-                                <Text style={styles.profileEmail}>{userData?.email || 'alex.roamer@example.com'}</Text>
-                            </View>
-                            <TouchableOpacity onPress={() => Alert.alert('Coming Soon')}>
-                                <Text style={styles.editLink}>Edit Profile {'>'}</Text>
-                            </TouchableOpacity>
+                <Section title="Account">
+                    <TouchableOpacity style={styles.accountRow} onPress={() => { }}>
+                        <View style={styles.avatarPlaceholder}>
+                            <Text style={styles.avatarText}>
+                                {userData?.name ? userData.name.substring(0, 2).toUpperCase() : 'AR'}
+                            </Text>
                         </View>
-                    </GlassCard>
-                </View>
+                        <View style={styles.accountInfo}>
+                            <Text style={styles.accountName}>{userData?.name || 'Road Mate User'}</Text>
+                            <Text style={styles.accountEmail}>{userData?.email || 'user@roadmate.com'}</Text>
+                        </View>
+                        <View style={styles.editProfileBtn}>
+                            <Text style={styles.editProfileText}>Edit</Text>
+                            <ChevronRight size={14} color={Colors.textSecondary} />
+                        </View>
+                    </TouchableOpacity>
+                </Section>
 
                 {/* Preferences Section */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Preferences</Text>
-                    <GlassCard>
-                        <SettingToggle
-                            icon={Bell}
-                            label="Notifications"
-                            value={notifications}
-                            onValueChange={(v) => handleToggle('notifications', v, setNotifications)}
-                        />
-                        <View style={styles.divider} />
-                        <SettingToggle
-                            icon={Moon}
-                            label="Dark Mode"
-                            value={isDarkMode}
-                            onValueChange={(v) => toggleTheme(v)}
-                        />
-                        <View style={styles.divider} />
-                        <SettingToggle
-                            icon={MapPin}
-                            label="Location Services"
-                            value={locationServices}
-                            onValueChange={(v) => handleToggle('locationServices', v, setLocationServices)}
-                        />
-                        <View style={styles.divider} />
-                        <SettingItem
-                            icon={Globe}
-                            label="Language"
-                            value="English"
-                            onPress={() => Alert.alert('Coming Soon')}
-                        />
-                    </GlassCard>
-                </View>
+                <Section title="Preferences">
+                    <MenuItem
+                        icon={Bell}
+                        label="Notifications"
+                        type="toggle"
+                        toggleValue={notifications}
+                        onToggle={setNotifications}
+                    />
+                    <MenuItem
+                        icon={Moon}
+                        label="Dark Mode"
+                        type="toggle"
+                        toggleValue={isDarkMode}
+                        onToggle={toggleTheme}
+                    />
+                    <MenuItem
+                        icon={MapPin}
+                        label="Location Services"
+                        type="toggle"
+                        toggleValue={locationServices}
+                        onToggle={setLocationServices}
+                    />
+                    <MenuItem
+                        icon={Globe}
+                        label="Language"
+                        value="English"
+                        isLast
+                    />
+                </Section>
 
                 {/* Vehicle Section */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Vehicle</Text>
-                    <GlassCard>
-                        <View style={styles.vehicleRow}>
-                            <Car size={24} color={Colors.primary} />
-                            <View style={styles.vehicleInfo}>
-                                <Text style={styles.vehicleLabel}>My Vehicle</Text>
-                                <Text style={styles.vehicleValue}>
-                                    {userData?.vehicle || '2018 Mercedes Sprinter'}
-                                </Text>
-                            </View>
+                <Section title="Vehicle">
+                    <View style={styles.vehicleRow}>
+                        <Car size={24} color={Colors.primary} style={styles.vehicleIcon} />
+                        <View>
+                            <Text style={styles.menuLabel}>My Vehicle</Text>
+                            <Text style={styles.menuSubLabel}>{userData?.vehicle || 'Mercedes Sprinter'}</Text>
                         </View>
-                        <View style={styles.divider} />
-                        <SettingItem
-                            icon={Car}
-                            label="Edit vehicle info"
-                            onPress={() => Alert.alert('Coming Soon')}
-                        />
-                    </GlassCard>
-                </View>
+                    </View>
+                    <View style={styles.divider} />
+                    <MenuItem
+                        label="Edit vehicle info"
+                        isLast
+                    />
+                </Section>
 
-                {/* Privacy & About Row */}
-                <View style={styles.doubleSection}>
-                    <View style={styles.halfSection}>
-                        <Text style={styles.sectionTitle}>Privacy & Security</Text>
-                        <GlassCard style={styles.compactCard}>
-                            <TouchableOpacity style={styles.compactItem}>
-                                <Lock size={16} color={Colors.textSecondary} />
-                                <Text style={styles.compactLabel}>Change Password</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.compactItem}>
-                                <UserX size={16} color={Colors.textSecondary} />
-                                <Text style={styles.compactLabel}>Blocked Users</Text>
-                                <ChevronRight size={14} color={Colors.textSecondary} />
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.compactItem} onPress={handleDeleteAccount}>
-                                <Trash2 size={16} color="#FF4757" />
-                                <Text style={[styles.compactLabel, { color: '#FF4757' }]}>Delete Account</Text>
-                            </TouchableOpacity>
-                        </GlassCard>
-                    </View>
-                    <View style={styles.halfSection}>
-                        <Text style={styles.sectionTitle}>About</Text>
-                        <GlassCard style={styles.compactCard}>
-                            <TouchableOpacity style={styles.compactItem}>
-                                <FileText size={16} color={Colors.textSecondary} />
-                                <Text style={styles.compactLabel}>Terms of Service</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.compactItem}>
-                                <Shield size={16} color={Colors.textSecondary} />
-                                <Text style={styles.compactLabel}>Privacy Policy</Text>
-                            </TouchableOpacity>
-                            <View style={styles.compactItem}>
-                                <Info size={16} color={Colors.textSecondary} />
-                                <Text style={styles.compactLabel}>App Version</Text>
-                                <Text style={styles.versionText}>1.0.0</Text>
-                            </View>
-                        </GlassCard>
-                    </View>
+                {/* Privacy & About Grid */}
+                <View style={styles.gridRow}>
+                    <Section title="Privacy & Security" style={styles.gridItem}>
+                        <TouchableOpacity style={styles.smallMenuItem}>
+                            <Lock size={16} color={Colors.textSecondary} />
+                            <Text style={styles.smallMenuLabel}>Change Password</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.smallMenuItem}>
+                            <UserX size={16} color={Colors.textSecondary} />
+                            <Text style={styles.smallMenuLabel}>Blocked Users</Text>
+                            <ChevronRight size={12} color={Colors.textSecondary} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.smallMenuItem, { borderBottomWidth: 0 }]}>
+                            <Trash2 size={16} color={Colors.error} />
+                            <Text style={[styles.smallMenuLabel, { color: Colors.error }]}>Delete Account</Text>
+                        </TouchableOpacity>
+                    </Section>
+
+                    <Section title="About" style={styles.gridItem}>
+                        <TouchableOpacity style={styles.smallMenuItem}>
+                            <FileText size={16} color={Colors.textSecondary} />
+                            <Text style={styles.smallMenuLabel}>Terms</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.smallMenuItem}>
+                            <Shield size={16} color={Colors.textSecondary} />
+                            <Text style={styles.smallMenuLabel}>Privacy</Text>
+                        </TouchableOpacity>
+                        <View style={[styles.smallMenuItem, { borderBottomWidth: 0, justifyContent: 'space-between' }]}>
+                            <Text style={styles.smallMenuLabel}>Version</Text>
+                            <Text style={styles.versionText}>1.0.0</Text>
+                        </View>
+                    </Section>
                 </View>
 
                 {/* Logout Button */}
-                <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-                    <LogOut size={20} color="#FFF" />
+                <TouchableOpacity onPress={handleLogout} activeOpacity={0.8} style={styles.logoutButton}>
+                    <LogOut size={20} color={Colors.error} style={{ marginRight: 8 }} />
                     <Text style={styles.logoutText}>Log Out</Text>
                 </TouchableOpacity>
 
-                <View style={{ height: 40 }} />
             </ScrollView>
         </View>
     );
@@ -314,21 +253,15 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
         paddingTop: 60,
         paddingHorizontal: 20,
         paddingBottom: 20,
     },
-    backBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        justifyContent: 'center',
-        alignItems: 'center',
+    backButton: {
+        marginRight: 16,
     },
     headerTitle: {
-        fontSize: 22,
+        fontSize: 24,
         fontWeight: 'bold',
         color: Colors.text,
     },
@@ -336,91 +269,102 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingHorizontal: 20,
     },
-    section: {
-        marginBottom: 20,
+    sectionContainer: {
+        marginBottom: 24,
     },
-    sectionTitle: {
+    sectionHeader: {
         fontSize: 13,
         fontWeight: '600',
         color: Colors.textSecondary,
-        marginBottom: 10,
+        marginBottom: 8,
+        marginLeft: 4,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
-    glassCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    cardContainer: {
         borderRadius: 16,
+        overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.12)',
-        overflow: 'hidden',
+        backgroundColor: Platform.select({
+            ios: 'transparent',
+            android: 'rgba(255, 255, 255, 0.05)',
+        }),
     },
-    profileRow: {
+    cardContent: {
+        // Wrapper for content inside blur view
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+    },
+    menuItemBorder: {
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.08)',
+    },
+    menuLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    menuLabel: {
+        fontSize: 15,
+        color: Colors.text,
+        fontWeight: '500',
+    },
+    menuRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    menuValue: {
+        fontSize: 14,
+        color: Colors.textSecondary,
+    },
+    accountRow: {
         flexDirection: 'row',
         alignItems: 'center',
         padding: 16,
     },
-    avatarGradient: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
+    avatarPlaceholder: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
     },
     avatarText: {
-        color: '#FFF',
+        color: Colors.text,
         fontSize: 18,
         fontWeight: 'bold',
     },
-    profileInfo: {
+    accountInfo: {
         flex: 1,
         marginLeft: 12,
     },
-    profileName: {
+    accountName: {
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: 'bold',
         color: Colors.text,
     },
-    profileEmail: {
+    accountEmail: {
         fontSize: 13,
         color: Colors.textSecondary,
         marginTop: 2,
     },
-    editLink: {
-        color: Colors.primary,
+    editProfileBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    editProfileText: {
         fontSize: 13,
-    },
-    settingItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-    },
-    settingLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    settingLabel: {
-        fontSize: 15,
-        color: Colors.text,
-    },
-    settingRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    settingValue: {
-        fontSize: 14,
         color: Colors.primary,
-    },
-    destructiveText: {
-        color: '#FF4757',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        marginHorizontal: 16,
     },
     vehicleRow: {
         flexDirection: 'row',
@@ -428,37 +372,40 @@ const styles = StyleSheet.create({
         padding: 16,
         gap: 12,
     },
-    vehicleInfo: {
-        flex: 1,
+    vehicleIcon: {
+        padding: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 8,
     },
-    vehicleLabel: {
-        fontSize: 12,
+    menuSubLabel: {
+        fontSize: 13,
         color: Colors.textSecondary,
-    },
-    vehicleValue: {
-        fontSize: 15,
-        fontWeight: '500',
-        color: Colors.text,
         marginTop: 2,
     },
-    doubleSection: {
+    divider: {
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        marginHorizontal: 16,
+    },
+    gridRow: {
         flexDirection: 'row',
-        gap: 12,
-        marginBottom: 20,
+        gap: 16,
+        marginBottom: 24,
     },
-    halfSection: {
+    gridItem: {
         flex: 1,
+        marginBottom: 0,
     },
-    compactCard: {
-        padding: 12,
-    },
-    compactItem: {
+    smallMenuItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        paddingVertical: 8,
+        gap: 10,
+        paddingVertical: 14,
+        paddingHorizontal: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.08)',
     },
-    compactLabel: {
+    smallMenuLabel: {
         fontSize: 13,
         color: Colors.text,
         flex: 1,
@@ -467,18 +414,16 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: Colors.textSecondary,
     },
-    logoutBtn: {
+    logoutButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(239, 68, 68, 0.9)',
+        marginBottom: 40,
         paddingVertical: 16,
-        borderRadius: 14,
-        gap: 10,
     },
     logoutText: {
+        color: Colors.error,
         fontSize: 16,
-        fontWeight: '600',
-        color: '#FFF',
+        fontWeight: 'bold',
     },
 });

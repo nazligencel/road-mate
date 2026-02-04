@@ -721,7 +721,7 @@ const styles = StyleSheet.create({
     nomadScroll: { paddingHorizontal: 16, gap: 12 },
     nomadCard: {
         width: width * 0.75,
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        backgroundColor: '#1E293B',
         borderRadius: 24,
         flexDirection: 'row',
         padding: 14,

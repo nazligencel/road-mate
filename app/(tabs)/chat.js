@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
 import { Colors } from '../../constants/Colors';
 import { Search, MessageCircle } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const CHATS = [
     {
@@ -53,11 +54,16 @@ const CHATS = [
 export default function ChatScreen() {
     return (
         <View style={styles.container}>
+            {/* Background Gradient - Keeping consistent color theme as requested before */}
+            <LinearGradient
+                colors={[Colors.background, '#1e293b', Colors.background]}
+                style={StyleSheet.absoluteFill}
+            />
 
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Messages</Text>
                 <TouchableOpacity style={styles.searchBtn}>
-                    <Search size={20} color={Colors.text} />
+                    <Search size={24} color={Colors.text} />
                 </TouchableOpacity>
             </View>
 
@@ -77,18 +83,20 @@ export default function ChatScreen() {
                                 <Text style={styles.name}>{item.user}</Text>
                                 <Text style={styles.time}>{item.time}</Text>
                             </View>
-                            <Text
-                                style={[styles.message, item.unread > 0 && styles.unreadMessage]}
-                                numberOfLines={1}
-                            >
-                                {item.lastMessage}
-                            </Text>
-                        </View>
-                        {item.unread > 0 && (
-                            <View style={styles.badge}>
-                                <Text style={styles.badgeText}>{item.unread}</Text>
+                            <View style={styles.bottomRow}>
+                                <Text
+                                    style={[styles.message, item.unread > 0 && styles.unreadMessage]}
+                                    numberOfLines={1}
+                                >
+                                    {item.lastMessage}
+                                </Text>
+                                {item.unread > 0 && (
+                                    <View style={styles.badge}>
+                                        <Text style={styles.badgeText}>{item.unread}</Text>
+                                    </View>
+                                )}
                             </View>
-                        )}
+                        </View>
                     </TouchableOpacity>
                 )}
                 ListEmptyComponent={() => (
@@ -124,57 +132,61 @@ const styles = StyleSheet.create({
         color: Colors.text,
     },
     searchBtn: {
-        padding: 10,
-        borderRadius: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.12)',
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     list: {
-        padding: 16,
-        gap: 12,
+        paddingHorizontal: 20,
     },
     chatCard: {
         flexDirection: 'row',
-        padding: 16,
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.12)',
+        paddingVertical: 16,
         alignItems: 'center',
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.05)',
     },
     avatarContainer: {
         position: 'relative',
-        marginRight: 14,
+        marginRight: 16,
     },
     avatar: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
     },
     onlineBadge: {
         position: 'absolute',
         bottom: 2,
         right: 2,
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: Colors.online,
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        backgroundColor: Colors.online || '#10B981',
         borderWidth: 2,
-        borderColor: '#0A0A1A',
+        borderColor: Colors.background,
     },
     chatContent: {
         flex: 1,
         justifyContent: 'center',
+        gap: 4,
     },
     topRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 4,
+        alignItems: 'center',
+    },
+    bottomRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     name: {
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: 'bold',
         color: Colors.text,
     },
     time: {
@@ -184,20 +196,21 @@ const styles = StyleSheet.create({
     message: {
         fontSize: 14,
         color: Colors.textSecondary,
+        flex: 1,
     },
     unreadMessage: {
         color: Colors.text,
         fontWeight: '500',
     },
     badge: {
-        minWidth: 22,
-        height: 22,
-        borderRadius: 11,
+        minWidth: 20,
+        height: 20,
+        borderRadius: 10,
         backgroundColor: Colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 6,
-        marginLeft: 10,
+        paddingHorizontal: 6, // Changed from padding 6 to paddingHorizontal for better pill shape
+        marginLeft: 8,
     },
     badgeText: {
         color: '#FFF',
