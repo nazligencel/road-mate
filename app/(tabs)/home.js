@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import React, { useState, useEffect, useMemo } from 'react';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -69,9 +70,13 @@ export default function HomeScreen() {
 
     useEffect(() => {
         let locationSubscription = null;
+        let userToken = null;
 
         (async () => {
             try {
+                // Get user token for authenticated requests
+                userToken = await AsyncStorage.getItem('userToken');
+
                 const enabled = await Location.hasServicesEnabledAsync();
                 if (!enabled) {
                     console.log("Location services are disabled");
@@ -94,7 +99,8 @@ export default function HomeScreen() {
                                 try {
                                     const nomads = await NomadService.getNearbyNomads(
                                         newLocation.coords.latitude,
-                                        newLocation.coords.longitude
+                                        newLocation.coords.longitude,
+                                        userToken
                                     );
                                     setNearbyNomads(nomads);
                                 } catch (err) {
@@ -103,10 +109,11 @@ export default function HomeScreen() {
                                     setIsFetching(false);
                                 }
 
+                                // Update current user's location
                                 NomadService.updateLocation(
-                                    1,
                                     newLocation.coords.latitude,
-                                    newLocation.coords.longitude
+                                    newLocation.coords.longitude,
+                                    userToken
                                 );
                             }
 

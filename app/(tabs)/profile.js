@@ -231,7 +231,7 @@ export default function ProfileScreen() {
                         </View>
                         <View style={[styles.statDivider, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]} />
                         <View style={styles.stat}>
-                            <Text style={[styles.statValue, { color: colors.text }]}>12</Text>
+                            <Text style={[styles.statValue, { color: colors.text }]}>{galleryPhotos.length}</Text>
                             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Build Posts</Text>
                         </View>
                         <View style={[styles.statDivider, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]} />
