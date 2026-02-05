@@ -213,3 +213,92 @@ export const ConnectionService = {
         }
     }
 };
+
+export const UserService = {
+    async uploadProfileImage(imageUri, token) {
+        try {
+            const formData = new FormData();
+            const filename = imageUri.split('/').pop();
+            const match = /\.(\w+)$/.exec(filename);
+            const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+            formData.append('file', { uri: imageUri, name: filename, type });
+
+            const response = await fetch(`${BASE_URL}/api/users/profile-image`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data',
+                },
+                body: formData,
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Upload failed');
+            return data;
+        } catch (error) {
+            console.error('Upload profile image error:', error);
+            throw error;
+        }
+    },
+
+    async uploadGalleryImage(imageUri, token) {
+        try {
+            const formData = new FormData();
+            const filename = imageUri.split('/').pop();
+            const match = /\.(\w+)$/.exec(filename);
+            const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+            formData.append('file', { uri: imageUri, name: filename, type });
+
+            const response = await fetch(`${BASE_URL}/api/users/gallery-image`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data',
+                },
+                body: formData,
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Upload failed');
+            return data;
+        } catch (error) {
+            console.error('Upload gallery image error:', error);
+            throw error;
+        }
+    },
+
+    async getUserDetails(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/users/profile`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch user details');
+            return await response.json();
+        } catch (error) {
+            console.error('Get user details error:', error);
+            throw error;
+        }
+    },
+
+    async deleteGalleryImage(imageId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/users/gallery/${imageId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                }
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.message || 'Delete failed');
+            }
+            return true;
+        } catch (error) {
+            console.error('Delete gallery image error:', error);
+            throw error;
+        }
+    }
+};

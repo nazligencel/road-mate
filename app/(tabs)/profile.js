@@ -1,22 +1,22 @@
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions, Modal, Alert, ActivityIndicator, Platform } from 'react-native';
 import React, { useState, useCallback } from 'react';
 import { Colors } from '../../constants/Colors';
-import { Settings, Edit2, LogOut, Camera, Grid, QrCode, Scan, Plus } from 'lucide-react-native';
+import { Settings, Edit2, LogOut, QrCode, Scan, Plus, Trash2, X } from 'lucide-react-native';
 import QRCode from 'react-native-qrcode-svg';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ConnectionService } from '../../services/api';
+import { ConnectionService, UserService, BASE_URL } from '../../services/api';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
 const PHOTOS = [
-    'https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=300&q=80',
-    'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=300&q=80',
-    'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=300&q=80',
-    'https://images.unsplash.com/photo-1530789253388-582c481c54b0?w=300&q=80',
+    { id: '1', url: 'https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=300&q=80' },
+    { id: '2', url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=300&q=80' },
+    { id: '3', url: 'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=300&q=80' },
+    { id: '4', url: 'https://images.unsplash.com/photo-1530789253388-582c481c54b0?w=300&q=80' },
 ];
 
 export default function ProfileScreen() {
@@ -26,6 +26,7 @@ export default function ProfileScreen() {
     const [isUploading, setIsUploading] = useState(false);
     const [userData, setUserData] = useState(null);
     const [connectionCount, setConnectionCount] = useState(0);
+    const [selectedImage, setSelectedImage] = useState(null);
     const [galleryPhotos, setGalleryPhotos] = useState(PHOTOS);
 
     useFocusEffect(
@@ -36,18 +37,31 @@ export default function ProfileScreen() {
 
     const loadUserData = async () => {
         try {
-            const userDataStr = await AsyncStorage.getItem('userData');
             const token = await AsyncStorage.getItem('userToken');
 
-            if (userDataStr) {
-                const user = JSON.parse(userDataStr);
-                setUserData(user);
-                if (user.image) {
-                    setProfileImage(user.image);
-                }
-            }
-
             if (token) {
+                // Fetch fresh user data from backend
+                const user = await UserService.getUserDetails(token);
+                setUserData(user);
+
+                // Handle profile image
+                if (user.profileImageUrl) {
+                    const fullUrl = user.profileImageUrl.startsWith('http')
+                        ? user.profileImageUrl
+                        : `${BASE_URL}${user.profileImageUrl}`;
+                    setProfileImage(fullUrl);
+                }
+
+                // Handle gallery images
+                if (user.galleryImages && Array.isArray(user.galleryImages)) {
+                    // Expecting backend to return [{id, imageUrl}, ...]
+                    const formattedGallery = user.galleryImages.map(img => ({
+                        id: img.id,
+                        url: img.imageUrl.startsWith('http') ? img.imageUrl : `${BASE_URL}${img.imageUrl}`
+                    }));
+                    setGalleryPhotos(formattedGallery);
+                }
+
                 const countResult = await ConnectionService.getConnectionCount(token);
                 setConnectionCount(countResult.count || 0);
             }
@@ -71,12 +85,28 @@ export default function ProfileScreen() {
 
             if (!result.canceled) {
                 setIsUploading(true);
-                setProfileImage(result.assets[0].uri);
+                const token = await AsyncStorage.getItem('userToken');
+                if (token) {
+                    const uploadResult = await UserService.uploadProfileImage(result.assets[0].uri, token);
+
+                    if (uploadResult.imageUrl) {
+                        const fullUrl = uploadResult.imageUrl.startsWith('http')
+                            ? uploadResult.imageUrl
+                            : `${BASE_URL}${uploadResult.imageUrl}`;
+                        setProfileImage(fullUrl);
+
+                        // Update local user data
+                        if (userData) {
+                            setUserData({ ...userData, profileImageUrl: uploadResult.imageUrl });
+                        }
+                    }
+                }
                 setIsUploading(false);
             }
         } catch (error) {
             console.error('Error picking image:', error);
             Alert.alert('Error', 'Failed to pick image. Please try again.');
+            setIsUploading(false);
         }
     };
 
@@ -90,13 +120,58 @@ export default function ProfileScreen() {
             });
 
             if (!result.canceled) {
-                setGalleryPhotos(prev => [result.assets[0].uri, ...prev]);
-                Alert.alert('Success', 'Photo added to gallery!');
+                const token = await AsyncStorage.getItem('userToken');
+                if (token) {
+                    const uploadResult = await UserService.uploadGalleryImage(result.assets[0].uri, token);
+
+                    if (uploadResult.imageUrl) {
+                        const fullUrl = uploadResult.imageUrl.startsWith('http')
+                            ? uploadResult.imageUrl
+                            : `${BASE_URL}${uploadResult.imageUrl}`;
+
+                        setGalleryPhotos(prev => [{ id: uploadResult.id, url: fullUrl }, ...prev]);
+                        Alert.alert('Success', 'Photo added to gallery!');
+                    }
+                }
             }
         } catch (error) {
             console.error('Error adding gallery photo:', error);
             Alert.alert('Error', 'Failed to add photo. Please try again.');
         }
+    };
+
+    const handleImagePress = (photo) => {
+        setSelectedImage(photo);
+    };
+
+    const handleDeleteImage = async () => {
+        if (!selectedImage || !selectedImage.id) return;
+
+        Alert.alert(
+            "Delete User",
+            "Are you sure you want to delete this photo?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            const token = await AsyncStorage.getItem('userToken');
+                            if (token) {
+                                await UserService.deleteGalleryImage(selectedImage.id, token);
+                                // Updates UI
+                                setGalleryPhotos(prev => prev.filter(img => img.id !== selectedImage.id));
+                                setSelectedImage(null); // Close modal
+                                Alert.alert("Success", "Photo deleted successfully.");
+                            }
+                        } catch (error) {
+                            Alert.alert("Error", "Failed to delete photo: " + error.message);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     return (
@@ -175,14 +250,7 @@ export default function ProfileScreen() {
                 <View style={styles.gallerySection}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>My Gallery</Text>
-                        <View style={{ flexDirection: 'row', gap: 12 }}>
-                            <TouchableOpacity onPress={addGalleryPhoto}>
-                                <Camera size={20} color={Colors.primary} />
-                            </TouchableOpacity>
-                            <TouchableOpacity>
-                                <Grid size={20} color={Colors.textSecondary} />
-                            </TouchableOpacity>
-                        </View>
+
                     </View>
                     <View style={styles.grid}>
                         {/* Add Photo Button */}
@@ -191,7 +259,9 @@ export default function ProfileScreen() {
                             <Text style={styles.addPhotoText}>Add Photo</Text>
                         </TouchableOpacity>
                         {galleryPhotos.map((photo, index) => (
-                            <Image key={index} source={{ uri: photo }} style={styles.gridImage} />
+                            <TouchableOpacity key={index} onPress={() => handleImagePress(photo)}>
+                                <Image source={{ uri: photo.url }} style={styles.gridImage} />
+                            </TouchableOpacity>
                         ))}
                     </View>
                 </View>
@@ -200,6 +270,37 @@ export default function ProfileScreen() {
                     <LogOut size={20} color={Colors.error} />
                     <Text style={styles.logoutText}>Log Out</Text>
                 </TouchableOpacity>
+
+                {/* Full Screen Image Modal */}
+                <Modal
+                    visible={!!selectedImage}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setSelectedImage(null)}
+                >
+                    <View style={styles.fullImageModal}>
+                        <TouchableOpacity
+                            style={styles.closeImageBtn}
+                            onPress={() => setSelectedImage(null)}
+                        >
+                            <X color="#FFF" size={30} />
+                        </TouchableOpacity>
+
+                        <Image
+                            source={{ uri: selectedImage?.url }}
+                            style={styles.fullImage}
+                            resizeMode="contain"
+                        />
+
+                        <TouchableOpacity
+                            style={styles.deleteImageBtn}
+                            onPress={handleDeleteImage}
+                        >
+                            <Trash2 color="#FF4444" size={24} />
+                            <Text style={styles.deleteImageText}>Delete Photo</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Modal>
 
                 {/* QR Modal */}
                 <Modal
@@ -454,5 +555,41 @@ const styles = StyleSheet.create({
     closeModalText: {
         color: '#FFF',
         fontWeight: 'bold',
+    },
+    fullImageModal: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.95)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    fullImage: {
+        width: '100%',
+        height: '80%',
+        borderRadius: 8,
+    },
+    closeImageBtn: {
+        position: 'absolute',
+        top: 50,
+        right: 20,
+        zIndex: 10,
+        padding: 10,
+    },
+    deleteImageBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: 'rgba(255, 68, 68, 0.15)',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 20,
+        marginTop: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 68, 68, 0.3)',
+    },
+    deleteImageText: {
+        color: '#FF4444',
+        fontWeight: 'bold',
+        fontSize: 16,
     },
 });
