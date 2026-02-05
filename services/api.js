@@ -458,3 +458,105 @@ export const MessageService = {
         }
     }
 };
+
+export const ActivityService = {
+    async getActivities(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/activities`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) return [];
+            return await response.json();
+        } catch (error) {
+            console.error('Get activities error:', error);
+            return [];
+        }
+    },
+
+    async createActivity(activityData, token) {
+        try {
+            console.log('🚀 Creating activity:', activityData);
+            const response = await fetch(`${BASE_URL}/api/activities`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(activityData)
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Failed to create activity');
+            return data;
+        } catch (error) {
+            console.error('Create activity error:', error);
+            throw error;
+        }
+    },
+
+    async uploadActivityImage(imageUri, token) {
+        try {
+            const formData = new FormData();
+            const filename = imageUri.split('/').pop();
+            const match = /\.(\w+)$/.exec(filename);
+            const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+            formData.append('file', { uri: imageUri, name: filename, type });
+
+            const response = await fetch(`${BASE_URL}/api/activities/upload-image`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data',
+                },
+                body: formData,
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Upload failed');
+            return data;
+        } catch (error) {
+            console.error('Upload activity image error:', error);
+            throw error;
+        }
+    },
+
+    async joinActivity(activityId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/activities/${activityId}/join`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Join activity error:', error);
+            return { success: false };
+        }
+    },
+
+    async getActivity(activityId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/activities/${activityId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch activity');
+            return await response.json();
+        } catch (error) {
+            console.error('Get activity error:', error);
+            throw error;
+        }
+    },
+
+    async cancelActivity(activityId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/activities/${activityId}/cancel`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Cancel activity error:', error);
+            return { success: false, message: error.message };
+        }
+    }
+};
