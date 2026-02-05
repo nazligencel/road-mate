@@ -1,9 +1,10 @@
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Platform } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import { Colors } from '../../constants/Colors';
-import { Bell, MapPin, Navigation, Flame, Plus } from 'lucide-react-native';
+import { getColors } from '../../constants/Colors';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Bell, Navigation, Flame, Plus } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
@@ -48,16 +49,19 @@ const mapStyle = [
     { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#020617" }] }
 ];
 
-const GlassCard = ({ children, style, intensity = 20 }) => (
-    <View style={[styles.glassCardContainer, style]}>
-        <BlurView intensity={intensity} tint="dark" style={StyleSheet.absoluteFill} />
-        <View style={styles.glassCardContent}>
+const GlassCard = ({ children, style, intensity = 20, tint = 'dark' }) => (
+    <View style={[style, { overflow: 'hidden' }]}>
+        <BlurView intensity={intensity} tint={tint} style={StyleSheet.absoluteFill} />
+        <View style={{ flex: 1 }}>
             {children}
         </View>
     </View>
 );
 
 export default function HomeScreen() {
+    const { isDarkMode } = useTheme();
+    const colors = getColors(isDarkMode);
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const [location, setLocation] = useState(null);
     const [nearbyNomads, setNearbyNomads] = useState([]);
     const [isFetching, setIsFetching] = useState(false);
@@ -142,11 +146,15 @@ export default function HomeScreen() {
     };
     return (
         <View style={styles.container}>
-            {/* Background Gradient */}
-            <LinearGradient
-                colors={[Colors.background, '#1e293b', Colors.background]}
-                style={StyleSheet.absoluteFill}
-            />
+            {/* Background Gradient - Dark mode only */}
+            {isDarkMode ? (
+                <LinearGradient
+                    colors={[colors.background, '#1e293b', colors.background]}
+                    style={StyleSheet.absoluteFill}
+                />
+            ) : (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: '#F2F5F8' }]} />
+            )}
 
             <SafeAreaView style={{ flex: 1 }} edges={['top']}>
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -169,8 +177,8 @@ export default function HomeScreen() {
                             </View>
                         </View>
                         <TouchableOpacity>
-                            <GlassCard style={styles.bellButton} intensity={15}>
-                                <Bell size={20} color={Colors.text} />
+                            <GlassCard style={styles.bellButton} intensity={15} tint={isDarkMode ? 'dark' : 'light'}>
+                                <Bell size={20} color={colors.text} />
                                 <View style={styles.notificationDot} />
                             </GlassCard>
                         </TouchableOpacity>
@@ -178,7 +186,7 @@ export default function HomeScreen() {
 
                     {/* Road Ahead / Real Map Card */}
                     <View style={styles.mapCardContainer}>
-                        <GlassCard style={styles.mapCard} intensity={10}>
+                        <GlassCard style={styles.mapCard} intensity={10} tint={isDarkMode ? 'dark' : 'light'}>
                             <MapView
                                 style={styles.mapBackground}
                                 provider={PROVIDER_GOOGLE}
@@ -190,7 +198,7 @@ export default function HomeScreen() {
                                 showsUserLocation={true}
                             />
                             <LinearGradient
-                                colors={['transparent', 'rgba(11, 19, 26, 0.9)']}
+                                colors={['transparent', isDarkMode ? 'rgba(11, 19, 26, 0.9)' : 'rgba(255,255,255,0.9)']}
                                 style={styles.mapOverlay}
                             />
 
@@ -246,7 +254,7 @@ export default function HomeScreen() {
                                     <Text style={styles.nomadName}>{nomad.name} • {typeof nomad.distance === 'number' ? nomad.distance.toFixed(1) + 'km' : nomad.distance}</Text>
                                 </TouchableOpacity>
                             )) : (
-                                <Text style={{ color: Colors.textSecondary, marginLeft: 20 }}>No one nearby...</Text>
+                                <Text style={{ color: colors.textSecondary, marginLeft: 20 }}>No one nearby...</Text>
                             )}
                         </ScrollView>
                     </View>
@@ -255,7 +263,7 @@ export default function HomeScreen() {
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                <Flame size={20} color={Colors.secondary} fill={Colors.secondary} />
+                                <Flame size={20} color={colors.secondary} fill={colors.secondary} />
                                 <Text style={styles.sectionTitle}>Campfire Feed</Text>
                             </View>
                             <TouchableOpacity
@@ -269,7 +277,7 @@ export default function HomeScreen() {
 
                         <View style={styles.feedList}>
                             {ACTIVITIES.map((item) => (
-                                <GlassCard key={item.id} style={styles.activityCard}>
+                                <GlassCard key={item.id} style={styles.activityCard} tint={isDarkMode ? 'dark' : 'light'}>
                                     <Image source={{ uri: item.image }} style={styles.activityImage} />
                                     <View style={styles.activityInfo}>
                                         <Text style={styles.activityTitle}>{item.title}</Text>
@@ -278,9 +286,9 @@ export default function HomeScreen() {
                                         </View>
                                         <View style={styles.activityFooter}>
                                             <View style={styles.attendees}>
-                                                <View style={[styles.attendeeDot, { backgroundColor: '#FCA5A5' }]} />
-                                                <View style={[styles.attendeeDot, { backgroundColor: '#FDE047', marginLeft: -8 }]} />
-                                                <View style={[styles.attendeeDot, { backgroundColor: '#86EFAC', marginLeft: -8, justifyContent: 'center', alignItems: 'center' }]}>
+                                                <View style={[styles.attendeeDot, { backgroundColor: '#FCA5A5', borderColor: colors.card }]} />
+                                                <View style={[styles.attendeeDot, { backgroundColor: '#FDE047', marginLeft: -8, borderColor: colors.card }]} />
+                                                <View style={[styles.attendeeDot, { backgroundColor: '#86EFAC', marginLeft: -8, justifyContent: 'center', alignItems: 'center', borderColor: colors.card }]}>
                                                     <Text style={{ fontSize: 8, color: '#000' }}>+{item.attendees}</Text>
                                                 </View>
                                             </View>
@@ -300,10 +308,10 @@ export default function HomeScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.background,
+        backgroundColor: colors.background,
     },
     scrollContent: {
         paddingBottom: 100,
@@ -329,7 +337,7 @@ const styles = StyleSheet.create({
         height: 44,
         borderRadius: 22,
         borderWidth: 2,
-        borderColor: Colors.primary,
+        borderColor: colors.primary,
     },
     onlineDot: {
         position: 'absolute',
@@ -338,13 +346,13 @@ const styles = StyleSheet.create({
         width: 12,
         height: 12,
         borderRadius: 6,
-        backgroundColor: Colors.online,
+        backgroundColor: colors.online,
         borderWidth: 2,
-        borderColor: Colors.background,
+        borderColor: colors.background,
     },
     locationLabel: {
         fontSize: 10,
-        color: Colors.primary,
+        color: colors.primary,
         fontWeight: '700',
         letterSpacing: 0.5,
     },
@@ -356,7 +364,7 @@ const styles = StyleSheet.create({
     locationTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: Colors.text,
+        color: colors.text,
     },
     bellButton: {
         width: 40,
@@ -364,6 +372,9 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
+        backgroundColor: colors.glassBackground,
     },
     notificationDot: {
         position: 'absolute',
@@ -372,19 +383,8 @@ const styles = StyleSheet.create({
         width: 6,
         height: 6,
         borderRadius: 3,
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
     },
-    glassCardContainer: {
-        borderRadius: 20,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        backgroundColor: Platform.select({
-            ios: 'transparent',
-            android: 'rgba(255, 255, 255, 0.05)',
-        }),
-    },
-    glassCardContent: {},
     // Map Card
     mapCardContainer: {
         paddingHorizontal: 20,
@@ -393,7 +393,9 @@ const styles = StyleSheet.create({
     mapCard: {
         height: 220,
         borderRadius: 24,
-        // backgroundColor handled by GlassCard
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
+        backgroundColor: colors.glassBackground,
     },
     mapBackground: {
         width: '100%',
@@ -423,7 +425,7 @@ const styles = StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
     },
     routeText: {
         color: '#FFF',
@@ -452,7 +454,7 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     sectionLabel: {
-        color: Colors.primary,
+        color: colors.primary,
         fontSize: 11,
         fontWeight: '700',
         marginBottom: 4,
@@ -470,7 +472,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
     },
     metaLabel: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 12,
     },
     metaValue: {
@@ -479,7 +481,7 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     navButton: {
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
@@ -504,12 +506,12 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     sectionTitle: {
-        color: Colors.text,
+        color: colors.text,
         fontSize: 20,
         fontWeight: '700',
     },
     seeAll: {
-        color: Colors.primary,
+        color: colors.primary,
         fontSize: 14,
         fontWeight: '600',
     },
@@ -525,7 +527,7 @@ const styles = StyleSheet.create({
         position: 'relative',
         padding: 3,
         borderWidth: 2,
-        borderColor: Colors.secondary,
+        borderColor: colors.secondary,
         borderRadius: 40,
     },
     nomadImage: {
@@ -537,24 +539,24 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 0,
         right: 0,
-        backgroundColor: Colors.online,
+        backgroundColor: colors.online,
         width: 20,
         height: 20,
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 2,
-        borderColor: Colors.background,
+        borderColor: colors.background,
     },
     nomadName: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 12,
         fontWeight: '600',
     },
     // Feed
     sectionSubtitle: {
         paddingHorizontal: 20,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 14,
         marginTop: -12,
         marginBottom: 16,
@@ -569,6 +571,9 @@ const styles = StyleSheet.create({
         padding: 12,
         alignItems: 'center',
         gap: 16,
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
+        backgroundColor: colors.glassBackground,
     },
     activityImage: {
         width: 80,
@@ -579,7 +584,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     activityTitle: {
-        color: Colors.text,
+        color: colors.text,
         fontSize: 16,
         fontWeight: '700',
         marginBottom: 4,
@@ -590,7 +595,7 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     activityTime: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 12,
     },
     activityFooter: {
@@ -606,18 +611,18 @@ const styles = StyleSheet.create({
         height: 24,
         borderRadius: 12,
         borderWidth: 2,
-        borderColor: Colors.card,
+        borderColor: colors.card,
     },
     joinButton: {
-        backgroundColor: Colors.primary + '15',
+        backgroundColor: colors.primary + '15',
         paddingHorizontal: 16,
         paddingVertical: 6,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: Colors.primary + '40',
+        borderColor: colors.primary + '40',
     },
     joinText: {
-        color: Colors.primary,
+        color: colors.primary,
         fontSize: 12,
         fontWeight: '600',
     },
@@ -625,10 +630,10 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: Colors.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,

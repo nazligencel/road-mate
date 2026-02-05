@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions, Modal, Alert, ActivityIndicator, Platform } from 'react-native';
 import React, { useState, useCallback } from 'react';
-import { Colors } from '../../constants/Colors';
+import { Colors, getColors } from '../../constants/Colors';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Settings, Edit2, LogOut, QrCode, Scan, Plus, Trash2, X } from 'lucide-react-native';
 import QRCode from 'react-native-qrcode-svg';
 import * as ImagePicker from 'expo-image-picker';
@@ -21,6 +22,8 @@ const PHOTOS = [
 
 export default function ProfileScreen() {
     const router = useRouter();
+    const { isDarkMode } = useTheme();
+    const colors = getColors(isDarkMode);
     const [qrVisible, setQrVisible] = useState(false);
     const [profileImage, setProfileImage] = useState('https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80');
     const [isUploading, setIsUploading] = useState(false);
@@ -175,25 +178,29 @@ export default function ProfileScreen() {
     };
 
     return (
-        <View style={styles.mainContainer}>
-            {/* Background Gradient Only - No Glass Cards */}
-            <LinearGradient
-                colors={[Colors.background, '#1e293b', Colors.background]}
-                style={StyleSheet.absoluteFill}
-            />
+        <View style={[styles.mainContainer, { backgroundColor: colors.background }]}>
+            {/* Background Gradient - Dark mode only */}
+            {isDarkMode ? (
+                <LinearGradient
+                    colors={[colors.background, '#1e293b', colors.background]}
+                    style={StyleSheet.absoluteFill}
+                />
+            ) : (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: '#F2F5F8' }]} />
+            )}
 
             <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
                 <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Profile</Text>
+                    <Text style={[styles.headerTitle, { color: colors.text }]}>Profile</Text>
                     <View style={{ flexDirection: 'row', gap: 15 }}>
                         <TouchableOpacity onPress={openQRScanner}>
-                            <Scan color={Colors.text} size={24} />
+                            <Scan color={colors.text} size={24} />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => setQrVisible(true)}>
-                            <QrCode color={Colors.text} size={24} />
+                            <QrCode color={colors.text} size={24} />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => router.push('/settings')}>
-                            <Settings color={Colors.text} size={24} />
+                            <Settings color={colors.text} size={24} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -209,28 +216,28 @@ export default function ProfileScreen() {
                                 <ActivityIndicator color="#FFF" />
                             </View>
                         )}
-                        <TouchableOpacity style={styles.editBtn} onPress={pickImage}>
+                        <TouchableOpacity style={[styles.editBtn, { backgroundColor: colors.primary, borderColor: colors.background }]} onPress={pickImage}>
                             <Edit2 size={16} color="#FFF" />
                         </TouchableOpacity>
                     </View>
-                    <Text style={styles.name}>{userData?.name || 'Road Mate User'}</Text>
-                    <Text style={styles.bio}>{userData?.status || 'Digital Nomad & Van Builder'}</Text>
+                    <Text style={[styles.name, { color: colors.text }]}>{userData?.name || 'Road Mate User'}</Text>
+                    <Text style={[styles.bio, { color: colors.textSecondary }]}>{userData?.status || 'Digital Nomad & Van Builder'}</Text>
 
                     {/* Stats Row - Original box style, just updated colors/border for theme compatibility */}
-                    <View style={styles.statsRow}>
+                    <View style={[styles.statsRow, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)' }]}>
                         <View style={styles.stat}>
-                            <Text style={styles.statValue}>{connectionCount}</Text>
-                            <Text style={styles.statLabel}>Connections</Text>
+                            <Text style={[styles.statValue, { color: colors.text }]}>{connectionCount}</Text>
+                            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Connections</Text>
                         </View>
-                        <View style={styles.statDivider} />
+                        <View style={[styles.statDivider, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]} />
                         <View style={styles.stat}>
-                            <Text style={styles.statValue}>12</Text>
-                            <Text style={styles.statLabel}>Build Posts</Text>
+                            <Text style={[styles.statValue, { color: colors.text }]}>12</Text>
+                            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Build Posts</Text>
                         </View>
-                        <View style={styles.statDivider} />
+                        <View style={[styles.statDivider, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]} />
                         <View style={styles.stat}>
-                            <Text style={styles.statValue}>4.8</Text>
-                            <Text style={styles.statLabel}>Rating</Text>
+                            <Text style={[styles.statValue, { color: colors.text }]}>4.8</Text>
+                            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Rating</Text>
                         </View>
                     </View>
 
@@ -249,26 +256,26 @@ export default function ProfileScreen() {
 
                 <View style={styles.gallerySection}>
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>My Gallery</Text>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>My Gallery</Text>
 
                     </View>
                     <View style={styles.grid}>
                         {/* Add Photo Button */}
-                        <TouchableOpacity style={styles.addPhotoBtn} onPress={addGalleryPhoto}>
-                            <Plus size={28} color={Colors.primary} />
-                            <Text style={styles.addPhotoText}>Add Photo</Text>
+                        <TouchableOpacity style={[styles.addPhotoBtn, { borderColor: colors.primary + '60', backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }]} onPress={addGalleryPhoto}>
+                            <Plus size={28} color={colors.primary} />
+                            <Text style={[styles.addPhotoText, { color: colors.primary }]}>Add Photo</Text>
                         </TouchableOpacity>
                         {galleryPhotos.map((photo, index) => (
                             <TouchableOpacity key={index} onPress={() => handleImagePress(photo)}>
-                                <Image source={{ uri: photo.url }} style={styles.gridImage} />
+                                <Image source={{ uri: photo.url }} style={[styles.gridImage, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }]} />
                             </TouchableOpacity>
                         ))}
                     </View>
                 </View>
 
                 <TouchableOpacity style={styles.logoutBtn}>
-                    <LogOut size={20} color={Colors.error} />
-                    <Text style={styles.logoutText}>Log Out</Text>
+                    <LogOut size={20} color={colors.error} />
+                    <Text style={[styles.logoutText, { color: colors.error }]}>Log Out</Text>
                 </TouchableOpacity>
 
                 {/* Full Screen Image Modal */}
@@ -320,12 +327,12 @@ export default function ProfileScreen() {
                                 <QRCode
                                     value={`road-mate://nomad/${userData?.id || 'guest'}`}
                                     size={200}
-                                    color={Colors.background}
+                                    color={colors.background}
                                     backgroundColor="#FFF"
                                 />
                             </View>
                             <Text style={styles.qrDesc}>Other nomads can scan this to connect with you.</Text>
-                            <TouchableOpacity style={styles.closeModalBtn} onPress={() => setQrVisible(false)}>
+                            <TouchableOpacity style={[styles.closeModalBtn, { backgroundColor: colors.primary }]} onPress={() => setQrVisible(false)}>
                                 <Text style={styles.closeModalText}>Close</Text>
                             </TouchableOpacity>
                         </View>

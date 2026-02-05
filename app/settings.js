@@ -11,7 +11,7 @@ import {
     Dimensions,
     Platform
 } from 'react-native';
-import { Colors } from '../constants/Colors';
+import { getColors } from '../constants/Colors';
 import { useTheme } from '../contexts/ThemeContext';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -35,19 +35,75 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
-// Standard Switch to match Profile theme colors
-const CustomSwitch = ({ value, onValueChange }) => (
+// Move components outside to prevent recreation on render
+const CustomSwitch = ({ value, onValueChange, trackColor, thumbColor }) => (
     <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: 'rgba(255,255,255,0.1)', true: Colors.primary }}
-        thumbColor="#FFF"
+        trackColor={trackColor}
+        thumbColor={thumbColor}
     />
+);
+
+const Section = ({ title, children, style, colors, isDarkMode }) => (
+    <View style={[styles.sectionContainer, style]}>
+        {title && <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{title}</Text>}
+        <View style={[styles.cardContainer, {
+            borderColor: colors.cardBorder,
+            backgroundColor: isDarkMode
+                ? Platform.select({ ios: 'transparent', android: 'rgba(255, 255, 255, 0.05)' })
+                : colors.card
+        }]}>
+            {isDarkMode && <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />}
+            <View style={styles.cardContent}>
+                {children}
+            </View>
+        </View>
+    </View>
+);
+
+const MenuItem = ({ icon: Icon, label, value, onPress, isLast, showChevron = true, type = 'link', onToggle, toggleValue, colors, isDarkMode }) => (
+    <View
+        style={[
+            styles.menuItem,
+            !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border }
+        ]}
+    >
+        <TouchableOpacity
+            activeOpacity={type === 'toggle' ? 1 : 0.7}
+            onPress={type === 'toggle' ? null : onPress}
+            style={styles.menuItemInner}
+        >
+            <View style={styles.menuLeft}>
+                {Icon && <Icon size={20} color={colors.textSecondary} style={{ marginRight: 12 }} />}
+                <Text style={[styles.menuLabel, { color: colors.text }]}>{label}</Text>
+            </View>
+            <View style={styles.menuRight}>
+                {type === 'toggle' ? (
+                    <CustomSwitch
+                        value={toggleValue}
+                        onValueChange={onToggle}
+                        trackColor={{
+                            false: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                            true: colors.primary
+                        }}
+                        thumbColor="#FFF"
+                    />
+                ) : (
+                    <>
+                        {value && <Text style={[styles.menuValue, { color: colors.textSecondary }]}>{value}</Text>}
+                        {showChevron && <ChevronRight size={16} color={colors.textSecondary} />}
+                    </>
+                )}
+            </View>
+        </TouchableOpacity>
+    </View>
 );
 
 export default function SettingsScreen() {
     const router = useRouter();
     const { isDarkMode, toggleTheme } = useTheme();
+    const colors = getColors(isDarkMode);
     const [userData, setUserData] = useState(null);
     const [notifications, setNotifications] = useState(true);
     const [locationServices, setLocationServices] = useState(false);
@@ -81,86 +137,63 @@ export default function SettingsScreen() {
         ]);
     };
 
-    const Section = ({ title, children, style }) => (
-        <View style={[styles.sectionContainer, style]}>
-            {title && <Text style={styles.sectionHeader}>{title}</Text>}
-            <View style={styles.cardContainer}>
-                <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-                <View style={styles.cardContent}>
-                    {children}
-                </View>
-            </View>
-        </View>
-    );
-
-    const MenuItem = ({ icon: Icon, label, value, onPress, isLast, showChevron = true, type = 'link', onToggle, toggleValue }) => (
-        <TouchableOpacity
-            activeOpacity={type === 'toggle' ? 1 : 0.7}
-            onPress={type === 'toggle' ? () => onToggle(!toggleValue) : onPress}
-            style={[styles.menuItem, !isLast && styles.menuItemBorder]}
-        >
-            <View style={styles.menuLeft}>
-                {Icon && <Icon size={20} color={Colors.textSecondary} style={{ marginRight: 12 }} />}
-                <Text style={styles.menuLabel}>{label}</Text>
-            </View>
-            <View style={styles.menuRight}>
-                {type === 'toggle' ? (
-                    <CustomSwitch value={toggleValue} onValueChange={onToggle} />
-                ) : (
-                    <>
-                        {value && <Text style={styles.menuValue}>{value}</Text>}
-                        {showChevron && <ChevronRight size={16} color={Colors.textSecondary} />}
-                    </>
-                )}
-            </View>
-        </TouchableOpacity>
-    );
-
     return (
-        <View style={styles.container}>
-            {/* Background Gradient */}
-            <LinearGradient
-                colors={[Colors.background, '#1e293b', Colors.background]}
-                style={StyleSheet.absoluteFill}
-            />
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+            {/* Background Gradient - Dark mode only */}
+            {isDarkMode ? (
+                <LinearGradient
+                    colors={[colors.background, '#1e293b', colors.background]}
+                    style={StyleSheet.absoluteFill}
+                />
+            ) : (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: '#F2F5F8' }]} />
+            )}
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                    <ArrowLeft size={24} color={Colors.text} />
+                <TouchableOpacity
+                    style={[styles.backButton, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+                    onPress={() => router.back()}
+                >
+                    <ArrowLeft size={24} color={colors.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Settings</Text>
+                <Text style={[styles.headerTitle, { color: colors.text }]}>Settings</Text>
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
                 {/* Account Section */}
-                <Section title="Account">
-                    <TouchableOpacity style={styles.accountRow} onPress={() => { }}>
-                        <View style={styles.avatarPlaceholder}>
-                            <Text style={styles.avatarText}>
+                <Section title="Account" colors={colors} isDarkMode={isDarkMode}>
+                    <TouchableOpacity style={styles.accountRow} onPress={() => router.push('/edit-profile')}>
+                        <View style={[styles.avatarPlaceholder, {
+                            backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : colors.primary + '20',
+                            borderColor: isDarkMode ? 'rgba(255,255,255,0.2)' : colors.primary + '40'
+                        }]}>
+                            <Text style={[styles.avatarText, { color: isDarkMode ? colors.text : colors.primary }]}>
                                 {userData?.name ? userData.name.substring(0, 2).toUpperCase() : 'AR'}
                             </Text>
                         </View>
                         <View style={styles.accountInfo}>
-                            <Text style={styles.accountName}>{userData?.name || 'Road Mate User'}</Text>
-                            <Text style={styles.accountEmail}>{userData?.email || 'user@roadmate.com'}</Text>
+                            <Text style={[styles.accountName, { color: colors.text }]}>{userData?.name || 'Road Mate User'}</Text>
+                            <Text style={[styles.accountEmail, { color: colors.textSecondary }]}>{userData?.email || 'user@roadmate.com'}</Text>
                         </View>
                         <View style={styles.editProfileBtn}>
-                            <Text style={styles.editProfileText}>Edit</Text>
-                            <ChevronRight size={14} color={Colors.textSecondary} />
+                            <Text style={[styles.editProfileText, { color: colors.primary }]}>Edit</Text>
+                            <ChevronRight size={14} color={colors.textSecondary} />
                         </View>
                     </TouchableOpacity>
                 </Section>
 
                 {/* Preferences Section */}
-                <Section title="Preferences">
+                <Section title="Preferences" colors={colors} isDarkMode={isDarkMode}>
                     <MenuItem
                         icon={Bell}
                         label="Notifications"
                         type="toggle"
                         toggleValue={notifications}
                         onToggle={setNotifications}
+                        colors={colors}
+                        isDarkMode={isDarkMode}
                     />
                     <MenuItem
                         icon={Moon}
@@ -168,6 +201,8 @@ export default function SettingsScreen() {
                         type="toggle"
                         toggleValue={isDarkMode}
                         onToggle={toggleTheme}
+                        colors={colors}
+                        isDarkMode={isDarkMode}
                     />
                     <MenuItem
                         icon={MapPin}
@@ -175,68 +210,74 @@ export default function SettingsScreen() {
                         type="toggle"
                         toggleValue={locationServices}
                         onToggle={setLocationServices}
+                        colors={colors}
+                        isDarkMode={isDarkMode}
                     />
                     <MenuItem
                         icon={Globe}
                         label="Language"
                         value="English"
                         isLast
+                        colors={colors}
+                        isDarkMode={isDarkMode}
                     />
                 </Section>
 
                 {/* Vehicle Section */}
-                <Section title="Vehicle">
+                <Section title="Vehicle" colors={colors} isDarkMode={isDarkMode}>
                     <View style={styles.vehicleRow}>
-                        <Car size={24} color={Colors.primary} style={styles.vehicleIcon} />
+                        <Car size={24} color={colors.primary} style={[styles.vehicleIcon, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : colors.primary + '10' }]} />
                         <View>
-                            <Text style={styles.menuLabel}>My Vehicle</Text>
-                            <Text style={styles.menuSubLabel}>{userData?.vehicle || 'Mercedes Sprinter'}</Text>
+                            <Text style={[styles.menuLabel, { color: colors.text }]}>My Vehicle</Text>
+                            <Text style={[styles.menuSubLabel, { color: colors.textSecondary }]}>{userData?.vehicle || 'Mercedes Sprinter'}</Text>
                         </View>
                     </View>
-                    <View style={styles.divider} />
+                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
                     <MenuItem
                         label="Edit vehicle info"
                         isLast
+                        colors={colors}
+                        isDarkMode={isDarkMode}
                     />
                 </Section>
 
                 {/* Privacy & About Grid */}
                 <View style={styles.gridRow}>
-                    <Section title="Privacy & Security" style={styles.gridItem}>
-                        <TouchableOpacity style={styles.smallMenuItem}>
-                            <Lock size={16} color={Colors.textSecondary} />
-                            <Text style={styles.smallMenuLabel}>Change Password</Text>
+                    <Section title="Privacy & Security" style={styles.gridItem} colors={colors} isDarkMode={isDarkMode}>
+                        <TouchableOpacity style={[styles.smallMenuItem, { borderBottomColor: colors.border }]}>
+                            <Lock size={16} color={colors.textSecondary} />
+                            <Text style={[styles.smallMenuLabel, { color: colors.text }]}>Change Password</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.smallMenuItem}>
-                            <UserX size={16} color={Colors.textSecondary} />
-                            <Text style={styles.smallMenuLabel}>Blocked Users</Text>
-                            <ChevronRight size={12} color={Colors.textSecondary} />
+                        <TouchableOpacity style={[styles.smallMenuItem, { borderBottomColor: colors.border }]}>
+                            <UserX size={16} color={colors.textSecondary} />
+                            <Text style={[styles.smallMenuLabel, { color: colors.text }]}>Blocked Users</Text>
+                            <ChevronRight size={12} color={colors.textSecondary} />
                         </TouchableOpacity>
                         <TouchableOpacity style={[styles.smallMenuItem, { borderBottomWidth: 0 }]}>
-                            <Trash2 size={16} color={Colors.error} />
-                            <Text style={[styles.smallMenuLabel, { color: Colors.error }]}>Delete Account</Text>
+                            <Trash2 size={16} color={colors.error} />
+                            <Text style={[styles.smallMenuLabel, { color: colors.error }]}>Delete Account</Text>
                         </TouchableOpacity>
                     </Section>
 
-                    <Section title="About" style={styles.gridItem}>
-                        <TouchableOpacity style={styles.smallMenuItem}>
-                            <FileText size={16} color={Colors.textSecondary} />
-                            <Text style={styles.smallMenuLabel}>Terms</Text>
+                    <Section title="About" style={styles.gridItem} colors={colors} isDarkMode={isDarkMode}>
+                        <TouchableOpacity style={[styles.smallMenuItem, { borderBottomColor: colors.border }]}>
+                            <FileText size={16} color={colors.textSecondary} />
+                            <Text style={[styles.smallMenuLabel, { color: colors.text }]}>Terms</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.smallMenuItem}>
-                            <Shield size={16} color={Colors.textSecondary} />
-                            <Text style={styles.smallMenuLabel}>Privacy</Text>
+                        <TouchableOpacity style={[styles.smallMenuItem, { borderBottomColor: colors.border }]}>
+                            <Shield size={16} color={colors.textSecondary} />
+                            <Text style={[styles.smallMenuLabel, { color: colors.text }]}>Privacy</Text>
                         </TouchableOpacity>
                         <View style={[styles.smallMenuItem, { borderBottomWidth: 0, justifyContent: 'space-between' }]}>
-                            <Text style={styles.smallMenuLabel}>Version</Text>
-                            <Text style={styles.versionText}>1.0.0</Text>
+                            <Text style={[styles.smallMenuLabel, { color: colors.text }]}>Version</Text>
+                            <Text style={[styles.versionText, { color: colors.textSecondary }]}>1.0.0</Text>
                         </View>
                     </Section>
                 </View>
 
                 {/* Logout Button */}
                 <TouchableOpacity onPress={handleLogout} activeOpacity={0.8} style={styles.logoutButton}>
-                    <LogOut size={20} color={Colors.error} style={{ marginRight: 8 }} />
+                    <LogOut size={20} color={colors.error} style={{ marginRight: 8 }} />
                     <Text style={styles.logoutText}>Log Out</Text>
                 </TouchableOpacity>
 
@@ -248,7 +289,6 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.background,
     },
     header: {
         flexDirection: 'row',
@@ -259,11 +299,14 @@ const styles = StyleSheet.create({
     },
     backButton: {
         marginRight: 16,
+        padding: 8,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     headerTitle: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: Colors.text,
     },
     content: {
         flex: 1,
@@ -275,7 +318,6 @@ const styles = StyleSheet.create({
     sectionHeader: {
         fontSize: 13,
         fontWeight: '600',
-        color: Colors.textSecondary,
         marginBottom: 8,
         marginLeft: 4,
         textTransform: 'uppercase',
@@ -285,25 +327,18 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.12)',
-        backgroundColor: Platform.select({
-            ios: 'transparent',
-            android: 'rgba(255, 255, 255, 0.05)',
-        }),
     },
     cardContent: {
         // Wrapper for content inside blur view
     },
     menuItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
         paddingVertical: 16,
         paddingHorizontal: 16,
     },
-    menuItemBorder: {
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.08)',
+    menuItemInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
     menuLeft: {
         flexDirection: 'row',
@@ -311,7 +346,6 @@ const styles = StyleSheet.create({
     },
     menuLabel: {
         fontSize: 15,
-        color: Colors.text,
         fontWeight: '500',
     },
     menuRight: {
@@ -321,7 +355,6 @@ const styles = StyleSheet.create({
     },
     menuValue: {
         fontSize: 14,
-        color: Colors.textSecondary,
     },
     accountRow: {
         flexDirection: 'row',
@@ -334,12 +367,9 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.1)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
     },
     avatarText: {
-        color: Colors.text,
         fontSize: 18,
         fontWeight: 'bold',
     },
@@ -350,11 +380,9 @@ const styles = StyleSheet.create({
     accountName: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: Colors.text,
     },
     accountEmail: {
         fontSize: 13,
-        color: Colors.textSecondary,
         marginTop: 2,
     },
     editProfileBtn: {
@@ -364,7 +392,6 @@ const styles = StyleSheet.create({
     },
     editProfileText: {
         fontSize: 13,
-        color: Colors.primary,
     },
     vehicleRow: {
         flexDirection: 'row',
@@ -374,17 +401,14 @@ const styles = StyleSheet.create({
     },
     vehicleIcon: {
         padding: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
         borderRadius: 8,
     },
     menuSubLabel: {
         fontSize: 13,
-        color: Colors.textSecondary,
         marginTop: 2,
     },
     divider: {
         height: 1,
-        backgroundColor: 'rgba(255,255,255,0.08)',
         marginHorizontal: 16,
     },
     gridRow: {
@@ -403,16 +427,13 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         paddingHorizontal: 12,
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.08)',
     },
     smallMenuLabel: {
         fontSize: 13,
-        color: Colors.text,
         flex: 1,
     },
     versionText: {
         fontSize: 13,
-        color: Colors.textSecondary,
     },
     logoutButton: {
         flexDirection: 'row',
@@ -422,7 +443,6 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
     },
     logoutText: {
-        color: Colors.error,
         fontSize: 16,
         fontWeight: 'bold',
     },

@@ -1,8 +1,10 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform } from 'react-native';
-import { Colors } from '../../constants/Colors';
+import { getColors } from '../../constants/Colors';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Wrench, Zap, Droplets, Hammer, Plus, MessageSquare } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import React, { useMemo } from 'react';
 
 const CATEGORIES = [
     { id: 1, name: 'Electrical', icon: Zap, color: '#F59E0B' },
@@ -32,23 +34,31 @@ const DISCUSSIONS = [
     },
 ];
 
-const GlassCard = ({ children, style, intensity = 20 }) => (
-    <View style={[styles.glassCardContainer, style]}>
-        <BlurView intensity={intensity} tint="dark" style={StyleSheet.absoluteFill} />
-        <View style={styles.glassCardContent}>
+const GlassCard = ({ children, style, intensity = 20, tint = 'dark' }) => (
+    <View style={[style, { overflow: 'hidden' }]}>
+        <BlurView intensity={intensity} tint={tint} style={StyleSheet.absoluteFill} />
+        <View style={{ padding: 16 }}>
             {children}
         </View>
     </View>
 );
 
 export default function CommunityScreen() {
+    const { isDarkMode } = useTheme();
+    const colors = getColors(isDarkMode);
+    const styles = useMemo(() => createStyles(colors), [colors]);
+
     return (
         <View style={styles.container}>
-            {/* Background Gradient for Glass Effect */}
-            <LinearGradient
-                colors={[Colors.background, '#1e293b', Colors.background]}
-                style={StyleSheet.absoluteFill}
-            />
+            {/* Background Gradient - Dark mode only */}
+            {isDarkMode ? (
+                <LinearGradient
+                    colors={[colors.background, '#1e293b', colors.background]}
+                    style={StyleSheet.absoluteFill}
+                />
+            ) : (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: '#F2F5F8' }]} />
+            )}
 
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Builder Hub</Text>
@@ -63,11 +73,11 @@ export default function CommunityScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
                     {CATEGORIES.map((cat) => (
                         <TouchableOpacity key={cat.id}>
-                            <GlassCard style={styles.categoryCard} intensity={15}>
+                            <GlassCard style={styles.categoryCard} intensity={15} tint={isDarkMode ? 'dark' : 'light'}>
                                 <View style={[styles.iconBox, { backgroundColor: cat.color + '20' }]}>
                                     <cat.icon color={cat.color} size={24} />
                                 </View>
-                                <Text style={[styles.categoryName, { color: '#FFF' }]}>{cat.name}</Text>
+                                <Text style={styles.categoryName}>{cat.name}</Text>
                             </GlassCard>
                         </TouchableOpacity>
                     ))}
@@ -77,9 +87,9 @@ export default function CommunityScreen() {
                 <View style={styles.discussionList}>
                     {DISCUSSIONS.map((item) => (
                         <TouchableOpacity key={item.id}>
-                            <GlassCard style={styles.discussionCard}>
+                            <GlassCard style={styles.discussionCard} tint={isDarkMode ? 'dark' : 'light'}>
                                 <View style={styles.discussionHeader}>
-                                    <View style={[styles.tagBadge, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                                    <View style={styles.tagBadge}>
                                         <Text style={styles.tagText}>{item.tag}</Text>
                                     </View>
                                     <Text style={styles.timeText}>{item.time}</Text>
@@ -89,11 +99,11 @@ export default function CommunityScreen() {
 
                                 <View style={styles.discussionFooter}>
                                     <View style={styles.authorRow}>
-                                        <View style={[styles.avatarPlaceholder, { backgroundColor: Colors.primary }]} />
+                                        <View style={styles.avatarPlaceholder} />
                                         <Text style={styles.authorName}>{item.author}</Text>
                                     </View>
                                     <View style={styles.statsRow}>
-                                        <MessageSquare size={14} color={Colors.textSecondary} />
+                                        <MessageSquare size={14} color={colors.textSecondary} />
                                         <Text style={styles.statsText}>{item.replies}</Text>
                                     </View>
                                 </View>
@@ -107,10 +117,10 @@ export default function CommunityScreen() {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.background,
+        backgroundColor: colors.background,
     },
     header: {
         flexDirection: 'row',
@@ -123,16 +133,16 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: Colors.text,
+        color: colors.text,
     },
     createBtn: {
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: Colors.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
@@ -143,7 +153,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: Colors.text,
+        color: colors.text,
         marginLeft: 24,
         marginBottom: 16,
     },
@@ -151,24 +161,15 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         gap: 12,
     },
-    glassCardContainer: {
-        borderRadius: 16,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        backgroundColor: Platform.select({
-            ios: 'transparent',
-            android: 'rgba(255, 255, 255, 0.05)',
-        }),
-    },
-    glassCardContent: {
-        padding: 16,
-    },
     categoryCard: {
         width: 100,
         height: 110,
         alignItems: 'center',
         justifyContent: 'center',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
+        backgroundColor: colors.glassBackground,
     },
     iconBox: {
         width: 48,
@@ -182,13 +183,17 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '600',
         textAlign: 'center',
+        color: colors.text,
     },
     discussionList: {
         paddingHorizontal: 24,
         gap: 16,
     },
     discussionCard: {
-        // Layout handled by glassCardContainer
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
+        backgroundColor: colors.glassBackground,
     },
     discussionHeader: {
         flexDirection: 'row',
@@ -200,25 +205,26 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 5,
         borderRadius: 8,
+        backgroundColor: colors.glassBackground,
     },
     tagText: {
-        color: Colors.text,
+        color: colors.text,
         fontSize: 11,
         fontWeight: '600',
     },
     timeText: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 12,
     },
     discussionTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: Colors.text,
+        color: colors.text,
         marginBottom: 6,
     },
     discussionPreview: {
         fontSize: 14,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         marginBottom: 16,
         lineHeight: 20,
     },
@@ -227,7 +233,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
+        borderTopColor: colors.glassBorder || 'rgba(255,255,255,0.1)',
         paddingTop: 12,
     },
     authorRow: {
@@ -239,9 +245,10 @@ const styles = StyleSheet.create({
         width: 24,
         height: 24,
         borderRadius: 12,
+        backgroundColor: colors.primary,
     },
     authorName: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 13,
         fontWeight: '500',
     },
@@ -251,7 +258,7 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     statsText: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 12,
     },
 });

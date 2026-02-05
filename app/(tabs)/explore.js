@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, TextInput, ScrollView, Platform, Modal, ActivityIndicator, Linking } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { Colors } from '../../constants/Colors';
+import { getColors } from '../../constants/Colors';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Search, Filter, Compass, Navigation, Zap, Wrench, ShoppingCart, ShoppingBag, ShoppingBasket, Fuel, MessageSquare, ArrowUpRight, Car, X, MapPin } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -45,240 +46,38 @@ const DEFAULT_LAT = 41.0082;
 const DEFAULT_LNG = 28.9784;
 
 const mapStyle = [
-    {
-        "elementType": "geometry",
-        "stylers": [
-            {
-                "color": "#1d2c4d"
-            }
-        ]
-    },
-    {
-        "elementType": "labels.text.fill",
-        "stylers": [
-            {
-                "color": "#8ec3b9"
-            }
-        ]
-    },
-    {
-        "elementType": "labels.text.stroke",
-        "stylers": [
-            {
-                "color": "#1a3646"
-            }
-        ]
-    },
-    {
-        "featureType": "administrative.country",
-        "elementType": "geometry.stroke",
-        "stylers": [
-            {
-                "color": "#4b6878"
-            }
-        ]
-    },
-    {
-        "featureType": "administrative.land_parcel",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            {
-                "color": "#64779e"
-            }
-        ]
-    },
-    {
-        "featureType": "administrative.province",
-        "elementType": "geometry.stroke",
-        "stylers": [
-            {
-                "color": "#4b6878"
-            }
-        ]
-    },
-    {
-        "featureType": "landscape.man_made",
-        "elementType": "geometry.stroke",
-        "stylers": [
-            {
-                "color": "#334e87"
-            }
-        ]
-    },
-    {
-        "featureType": "landscape.natural",
-        "elementType": "geometry",
-        "stylers": [
-            {
-                "color": "#023e58"
-            }
-        ]
-    },
-    {
-        "featureType": "poi",
-        "elementType": "geometry",
-        "stylers": [
-            {
-                "color": "#283d6a"
-            }
-        ]
-    },
-    {
-        "featureType": "poi",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            {
-                "color": "#6f9ba5"
-            }
-        ]
-    },
-    {
-        "featureType": "poi",
-        "elementType": "labels.text.stroke",
-        "stylers": [
-            {
-                "color": "#1d2c4d"
-            }
-        ]
-    },
-    {
-        "featureType": "poi.park",
-        "elementType": "geometry.fill",
-        "stylers": [
-            {
-                "color": "#023e58"
-            }
-        ]
-    },
-    {
-        "featureType": "poi.park",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            {
-                "color": "#3C7680"
-            }
-        ]
-    },
-    {
-        "featureType": "road",
-        "elementType": "geometry",
-        "stylers": [
-            {
-                "color": "#304a7d"
-            }
-        ]
-    },
-    {
-        "featureType": "road",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            {
-                "color": "#98a5be"
-            }
-        ]
-    },
-    {
-        "featureType": "road",
-        "elementType": "labels.text.stroke",
-        "stylers": [
-            {
-                "color": "#1d2c4d"
-            }
-        ]
-    },
-    {
-        "featureType": "road.highway",
-        "elementType": "geometry",
-        "stylers": [
-            {
-                "color": "#2c6675"
-            }
-        ]
-    },
-    {
-        "featureType": "road.highway",
-        "elementType": "geometry.stroke",
-        "stylers": [
-            {
-                "color": "#255763"
-            }
-        ]
-    },
-    {
-        "featureType": "road.highway",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            {
-                "color": "#b0d5ce"
-            }
-        ]
-    },
-    {
-        "featureType": "road.highway",
-        "elementType": "labels.text.stroke",
-        "stylers": [
-            {
-                "color": "#023e58"
-            }
-        ]
-    },
-    {
-        "featureType": "transit",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            {
-                "color": "#98a5be"
-            }
-        ]
-    },
-    {
-        "featureType": "transit",
-        "elementType": "labels.text.stroke",
-        "stylers": [
-            {
-                "color": "#1d2c4d"
-            }
-        ]
-    },
-    {
-        "featureType": "transit.line",
-        "elementType": "geometry.fill",
-        "stylers": [
-            {
-                "color": "#283d6a"
-            }
-        ]
-    },
-    {
-        "featureType": "transit.station",
-        "elementType": "geometry",
-        "stylers": [
-            {
-                "color": "#3a4762"
-            }
-        ]
-    },
-    {
-        "featureType": "water",
-        "elementType": "geometry",
-        "stylers": [
-            {
-                "color": "#0e1626"
-            }
-        ]
-    },
-    {
-        "featureType": "water",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            {
-                "color": "#4e6d70"
-            }
-        ]
-    }
+    { "elementType": "geometry", "stylers": [{ "color": "#1d2c4d" }] },
+    { "elementType": "labels.text.fill", "stylers": [{ "color": "#8ec3b9" }] },
+    { "elementType": "labels.text.stroke", "stylers": [{ "color": "#1a3646" }] },
+    { "featureType": "administrative.country", "elementType": "geometry.stroke", "stylers": [{ "color": "#4b6878" }] },
+    { "featureType": "administrative.land_parcel", "elementType": "labels.text.fill", "stylers": [{ "color": "#64779e" }] },
+    { "featureType": "administrative.province", "elementType": "geometry.stroke", "stylers": [{ "color": "#4b6878" }] },
+    { "featureType": "landscape.man_made", "elementType": "geometry.stroke", "stylers": [{ "color": "#334e87" }] },
+    { "featureType": "landscape.natural", "elementType": "geometry", "stylers": [{ "color": "#023e58" }] },
+    { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#283d6a" }] },
+    { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#6f9ba5" }] },
+    { "featureType": "poi", "elementType": "labels.text.stroke", "stylers": [{ "color": "#1d2c4d" }] },
+    { "featureType": "poi.park", "elementType": "geometry.fill", "stylers": [{ "color": "#023e58" }] },
+    { "featureType": "poi.park", "elementType": "labels.text.fill", "stylers": [{ "color": "#3C7680" }] },
+    { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#304a7d" }] },
+    { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#98a5be" }] },
+    { "featureType": "road", "elementType": "labels.text.stroke", "stylers": [{ "color": "#1d2c4d" }] },
+    { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#2c6675" }] },
+    { "featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{ "color": "#255763" }] },
+    { "featureType": "road.highway", "elementType": "labels.text.fill", "stylers": [{ "color": "#b0d5ce" }] },
+    { "featureType": "road.highway", "elementType": "labels.text.stroke", "stylers": [{ "color": "#023e58" }] },
+    { "featureType": "transit", "elementType": "labels.text.fill", "stylers": [{ "color": "#98a5be" }] },
+    { "featureType": "transit", "elementType": "labels.text.stroke", "stylers": [{ "color": "#1d2c4d" }] },
+    { "featureType": "transit.line", "elementType": "geometry.fill", "stylers": [{ "color": "#283d6a" }] },
+    { "featureType": "transit.station", "elementType": "geometry", "stylers": [{ "color": "#3a4762" }] },
+    { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#0e1626" }] },
+    { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#4e6d70" }] }
 ];
 
 export default function ExploreScreen() {
+    const { isDarkMode } = useTheme();
+    const colors = getColors(isDarkMode);
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const [selectedNomad, setSelectedNomad] = useState(null);
     // Initialize with default location to prevent white screen if location fetch fails/delays
     const [location, setLocation] = useState({
@@ -424,9 +223,9 @@ export default function ExploreScreen() {
     return (
         <View style={styles.container}>
             {loading ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={Colors.primary} />
-                    <Text style={styles.loadingText}>Loading Map...</Text>
+                <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading Map...</Text>
                 </View>
             ) : (
                 <MapView
@@ -448,7 +247,7 @@ export default function ExploreScreen() {
                         const categoryLower = activeCategory.toLowerCase();
                         const markerTypeLower = (marker.type || '').toLowerCase();
                         let MarkerComponent = null;
-                        let iconBgColor = Colors.primary;
+                        let iconBgColor = colors.primary;
 
                         // Check for mechanics
                         if (markerTypeLower.includes('mechanic') || categoryLower.includes('mechanic')) {
@@ -481,7 +280,7 @@ export default function ExploreScreen() {
                                     backgroundColor: activeCategory === 'nomads' ? '#FFF' : iconBgColor,
                                     borderWidth: 2,
                                     borderColor: activeCategory === 'nomads'
-                                        ? (marker.status === 'Active' ? Colors.online : Colors.primary)
+                                        ? (marker.status === 'Active' ? colors.online : colors.primary)
                                         : '#FFF',
                                     justifyContent: 'center',
                                     alignItems: 'center',
@@ -508,48 +307,48 @@ export default function ExploreScreen() {
 
             <SafeAreaView style={styles.topArea} edges={['top']}>
                 <View style={styles.searchContainer}>
-                    <Search size={20} color={Colors.textSecondary} style={styles.searchIcon} />
+                    <Search size={20} color={colors.textSecondary} style={styles.searchIcon} />
                     <TextInput
                         placeholder="Search nomads, places..."
-                        placeholderTextColor={Colors.textSecondary}
+                        placeholderTextColor={colors.textSecondary}
                         style={styles.searchInput}
                     />
                     <TouchableOpacity style={styles.filterBtn}>
-                        <Filter size={20} color={Colors.primary} />
+                        <Filter size={20} color={colors.primary} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => router.push('/scan')} style={styles.scanBtn}>
-                        <Zap size={20} color={Colors.primary} />
+                        <Zap size={20} color={colors.primary} />
                     </TouchableOpacity>
                 </View>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
                     <TouchableOpacity
-                        style={[styles.filterChip, activeCategory === 'nomads' && styles.activeChip]}
+                        style={[styles.filterChip, activeCategory === 'nomads' && { backgroundColor: colors.primary }]}
                         onPress={() => handleCategoryChange('nomads')}
                     >
-                        <Zap size={14} color={activeCategory === 'nomads' ? '#FFF' : Colors.textSecondary} />
-                        <Text style={[styles.chipText, activeCategory !== 'nomads' && { color: Colors.textSecondary }]}>Nomads</Text>
+                        <Zap size={14} color={activeCategory === 'nomads' ? '#FFF' : colors.textSecondary} />
+                        <Text style={[styles.chipText, activeCategory !== 'nomads' && { color: colors.textSecondary }]}>Nomads</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                        style={[styles.filterChip, activeCategory === 'mechanics' && styles.activeChip]}
+                        style={[styles.filterChip, activeCategory === 'mechanics' && { backgroundColor: colors.primary }]}
                         onPress={() => handleCategoryChange('mechanics')}
                     >
-                        <Wrench size={14} color={activeCategory === 'mechanics' ? '#FFF' : Colors.textSecondary} />
-                        <Text style={[styles.chipText, activeCategory !== 'mechanics' && { color: Colors.textSecondary }]}>Mechanics</Text>
+                        <Wrench size={14} color={activeCategory === 'mechanics' ? '#FFF' : colors.textSecondary} />
+                        <Text style={[styles.chipText, activeCategory !== 'mechanics' && { color: colors.textSecondary }]}>Mechanics</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                        style={[styles.filterChip, activeCategory === 'markets' && styles.activeChip]}
+                        style={[styles.filterChip, activeCategory === 'markets' && { backgroundColor: colors.primary }]}
                         onPress={() => handleCategoryChange('markets')}
                     >
-                        <ShoppingCart size={14} color={activeCategory === 'markets' ? '#FFF' : Colors.textSecondary} />
-                        <Text style={[styles.chipText, activeCategory !== 'markets' && { color: Colors.textSecondary }]}>Markets</Text>
+                        <ShoppingCart size={14} color={activeCategory === 'markets' ? '#FFF' : colors.textSecondary} />
+                        <Text style={[styles.chipText, activeCategory !== 'markets' && { color: colors.textSecondary }]}>Markets</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                        style={[styles.filterChip, activeCategory === 'fuel' && styles.activeChip]}
+                        style={[styles.filterChip, activeCategory === 'fuel' && { backgroundColor: colors.primary }]}
                         onPress={() => handleCategoryChange('fuel')}
                     >
-                        <Fuel size={14} color={activeCategory === 'fuel' ? '#FFF' : Colors.textSecondary} />
-                        <Text style={[styles.chipText, activeCategory !== 'fuel' && { color: Colors.textSecondary }]}>Fuel</Text>
+                        <Fuel size={14} color={activeCategory === 'fuel' ? '#FFF' : colors.textSecondary} />
+                        <Text style={[styles.chipText, activeCategory !== 'fuel' && { color: colors.textSecondary }]}>Fuel</Text>
                     </TouchableOpacity>
                 </ScrollView>
             </SafeAreaView>
@@ -558,7 +357,7 @@ export default function ExploreScreen() {
                 <View style={styles.bottomHeader}>
                     <Text style={styles.bottomTitle}>Nearby</Text>
                     <TouchableOpacity>
-                        <Text style={styles.seeAllText}>See All</Text>
+                        <Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -605,8 +404,8 @@ export default function ExploreScreen() {
                                         style={styles.cardNavBtn}
                                         onPress={() => handleGetDirections(itemLat, itemLng, item.name)}
                                     >
-                                        <Navigation size={14} color={Colors.primary} fill={Colors.primary} />
-                                        <Text style={styles.navBtnText}>Get Directions</Text>
+                                        <Navigation size={14} color={colors.primary} fill={colors.primary} />
+                                        <Text style={[styles.navBtnText, { color: colors.primary }]}>Get Directions</Text>
                                     </TouchableOpacity>
                                 </View>
                             </TouchableOpacity>
@@ -626,7 +425,7 @@ export default function ExploreScreen() {
                     activeOpacity={1}
                     onPress={() => setSelectedNomad(null)}
                 >
-                    <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.background }]} onStartShouldSetResponder={() => true}>
                         <View style={styles.modalHandle} />
                         {selectedNomad && (
                             <View style={styles.detailContainer}>
@@ -636,11 +435,11 @@ export default function ExploreScreen() {
                                             source={{ uri: selectedNomad.image || 'https://via.placeholder.com/150' }}
                                             style={styles.detailAvatar}
                                         />
-                                        <View style={[styles.detailOnlineStatus, { backgroundColor: Colors.online }]} />
+                                        <View style={[styles.detailOnlineStatus, { backgroundColor: colors.online }]} />
                                     </View>
                                     <View style={styles.detailTitleInfo}>
                                         <Text style={styles.detailName}>{selectedNomad.name || 'Nomad'}</Text>
-                                        <Text style={styles.detailSubInfo}>
+                                        <Text style={[styles.detailSubInfo, { color: colors.textSecondary }]}>
                                             {selectedNomad.status || 'Active'} • {
                                                 typeof selectedNomad.distance === 'number'
                                                     ? selectedNomad.distance.toFixed(1) + ' km'
@@ -649,23 +448,23 @@ export default function ExploreScreen() {
                                         </Text>
                                     </View>
                                     <TouchableOpacity style={styles.detailChatBtn}>
-                                        <MessageSquare size={24} color={Colors.primary} />
+                                        <MessageSquare size={24} color={colors.primary} />
                                     </TouchableOpacity>
                                 </View>
                                 <View style={styles.infoCardsRow}>
                                     <View style={styles.infoCard}>
-                                        <Text style={styles.infoCardLabel}>VEHICLE</Text>
+                                        <Text style={[styles.infoCardLabel, { color: colors.textSecondary }]}>VEHICLE</Text>
                                         <Text style={styles.infoCardValue}>
                                             {selectedNomad.vehicle_model || selectedNomad.vehicleModel || 'Caravan'}
                                         </Text>
                                     </View>
                                     <View style={styles.infoCard}>
-                                        <Text style={styles.infoCardLabel}>ROUTE</Text>
+                                        <Text style={[styles.infoCardLabel, { color: colors.textSecondary }]}>ROUTE</Text>
                                         <Text style={styles.infoCardValue}>{selectedNomad.route || 'Not specified'}</Text>
                                     </View>
                                 </View>
                                 <TouchableOpacity
-                                    style={styles.mainActionBtn}
+                                    style={[styles.mainActionBtn, { backgroundColor: colors.primary }]}
                                     onPress={() => {
                                         console.log("Create Meeting Point clicked");
                                         // Placeholder for future logic
@@ -684,11 +483,11 @@ export default function ExploreScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.background },
+const createStyles = (colors) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
     map: { ...StyleSheet.absoluteFillObject },
-    loadingContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center' },
-    loadingText: { color: Colors.textSecondary, marginTop: 10 },
+    loadingContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
+    loadingText: { color: colors.textSecondary, marginTop: 10 },
     customMarker: { alignItems: 'center', overflow: 'visible' },
     markerPointer: {
         width: 32,
@@ -696,7 +495,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         backgroundColor: '#FFF',
         borderWidth: 2,
-        borderColor: Colors.primary,
+        borderColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
         overflow: 'visible'
@@ -706,28 +505,28 @@ const styles = StyleSheet.create({
     markerLabel: { backgroundColor: 'rgba(0,0,0,0.8)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, marginTop: 2 },
     markerText: { color: '#FFF', fontSize: 8, fontWeight: 'bold' },
     topArea: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, zIndex: 10 },
-    searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 15, paddingHorizontal: 12, height: 50, marginTop: 10, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' },
+    searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.glassBackground, borderRadius: 15, paddingHorizontal: 12, height: 50, marginTop: 10, borderWidth: 1, borderColor: colors.glassBorder },
     searchIcon: { marginRight: 10 },
-    searchInput: { flex: 1, color: '#FFF' },
+    searchInput: { flex: 1, color: colors.text },
     scanBtn: { padding: 8, marginLeft: 5 },
     filterScroll: { paddingVertical: 12 },
-    filterChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255, 255, 255, 0.08)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' },
-    activeChip: { backgroundColor: Colors.primary },
+    filterChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.glassBackground, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: colors.glassBorder },
+    activeChip: { backgroundColor: colors.primary },
     chipText: { color: '#FFF', fontSize: 12, fontWeight: '600' },
     bottomArea: { position: 'absolute', bottom: Platform.OS === 'ios' ? 90 : 70, left: 0, right: 0 },
     bottomHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 12 },
-    bottomTitle: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
-    seeAllText: { color: Colors.primary, fontSize: 14 },
+    bottomTitle: { color: colors.text, fontSize: 16, fontWeight: 'bold' },
+    seeAllText: { color: colors.primary, fontSize: 14 },
     nomadScroll: { paddingHorizontal: 16, gap: 12 },
     nomadCard: {
         width: width * 0.75,
-        backgroundColor: '#1E293B',
+        backgroundColor: colors.card,
         borderRadius: 24,
         flexDirection: 'row',
         padding: 14,
         gap: 16,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.12)',
+        borderColor: colors.cardBorder,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.3,
@@ -737,35 +536,35 @@ const styles = StyleSheet.create({
     cardImage: { width: 70, height: 70, borderRadius: 12 },
     cardInfo: { flex: 1, justifyContent: 'center' },
     cardTop: { flexDirection: 'row', justifyContent: 'space-between' },
-    cardName: { color: '#FFF', fontSize: 15, fontWeight: 'bold' },
-    statusBadge: { backgroundColor: Colors.primary + '22', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-    statusText: { color: Colors.primary, fontSize: 9, fontWeight: 'bold' },
-    cardMeta: { color: Colors.textSecondary, fontSize: 12, marginVertical: 4 },
+    cardName: { color: colors.text, fontSize: 15, fontWeight: 'bold' },
+    statusBadge: { backgroundColor: colors.primary + '22', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+    statusText: { color: colors.primary, fontSize: 9, fontWeight: 'bold' },
+    cardMeta: { color: colors.textSecondary, fontSize: 12, marginVertical: 4 },
     cardNavBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    navBtnText: { color: Colors.primary, fontSize: 12, fontWeight: 'bold' },
+    navBtnText: { color: colors.primary, fontSize: 12, fontWeight: 'bold' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
     modalContent: {
-        backgroundColor: Colors.background,
+        backgroundColor: colors.background,
         borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
         paddingBottom: Platform.OS === 'ios' ? 40 : 30,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: colors.border,
     },
-    modalHandle: { width: 45, height: 5, backgroundColor: '#334155', borderRadius: 2.5, alignSelf: 'center', marginVertical: 15 },
+    modalHandle: { width: 45, height: 5, backgroundColor: colors.border, borderRadius: 2.5, alignSelf: 'center', marginVertical: 15 },
     detailContainer: { paddingHorizontal: 20 },
     detailHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
     detailAvatarContainer: { position: 'relative' },
     detailAvatar: { width: 60, height: 60, borderRadius: 15 },
-    detailOnlineStatus: { position: 'absolute', bottom: -2, right: -2, width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: Colors.background },
+    detailOnlineStatus: { position: 'absolute', bottom: -2, right: -2, width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: colors.background },
     detailTitleInfo: { flex: 1, marginLeft: 12 },
-    detailName: { color: '#FFF', fontSize: 20, fontWeight: 'bold' },
-    detailSubInfo: { color: Colors.textSecondary, fontSize: 13 },
-    detailChatBtn: { width: 45, height: 45, borderRadius: 12, backgroundColor: 'rgba(255, 255, 255, 0.08)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' },
+    detailName: { color: colors.text, fontSize: 20, fontWeight: 'bold' },
+    detailSubInfo: { color: colors.textSecondary, fontSize: 13 },
+    detailChatBtn: { width: 45, height: 45, borderRadius: 12, backgroundColor: colors.glassBackground, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.glassBorder },
     infoCardsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-    infoCard: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.08)', padding: 12, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' },
-    infoCardLabel: { color: Colors.textSecondary, fontSize: 10, marginBottom: 4 },
-    infoCardValue: { color: '#FFF', fontSize: 14, fontWeight: 'bold' },
-    mainActionBtn: { backgroundColor: Colors.primary, height: 55, borderRadius: 15, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
+    infoCard: { flex: 1, backgroundColor: colors.glassBackground, padding: 12, borderRadius: 15, borderWidth: 1, borderColor: colors.glassBorder },
+    infoCardLabel: { color: colors.textSecondary, fontSize: 10, marginBottom: 4 },
+    infoCardValue: { color: colors.text, fontSize: 14, fontWeight: 'bold' },
+    mainActionBtn: { backgroundColor: colors.primary, height: 55, borderRadius: 15, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
     mainActionBtnText: { color: '#000', fontWeight: 'bold', fontSize: 16 }
 });

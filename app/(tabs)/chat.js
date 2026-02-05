@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
-import { Colors } from '../../constants/Colors';
+import { Colors, getColors } from '../../constants/Colors';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Search, MessageCircle } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -52,18 +53,25 @@ const CHATS = [
 ];
 
 export default function ChatScreen() {
+    const { isDarkMode } = useTheme();
+    const colors = getColors(isDarkMode);
+
     return (
-        <View style={styles.container}>
-            {/* Background Gradient - Keeping consistent color theme as requested before */}
-            <LinearGradient
-                colors={[Colors.background, '#1e293b', Colors.background]}
-                style={StyleSheet.absoluteFill}
-            />
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+            {/* Background Gradient - Dark mode only */}
+            {isDarkMode ? (
+                <LinearGradient
+                    colors={[colors.background, '#1e293b', colors.background]}
+                    style={StyleSheet.absoluteFill}
+                />
+            ) : (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: '#F2F5F8' }]} />
+            )}
 
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Messages</Text>
-                <TouchableOpacity style={styles.searchBtn}>
-                    <Search size={24} color={Colors.text} />
+                <Text style={[styles.headerTitle, { color: colors.text }]}>Messages</Text>
+                <TouchableOpacity style={[styles.searchBtn, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }]}>
+                    <Search size={24} color={colors.text} />
                 </TouchableOpacity>
             </View>
 
@@ -73,25 +81,25 @@ export default function ChatScreen() {
                 contentContainerStyle={styles.list}
                 showsVerticalScrollIndicator={false}
                 renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.chatCard}>
+                    <TouchableOpacity style={[styles.chatCard, { borderBottomColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }]}>
                         <View style={styles.avatarContainer}>
                             <Image source={{ uri: item.image }} style={styles.avatar} />
-                            {item.online && <View style={styles.onlineBadge} />}
+                            {item.online && <View style={[styles.onlineBadge, { backgroundColor: colors.online, borderColor: colors.background }]} />}
                         </View>
                         <View style={styles.chatContent}>
                             <View style={styles.topRow}>
-                                <Text style={styles.name}>{item.user}</Text>
-                                <Text style={styles.time}>{item.time}</Text>
+                                <Text style={[styles.name, { color: colors.text }]}>{item.user}</Text>
+                                <Text style={[styles.time, { color: colors.textSecondary }]}>{item.time}</Text>
                             </View>
                             <View style={styles.bottomRow}>
                                 <Text
-                                    style={[styles.message, item.unread > 0 && styles.unreadMessage]}
+                                    style={[styles.message, { color: colors.textSecondary }, item.unread > 0 && { color: colors.text, fontWeight: '500' }]}
                                     numberOfLines={1}
                                 >
                                     {item.lastMessage}
                                 </Text>
                                 {item.unread > 0 && (
-                                    <View style={styles.badge}>
+                                    <View style={[styles.badge, { backgroundColor: colors.primary }]}>
                                         <Text style={styles.badgeText}>{item.unread}</Text>
                                     </View>
                                 )}
@@ -101,9 +109,9 @@ export default function ChatScreen() {
                 )}
                 ListEmptyComponent={() => (
                     <View style={styles.emptyState}>
-                        <MessageCircle size={60} color={Colors.textSecondary} />
-                        <Text style={styles.emptyTitle}>No messages yet</Text>
-                        <Text style={styles.emptyDesc}>
+                        <MessageCircle size={60} color={colors.textSecondary} />
+                        <Text style={[styles.emptyTitle, { color: colors.text }]}>No messages yet</Text>
+                        <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
                             Connect with other nomads to start chatting
                         </Text>
                     </View>

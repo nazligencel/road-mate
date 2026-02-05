@@ -282,6 +282,28 @@ export const UserService = {
         }
     },
 
+    async updateProfile(userData, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/users/profile`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(userData)
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.message || 'Update failed');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Update profile error:', error);
+            throw error;
+        }
+    },
+
     async deleteGalleryImage(imageId, token) {
         try {
             const response = await fetch(`${BASE_URL}/api/users/gallery/${imageId}`, {

@@ -1,26 +1,29 @@
 import { Tabs } from 'expo-router';
-import { Colors } from '../../constants/Colors';
+import { Colors, getColors } from '../../constants/Colors';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Home, Compass, Wrench, MessageCircle, User } from 'lucide-react-native';
 import { View, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Forced reload check
 export default function TabLayout() {
-    console.log("Tab Layout initialized!");
+    const { isDarkMode } = useTheme();
+    const dColors = getColors(isDarkMode);
+
     return (
         <Tabs
             screenOptions={{
                 headerShown: false,
                 tabBarStyle: {
-                    backgroundColor: Colors.background,
-                    borderTopColor: 'transparent',
+                    backgroundColor: dColors.background,
+                    borderTopColor: isDarkMode ? 'transparent' : dColors.border,
                     height: Platform.OS === 'ios' ? 88 : 72,
                     paddingBottom: Platform.OS === 'ios' ? 24 : 12,
                     paddingTop: 12,
                     elevation: 0,
                 },
-                tabBarActiveTintColor: Colors.primary,
-                tabBarInactiveTintColor: Colors.textSecondary + '80', // Soft green-gray with alpha
+                tabBarActiveTintColor: dColors.primary,
+                tabBarInactiveTintColor: isDarkMode ? Colors.textSecondary + '80' : dColors.textSecondary,
                 tabBarShowLabel: true,
                 tabBarLabelStyle: {
                     fontSize: 10,
@@ -53,7 +56,7 @@ export default function TabLayout() {
                     tabBarIcon: ({ focused }) => (
                         <View style={styles.centerButtonContainer}>
                             <LinearGradient
-                                colors={[Colors.primary, '#45e3ff']} // Theme to Neon Cyan
+                                colors={[dColors.primary, isDarkMode ? '#45e3ff' : '#5AB2BF']} // Theme to Neon Cyan
                                 style={styles.centerButton}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}

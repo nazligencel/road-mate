@@ -203,7 +203,7 @@ export default function SignupScreen() {
                                         activeOpacity={0.9}
                                     >
                                         <LinearGradient
-                                            colors={['#4A7A8C', '#45e3ff']}
+                                            colors={['#4A7A8C', '#5AB2BF']}
                                             start={{ x: 0, y: 0 }}
                                             end={{ x: 1, y: 0 }}
                                             style={styles.primaryBtnGradient}
