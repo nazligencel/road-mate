@@ -276,10 +276,18 @@ export default function SettingsScreen() {
                 </View>
 
                 {/* Logout Button */}
-                <TouchableOpacity onPress={handleLogout} activeOpacity={0.8} style={styles.logoutButton}>
-                    <LogOut size={20} color={colors.error} style={{ marginRight: 8 }} />
-                    <Text style={styles.logoutText}>Log Out</Text>
-                </TouchableOpacity>
+                {/* Logout Section */}
+                <Section colors={colors} isDarkMode={isDarkMode} style={{ marginTop: 10 }}>
+                    <TouchableOpacity
+                        style={[styles.menuItem, { borderBottomWidth: 0, justifyContent: 'center' }]}
+                        onPress={handleLogout}
+                    >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                            <LogOut size={20} color={colors.error} style={{ marginRight: 8 }} />
+                            <Text style={[styles.menuLabel, { color: colors.error, marginLeft: 0 }]}>Log Out</Text>
+                        </View>
+                    </TouchableOpacity>
+                </Section>
 
             </ScrollView>
         </View>

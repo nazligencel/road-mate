@@ -1,60 +1,57 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
+import { router } from 'expo-router';
 import { Colors, getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Search, MessageCircle } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MessageService } from '../../services/api';
 
-const CHATS = [
-    {
-        id: '1',
-        user: 'Jessica',
-        lastMessage: 'I love that van build! How long did it take?',
-        time: '2m',
-        image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&q=80',
-        unread: 2,
-        online: true,
-    },
-    {
-        id: '2',
-        user: 'Mike_Builds',
-        lastMessage: 'Do you use a Victron controller?',
-        time: '1h',
-        image: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&q=80',
-        unread: 0,
-        online: true,
-    },
-    {
-        id: '3',
-        user: 'Sarah_Nomad',
-        lastMessage: 'The sunset at that spot was amazing!',
-        time: '3h',
-        image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&q=80',
-        unread: 1,
-        online: false,
-    },
-    {
-        id: '4',
-        user: 'Tom_Traveler',
-        lastMessage: 'Thanks for the camping tips!',
-        time: '1d',
-        image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&q=80',
-        unread: 0,
-        online: false,
-    },
-    {
-        id: '5',
-        user: 'Emily_Explorer',
-        lastMessage: 'Catch you at the meetup next week?',
-        time: '2d',
-        image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&q=80',
-        unread: 0,
-        online: true,
-    },
-];
+// Helper to format time
+const formatTime = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'now';
+    if (minutes < 60) return `${minutes}m`;
+    if (hours < 24) return `${hours}h`;
+    if (days < 7) return `${days}d`;
+    return date.toLocaleDateString();
+};
 
 export default function ChatScreen() {
     const { isDarkMode } = useTheme();
     const colors = getColors(isDarkMode);
+    const [conversations, setConversations] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const loadConversations = async () => {
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+            if (token) {
+                const data = await MessageService.getConversations(token);
+                setConversations(data);
+            }
+        } catch (error) {
+            console.error('Error loading conversations:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Reload when screen is focused
+    useFocusEffect(
+        useCallback(() => {
+            loadConversations();
+        }, [])
+    );
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -75,32 +72,43 @@ export default function ChatScreen() {
                 </TouchableOpacity>
             </View>
 
+            {loading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+            ) : (
             <FlatList
-                data={CHATS}
-                keyExtractor={(item) => item.id}
+                data={conversations}
+                keyExtractor={(item) => item.odUserId?.toString() || Math.random().toString()}
                 contentContainerStyle={styles.list}
                 showsVerticalScrollIndicator={false}
                 renderItem={({ item }) => (
-                    <TouchableOpacity style={[styles.chatCard, { borderBottomColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }]}>
+                    <TouchableOpacity
+                        style={[styles.chatCard, { borderBottomColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }]}
+                        onPress={() => router.push({
+                            pathname: `/chat/${item.odUserId}`,
+                            params: { name: item.otherUserName, avatar: item.otherUserImage }
+                        })}
+                    >
                         <View style={styles.avatarContainer}>
-                            <Image source={{ uri: item.image }} style={styles.avatar} />
-                            {item.online && <View style={[styles.onlineBadge, { backgroundColor: colors.online, borderColor: colors.background }]} />}
+                            <Image source={{ uri: item.otherUserImage || 'https://via.placeholder.com/150' }} style={styles.avatar} />
+                            {item.otherUserOnline && <View style={[styles.onlineBadge, { backgroundColor: colors.online, borderColor: colors.background }]} />}
                         </View>
                         <View style={styles.chatContent}>
                             <View style={styles.topRow}>
-                                <Text style={[styles.name, { color: colors.text }]}>{item.user}</Text>
-                                <Text style={[styles.time, { color: colors.textSecondary }]}>{item.time}</Text>
+                                <Text style={[styles.name, { color: colors.text }]}>{item.otherUserName}</Text>
+                                <Text style={[styles.time, { color: colors.textSecondary }]}>{formatTime(item.lastMessageTime)}</Text>
                             </View>
                             <View style={styles.bottomRow}>
                                 <Text
-                                    style={[styles.message, { color: colors.textSecondary }, item.unread > 0 && { color: colors.text, fontWeight: '500' }]}
+                                    style={[styles.message, { color: colors.textSecondary }, item.unreadCount > 0 && { color: colors.text, fontWeight: '500' }]}
                                     numberOfLines={1}
                                 >
                                     {item.lastMessage}
                                 </Text>
-                                {item.unread > 0 && (
+                                {item.unreadCount > 0 && (
                                     <View style={[styles.badge, { backgroundColor: colors.primary }]}>
-                                        <Text style={styles.badgeText}>{item.unread}</Text>
+                                        <Text style={styles.badgeText}>{item.unreadCount}</Text>
                                     </View>
                                 )}
                             </View>
@@ -117,6 +125,7 @@ export default function ChatScreen() {
                     </View>
                 )}
             />
+            )}
         </View>
     );
 }
@@ -125,6 +134,11 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: Colors.background,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     header: {
         flexDirection: 'row',

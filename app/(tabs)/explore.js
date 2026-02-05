@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, TextInput, ScrollView, Platform, Modal, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, TextInput, ScrollView, Platform, Modal, ActivityIndicator, Linking, Alert } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Search, Filter, Compass, Navigation, Zap, Wrench, ShoppingCart, ShoppingBag, ShoppingBasket, Fuel, MessageSquare, ArrowUpRight, Car, X, MapPin } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { NomadService, PlacesService } from '../../services/api';
+import { NomadService, PlacesService, NotificationService } from '../../services/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -94,6 +95,7 @@ export default function ExploreScreen() {
 
     useEffect(() => {
         let locationSubscription = null;
+        let initialFetchDone = false;
 
         (async () => {
             try {
@@ -116,14 +118,34 @@ export default function ExploreScreen() {
                             setLocation(newLocation);
                             setLoading(false);
 
-                            // Generate mock places as fallback for initialization
+                            // Generate mock places as fallback
                             const mockPlaces = generateNearbyPlaces(
                                 newLocation.coords.latitude,
                                 newLocation.coords.longitude
                             );
                             setNearbyPlaces(mockPlaces);
 
-                            // We don't auto-fetch API in background move to avoid overwriting UI data
+                            // Fetch real nomads on initial location
+                            if (!initialFetchDone && activeCategory === 'nomads') {
+                                initialFetchDone = true;
+                                try {
+                                    const token = await AsyncStorage.getItem('userToken');
+                                    const realNomads = await NomadService.getNearbyNomads(
+                                        newLocation.coords.latitude,
+                                        newLocation.coords.longitude,
+                                        token
+                                    );
+                                    if (realNomads && realNomads.length > 0) {
+                                        const nomadsWithType = realNomads.map(n => ({ ...n, type: 'nomad' }));
+                                        setActiveMarkers(nomadsWithType);
+                                    } else {
+                                        setActiveMarkers(mockPlaces.nomads);
+                                    }
+                                } catch (err) {
+                                    console.log("Initial nomad fetch error:", err);
+                                    setActiveMarkers(mockPlaces.nomads);
+                                }
+                            }
                         }
                     ).catch(err => {
                         console.log("Explore WatchPosition Error:", err.message);
@@ -142,7 +164,7 @@ export default function ExploreScreen() {
                 locationSubscription.remove();
             }
         };
-    }, [activeCategory]);
+    }, []);
 
     // Helper to update markers based on category
     const updateMarkers = (category, places) => {
@@ -183,10 +205,33 @@ export default function ExploreScreen() {
     const handleCategoryChange = async (category) => {
         setActiveCategory(category);
 
-        // For non-nomad categories, try to fetch real places from Google Places API
-        if (category !== 'nomads' && location?.coords) {
-            setIsFetching(true);
-            try {
+        if (!location?.coords) {
+            updateMarkers(category, nearbyPlaces);
+            return;
+        }
+
+        setIsFetching(true);
+        try {
+            if (category === 'nomads') {
+                // Fetch nomads from backend
+                const token = await AsyncStorage.getItem('userToken');
+                const realNomads = await NomadService.getNearbyNomads(
+                    location.coords.latitude,
+                    location.coords.longitude,
+                    token
+                );
+
+                if (realNomads && realNomads.length > 0) {
+                    console.log(`✅ Fetched ${realNomads.length} real nomads`);
+                    // Add type field for marker rendering
+                    const nomadsWithType = realNomads.map(n => ({ ...n, type: 'nomad' }));
+                    setActiveMarkers(nomadsWithType);
+                } else {
+                    console.log(`⚠️ No real nomads found, using mock data`);
+                    updateMarkers(category, nearbyPlaces);
+                }
+            } else {
+                // For non-nomad categories, fetch from Google Places API
                 const realPlaces = await PlacesService.getNearbyPlaces(
                     location.coords.latitude,
                     location.coords.longitude,
@@ -197,19 +242,15 @@ export default function ExploreScreen() {
                     console.log(`✅ Fetched ${realPlaces.length} real ${category}`);
                     setActiveMarkers(realPlaces);
                 } else {
-                    // Fallback to mock data if no real results
                     console.log(`⚠️ No real ${category} found, using mock data`);
                     updateMarkers(category, nearbyPlaces);
                 }
-            } catch (error) {
-                console.error('Error fetching real places:', error);
-                updateMarkers(category, nearbyPlaces);
-            } finally {
-                setIsFetching(false);
             }
-        } else {
-            // For nomads, use local/backend data
+        } catch (error) {
+            console.error('Error fetching data:', error);
             updateMarkers(category, nearbyPlaces);
+        } finally {
+            setIsFetching(false);
         }
     };
 
@@ -447,7 +488,19 @@ export default function ExploreScreen() {
                                             }
                                         </Text>
                                     </View>
-                                    <TouchableOpacity style={styles.detailChatBtn}>
+                                    <TouchableOpacity
+                                        style={styles.detailChatBtn}
+                                        onPress={() => {
+                                            setSelectedNomad(null);
+                                            router.push({
+                                                pathname: `/chat/${selectedNomad.id}`,
+                                                params: {
+                                                    name: selectedNomad.name,
+                                                    avatar: selectedNomad.image
+                                                }
+                                            });
+                                        }}
+                                    >
                                         <MessageSquare size={24} color={colors.primary} />
                                     </TouchableOpacity>
                                 </View>
@@ -465,10 +518,27 @@ export default function ExploreScreen() {
                                 </View>
                                 <TouchableOpacity
                                     style={[styles.mainActionBtn, { backgroundColor: colors.primary }]}
-                                    onPress={() => {
-                                        console.log("Create Meeting Point clicked");
-                                        // Placeholder for future logic
-                                        alert(`Creating meeting point with ${selectedNomad.name}...`);
+                                    onPress={async () => {
+                                        try {
+                                            const token = await AsyncStorage.getItem('userToken');
+                                            if (!token) {
+                                                Alert.alert("Error", "Please login first");
+                                                return;
+                                            }
+
+                                            // Call backend service
+                                            const result = await NotificationService.sendMeetingRequest(selectedNomad.id, token);
+
+                                            if (result.success) {
+                                                Alert.alert("Success", `Meeting request sent to ${selectedNomad.name}!`);
+                                                setSelectedNomad(null);
+                                            } else {
+                                                Alert.alert("Error", result.message || "Failed to send request");
+                                            }
+                                        } catch (error) {
+                                            console.error('Meeting request error:', error);
+                                            Alert.alert("Error", "Failed to send meeting request");
+                                        }
                                     }}
                                 >
                                     <MapPin size={24} color="#0C1210" />
@@ -505,13 +575,43 @@ const createStyles = (colors) => StyleSheet.create({
     markerLabel: { backgroundColor: 'rgba(0,0,0,0.8)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, marginTop: 2 },
     markerText: { color: '#FFF', fontSize: 8, fontWeight: 'bold' },
     topArea: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, zIndex: 10 },
-    searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.glassBackground, borderRadius: 15, paddingHorizontal: 12, height: 50, marginTop: 10, borderWidth: 1, borderColor: colors.glassBorder },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.card,
+        borderRadius: 15,
+        paddingHorizontal: 12,
+        height: 50,
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+    },
     searchIcon: { marginRight: 10 },
     searchInput: { flex: 1, color: colors.text },
     scanBtn: { padding: 8, marginLeft: 5 },
-    filterScroll: { paddingVertical: 12 },
-    filterChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.glassBackground, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: colors.glassBorder },
-    activeChip: { backgroundColor: colors.primary },
+    filterScroll: { paddingVertical: 12, marginTop: 8 },
+    filterChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: colors.card,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        marginRight: 10,
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+    },
     chipText: { color: '#FFF', fontSize: 12, fontWeight: '600' },
     bottomArea: { position: 'absolute', bottom: Platform.OS === 'ios' ? 90 : 70, left: 0, right: 0 },
     bottomHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 12 },

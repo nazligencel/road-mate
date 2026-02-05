@@ -23,9 +23,16 @@ export const BASE_URL = getApiUrl();
 console.log('📡 BASE URL set to:', BASE_URL);
 
 export const NomadService = {
-    async getNearbyNomads(lat, lng) {
+    async getNearbyNomads(lat, lng, token = null) {
         try {
-            const response = await fetch(`${BASE_URL}/api/nearby-nomads?lat=${lat}&lng=${lng}`);
+            const headers = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(`${BASE_URL}/api/nearby-nomads?lat=${lat}&lng=${lng}`, {
+                headers
+            });
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 console.error(`❌ Fetch Nomads Failed (${response.status}):`, errorData);
@@ -38,12 +45,17 @@ export const NomadService = {
         }
     },
 
-    async updateLocation(userId, lat, lng) {
+    async updateLocation(lat, lng, token = null) {
         try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
             const response = await fetch(`${BASE_URL}/api/update-location`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, latitude: lat, longitude: lng }),
+                headers,
+                body: JSON.stringify({ latitude: lat, longitude: lng }),
             });
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
@@ -321,6 +333,128 @@ export const UserService = {
         } catch (error) {
             console.error('Delete gallery image error:', error);
             throw error;
+        }
+    }
+};
+
+export const NotificationService = {
+    async sendMeetingRequest(targetUserId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/notifications/meeting-request`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ targetUserId })
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Failed to send meeting request');
+            return data;
+        } catch (error) {
+            console.error('Send meeting request error:', error);
+            throw error;
+        }
+    },
+
+    async getNotifications(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/notifications`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) return [];
+            return await response.json();
+        } catch (error) {
+            console.error('Get notifications error:', error);
+            return [];
+        }
+    },
+
+    async getUnreadCount(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/notifications/unread-count`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) return { count: 0 };
+            return await response.json();
+        } catch (error) {
+            console.error('Get unread count error:', error);
+            return { count: 0 };
+        }
+    },
+
+    async markAllAsRead(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/notifications/mark-all-read`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return response.ok;
+        } catch (error) {
+            console.error('Mark all read error:', error);
+            return false;
+        }
+    }
+};
+
+export const MessageService = {
+    async getConversations(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/messages/conversations`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) return [];
+            return await response.json();
+        } catch (error) {
+            console.error('Get conversations error:', error);
+            return [];
+        }
+    },
+
+    async getConversation(userId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/messages/conversation/${userId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) return [];
+            return await response.json();
+        } catch (error) {
+            console.error('Get conversation error:', error);
+            return [];
+        }
+    },
+
+    async sendMessage(receiverId, content, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/messages/send`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ receiverId, content })
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Failed to send message');
+            return data;
+        } catch (error) {
+            console.error('Send message error:', error);
+            throw error;
+        }
+    },
+
+    async getUnreadCount(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/messages/unread-count`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) return { count: 0 };
+            return await response.json();
+        } catch (error) {
+            console.error('Get unread count error:', error);
+            return { count: 0 };
         }
     }
 };
