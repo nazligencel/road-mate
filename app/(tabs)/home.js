@@ -5,38 +5,39 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Bell, Navigation, Flame, Plus } from 'lucide-react-native';
+import { Bell, Navigation, Flame, Plus, MapPin } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
-import { NomadService } from '../../services/api';
+import { NomadService, ActivityService, UserService, NotificationService } from '../../services/api';
 import { BlurView } from 'expo-blur';
+import { useFocusEffect } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
-const NEARBY_NOMADS = [
-    { id: 1, name: 'Luna', distance: '2mi', image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80', online: true },
-    { id: 2, name: 'River', distance: '5mi', image: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=200&q=80', online: false },
-    { id: 3, name: 'Sage', distance: '8mi', image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&q=80', online: false },
-    { id: 4, name: 'Jax', distance: '12mi', image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&q=80', online: false },
-];
-
-const ACTIVITIES = [
-    {
-        id: 1,
-        title: 'Coffee at Joshua Tree',
-        time: 'Today, 8:00 AM',
-        image: 'https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=500&q=80',
-        attendees: 3
-    },
-    {
-        id: 2,
-        title: 'Surf Session @ San Onofre',
-        time: 'Tomorrow, 6:00 AM',
-        image: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=500&q=80',
-        attendees: 5
-    }
-];
+const DUMMY_ACTIVITIES = [{
+    id: 'dummy-1',
+    title: 'Sunset Bonfire & Music',
+    description: 'Gathering around the fire for some acoustic tunes and s\'mores.',
+    location: 'Joshua Tree, CA',
+    date: 'Today',
+    time: '18:30',
+    type: 'Social',
+    image: 'https://images.unsplash.com/photo-1517824806704-9040b037703b?w=500&auto=format&fit=crop&q=60',
+    creatorName: 'Alex Nomad',
+    creatorImage: 'https://randomuser.me/api/portraits/men/32.jpg'
+}, {
+    id: 'dummy-2',
+    title: 'Morning Mountain Hike',
+    description: 'Early bird hike up the trail. Coffee included!',
+    location: 'Aspen, CO',
+    date: 'Tomorrow',
+    time: '06:00',
+    type: 'Adventure',
+    image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=500&auto=format&fit=crop&q=60',
+    creatorName: 'Sarah Climber',
+    creatorImage: 'https://randomuser.me/api/portraits/women/44.jpg'
+}];
 
 const mapStyle = [
     { "elementType": "geometry", "stylers": [{ "color": "#05080a" }] },
@@ -65,8 +66,53 @@ export default function HomeScreen() {
     const styles = useMemo(() => createStyles(colors), [colors]);
     const [location, setLocation] = useState(null);
     const [nearbyNomads, setNearbyNomads] = useState([]);
+    const [activities, setActivities] = useState(DUMMY_ACTIVITIES);
+    const [user, setUser] = useState(null);
+    const [unreadCount, setUnreadCount] = useState(0);
     const [isFetching, setIsFetching] = useState(false);
     const [weather, setWeather] = useState(null);
+    const [address, setAddress] = useState('Locating...');
+
+    // Load data whenever the screen comes into focus
+    useFocusEffect(
+        React.useCallback(() => {
+            const loadData = async () => {
+                const token = await AsyncStorage.getItem('userToken');
+                if (token) {
+                    // Fetch User Profile
+                    UserService.getUserDetails(token).then(setUser).catch(console.log);
+
+                    // Fetch Activities
+                    // Fetch Activities
+                    // ActivityService.getActivities(token).then(data => {
+                    //     if (data && data.length > 0) {
+                    //         setActivities(data);
+                    //     } else {
+                    //         setActivities([]);
+                    //     }
+                    // }).catch(err => {
+                    //     console.log('Activity fetch failed', err);
+                    //      setActivities([{
+                    //         id: 'dummy-1',
+                    //         title: 'Sunset Bonfire & Music',
+                    //         description: 'Gathering around the fire for some acoustic tunes and s\'mores.',
+                    //         location: 'Joshua Tree, CA',
+                    //         date: 'Today',
+                    //         time: '18:30',
+                    //         type: 'Social',
+                    //         image: 'https://images.unsplash.com/photo-1517824806704-9040b037703b?w=500&auto=format&fit=crop&q=60',
+                    //         creatorName: 'Alex Nomad',
+                    //         creatorImage: 'https://randomuser.me/api/portraits/men/32.jpg'
+                    //     }]);
+                    // });
+
+                    // Fetch Notifications
+                    NotificationService.getUnreadCount(token).then(data => setUnreadCount(data.count)).catch(console.log);
+                }
+            };
+            loadData();
+        }, [])
+    );
 
     useEffect(() => {
         let locationSubscription = null;
@@ -74,14 +120,9 @@ export default function HomeScreen() {
 
         (async () => {
             try {
-                // Get user token for authenticated requests
                 userToken = await AsyncStorage.getItem('userToken');
-
                 const enabled = await Location.hasServicesEnabledAsync();
-                if (!enabled) {
-                    console.log("Location services are disabled");
-                    return;
-                }
+                if (!enabled) return;
 
                 let { status } = await Location.requestForegroundPermissionsAsync();
                 if (status === 'granted') {
@@ -93,6 +134,19 @@ export default function HomeScreen() {
                         },
                         async (newLocation) => {
                             setLocation(newLocation);
+
+                            // Reverse Geocode
+                            try {
+                                const [place] = await Location.reverseGeocodeAsync({
+                                    latitude: newLocation.coords.latitude,
+                                    longitude: newLocation.coords.longitude
+                                });
+                                if (place) {
+                                    setAddress(`${place.city || place.subregion}, ${place.region || place.country}`);
+                                }
+                            } catch (e) {
+                                console.log('Geocode error:', e);
+                            }
 
                             if (!isFetching) {
                                 setIsFetching(true);
@@ -108,8 +162,6 @@ export default function HomeScreen() {
                                 } finally {
                                     setIsFetching(false);
                                 }
-
-                                // Update current user's location
                                 NomadService.updateLocation(
                                     newLocation.coords.latitude,
                                     newLocation.coords.longitude,
@@ -117,6 +169,7 @@ export default function HomeScreen() {
                                 );
                             }
 
+                            // Weather
                             try {
                                 const weatherResponse = await fetch(
                                     `https://api.open-meteo.com/v1/forecast?latitude=${newLocation.coords.latitude}&longitude=${newLocation.coords.longitude}&current_weather=true`
@@ -125,23 +178,15 @@ export default function HomeScreen() {
                                 if (weatherData.current_weather) {
                                     setWeather(Math.round(weatherData.current_weather.temperature));
                                 }
-                            } catch (err) {
-                                console.log("Weather Fetch Error:", err);
-                            }
+                            } catch (err) { console.log("Weather Fetch Error:", err); }
                         }
-                    ).catch(err => {
-                        console.log("WatchPosition Error:", err.message);
-                    });
+                    ).catch(err => { console.log("WatchPosition Error:", err.message); });
                 }
-            } catch (error) {
-                console.error("Home Location Error:", error.message);
-            }
+            } catch (error) { console.error("Home Location Error:", error.message); }
         })();
 
         return () => {
-            if (locationSubscription) {
-                locationSubscription.remove();
-            }
+            if (locationSubscription) locationSubscription.remove();
         };
     }, []);
 
@@ -169,40 +214,45 @@ export default function HomeScreen() {
                     {/* Header */}
                     <View style={styles.header}>
                         <View style={styles.headerLeft}>
-                            <View style={styles.avatarContainer}>
-                                <Image
-                                    source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&q=80' }}
-                                    style={styles.avatar}
-                                />
-                                <View style={styles.onlineDot} />
-                            </View>
+                            <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
+                                <View style={styles.avatarContainer}>
+                                    <Image
+                                        source={{ uri: user?.profileImage || user?.image || 'https://via.placeholder.com/150' }}
+                                        style={styles.avatar}
+                                    />
+                                    <View style={styles.onlineDot} />
+                                </View>
+                            </TouchableOpacity>
                             <View>
-                                <Text style={styles.locationLabel}>CURRENT LOCATION</Text>
+                                <Text style={styles.greetingText}>Hello, {user?.name?.split(' ')[0] || 'Nomad'}</Text>
                                 <View style={styles.locationRow}>
-                                    <Text style={styles.locationTitle}>Sedona, AZ</Text>
+                                    <MapPin size={12} color={colors.primary} />
+                                    <Text style={styles.locationTitle}>{address}</Text>
                                 </View>
                             </View>
                         </View>
-                        <TouchableOpacity>
-                            <GlassCard style={styles.bellButton} intensity={15} tint={isDarkMode ? 'dark' : 'light'}>
-                                <Bell size={20} color={colors.text} />
-                                <View style={styles.notificationDot} />
-                            </GlassCard>
+                        <TouchableOpacity
+                            style={styles.bellButton}
+                            onPress={() => router.push('/notifications')}
+                        >
+                            <Bell size={24} color={colors.text} />
+                            {unreadCount > 0 && <View style={styles.notificationDot} />}
                         </TouchableOpacity>
                     </View>
 
                     {/* Road Ahead / Real Map Card */}
                     <View style={styles.mapCardContainer}>
-                        <GlassCard style={styles.mapCard} intensity={10} tint={isDarkMode ? 'dark' : 'light'}>
+                        <View style={[styles.mapCard, { overflow: 'hidden' }]}>
                             <MapView
                                 style={styles.mapBackground}
                                 provider={PROVIDER_GOOGLE}
-                                region={initialRegion}
+                                initialRegion={initialRegion}
                                 customMapStyle={mapStyle}
                                 scrollEnabled={false}
                                 zoomEnabled={false}
                                 pitchEnabled={false}
                                 showsUserLocation={true}
+                                liteMode={Platform.OS === 'android'}
                             />
                             <LinearGradient
                                 colors={['transparent', isDarkMode ? 'rgba(11, 19, 26, 0.9)' : 'rgba(255,255,255,0.9)']}
@@ -236,7 +286,7 @@ export default function HomeScreen() {
                                     </TouchableOpacity>
                                 </View>
                             </View>
-                        </GlassCard>
+                        </View>
                     </View>
 
                     {/* Nearby Nomads */}
@@ -275,7 +325,7 @@ export default function HomeScreen() {
                             </View>
                             <TouchableOpacity
                                 style={styles.addActivityButton}
-                                onPress={() => alert('Activity creation coming soon...')}
+                                onPress={() => router.push('/create-activity')}
                             >
                                 <Plus size={18} color="#FFF" />
                             </TouchableOpacity>
@@ -283,29 +333,34 @@ export default function HomeScreen() {
                         <Text style={styles.sectionSubtitle}>Local activities happening now</Text>
 
                         <View style={styles.feedList}>
-                            {ACTIVITIES.map((item) => (
-                                <GlassCard key={item.id} style={styles.activityCard} tint={isDarkMode ? 'dark' : 'light'}>
-                                    <Image source={{ uri: item.image }} style={styles.activityImage} />
-                                    <View style={styles.activityInfo}>
-                                        <Text style={styles.activityTitle}>{item.title}</Text>
-                                        <View style={styles.activityMeta}>
-                                            <Text style={styles.activityTime}>{item.time}</Text>
-                                        </View>
-                                        <View style={styles.activityFooter}>
-                                            <View style={styles.attendees}>
-                                                <View style={[styles.attendeeDot, { backgroundColor: '#FCA5A5', borderColor: colors.card }]} />
-                                                <View style={[styles.attendeeDot, { backgroundColor: '#FDE047', marginLeft: -8, borderColor: colors.card }]} />
-                                                <View style={[styles.attendeeDot, { backgroundColor: '#86EFAC', marginLeft: -8, justifyContent: 'center', alignItems: 'center', borderColor: colors.card }]}>
-                                                    <Text style={{ fontSize: 8, color: '#000' }}>+{item.attendees}</Text>
-                                                </View>
+                            {activities.length > 0 ? activities.map((item) => (
+                                <TouchableOpacity key={item.id} onPress={() => router.push(`/activity/${item.id}`)}>
+                                    <View style={styles.activityCard}>
+                                        <Image
+                                            source={{ uri: item.image || `https://source.unsplash.com/random/200x200?sig=${item.id}&camping` }}
+                                            style={styles.activityImage}
+                                        />
+                                        <View style={styles.activityInfo}>
+                                            <Text style={styles.activityTitle}>{item.title}</Text>
+                                            <View style={styles.activityMeta}>
+                                                <Text style={styles.activityTime}>{item.date} • {item.time}</Text>
                                             </View>
-                                            <TouchableOpacity style={styles.joinButton}>
-                                                <Text style={styles.joinText}>Join</Text>
-                                            </TouchableOpacity>
+                                            <View style={styles.activityFooter}>
+                                                <View style={styles.attendees}>
+                                                    <Text style={{ fontSize: 10, color: colors.textSecondary }}>{item.location}</Text>
+                                                </View>
+                                                <TouchableOpacity style={styles.joinButton}>
+                                                    <Text style={styles.joinText}>Join</Text>
+                                                </TouchableOpacity>
+                                            </View>
                                         </View>
                                     </View>
-                                </GlassCard>
-                            ))}
+                                </TouchableOpacity>
+                            )) : (
+                                <Text style={{ color: colors.textSecondary, textAlign: 'center', marginTop: 20 }}>
+                                    No activities nearby. Be the first to create one!
+                                </Text>
+                            )}
                         </View>
                     </View>
 
@@ -357,11 +412,10 @@ const createStyles = (colors) => StyleSheet.create({
         borderWidth: 2,
         borderColor: colors.background,
     },
-    locationLabel: {
-        fontSize: 10,
-        color: colors.primary,
-        fontWeight: '700',
-        letterSpacing: 0.5,
+    greetingText: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        fontWeight: '600',
     },
     locationRow: {
         flexDirection: 'row',
@@ -369,28 +423,26 @@ const createStyles = (colors) => StyleSheet.create({
         gap: 4,
     },
     locationTitle: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '700',
         color: colors.text,
     },
     bellButton: {
         width: 40,
         height: 40,
-        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
-        backgroundColor: colors.glassBackground,
     },
     notificationDot: {
         position: 'absolute',
-        top: 10,
-        right: 12,
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: colors.primary,
+        top: 2,
+        right: 4,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: colors.error,
+        borderWidth: 2,
+        borderColor: colors.background,
     },
     // Map Card
     mapCardContainer: {
@@ -575,16 +627,17 @@ const createStyles = (colors) => StyleSheet.create({
     activityCard: {
         flexDirection: 'row',
         borderRadius: 20,
-        padding: 12,
+        padding: 12, // Restored original padding
         alignItems: 'center',
-        gap: 16,
+        gap: 16, // Restored original gap
         borderWidth: 1,
         borderColor: colors.cardBorder,
         backgroundColor: colors.glassBackground,
+        marginBottom: 12, // Kept compact margin
     },
     activityImage: {
-        width: 80,
-        height: 80,
+        width: 80, // Restored original size
+        height: 80, // Restored original size
         borderRadius: 16,
     },
     activityInfo: {
@@ -613,13 +666,6 @@ const createStyles = (colors) => StyleSheet.create({
     attendees: {
         flexDirection: 'row',
     },
-    attendeeDot: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: colors.card,
-    },
     joinButton: {
         backgroundColor: colors.primary + '15',
         paddingHorizontal: 16,
@@ -632,6 +678,32 @@ const createStyles = (colors) => StyleSheet.create({
         color: colors.primary,
         fontSize: 12,
         fontWeight: '600',
+    },
+    organizerAvatar: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+    },
+    organizerName: {
+        color: colors.textSecondary,
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    joinButton: {
+        backgroundColor: colors.primary,
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: 20,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    joinText: {
+        color: '#FFF',
+        fontSize: 13,
+        fontWeight: '700',
     },
     addActivityButton: {
         width: 32,
