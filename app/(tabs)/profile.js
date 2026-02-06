@@ -165,7 +165,7 @@ export default function ProfileScreen() {
 
                     <TouchableOpacity style={{ width: '100%' }} onPress={() => router.push('/edit-profile')}>
                         <LinearGradient
-                            colors={[colors.primary, colors.online]}
+                            colors={[colors.primary, '#5AB2BF']}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }}
                             style={styles.editBtn}
