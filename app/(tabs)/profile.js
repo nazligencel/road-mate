@@ -10,6 +10,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ConnectionService, UserService, BASE_URL } from '../../services/api';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useDiscussions } from '../../contexts/DiscussionContext';
 
 const { width } = Dimensions.get('window');
 
@@ -31,6 +32,7 @@ export default function ProfileScreen() {
     const [connectionCount, setConnectionCount] = useState(0);
     const [selectedImage, setSelectedImage] = useState(null);
     const [galleryPhotos, setGalleryPhotos] = useState(PHOTOS);
+    const { savedIds } = useDiscussions();
 
     useFocusEffect(
         useCallback(() => {
@@ -235,10 +237,10 @@ export default function ProfileScreen() {
                             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Build Posts</Text>
                         </View>
                         <View style={[styles.statDivider, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]} />
-                        <View style={styles.stat}>
-                            <Text style={[styles.statValue, { color: colors.text }]}>4.8</Text>
-                            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Rating</Text>
-                        </View>
+                        <TouchableOpacity style={styles.stat} onPress={() => router.push('/saved-discussions')}>
+                            <Text style={[styles.statValue, { color: colors.text }]}>{savedIds.length}</Text>
+                            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Bookmarks</Text>
+                        </TouchableOpacity>
                     </View>
 
                     <TouchableOpacity style={{ width: '100%' }}>

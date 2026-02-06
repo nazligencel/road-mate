@@ -2,8 +2,9 @@ import { Tabs } from 'expo-router';
 import { Colors, getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Home, Compass, Wrench, MessageCircle, User } from 'lucide-react-native';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 // Forced reload check
 export default function TabLayout() {
@@ -23,7 +24,7 @@ export default function TabLayout() {
                     elevation: 0,
                 },
                 tabBarActiveTintColor: dColors.primary,
-                tabBarInactiveTintColor: isDarkMode ? Colors.textSecondary + '80' : dColors.textSecondary,
+                tabBarInactiveTintColor: isDarkMode ? '#CBD5E1' : '#475569', // More visible inactive state
                 tabBarShowLabel: true,
                 tabBarLabelStyle: {
                     fontSize: 10,
@@ -36,7 +37,7 @@ export default function TabLayout() {
                 name="home"
                 options={{
                     title: 'Home',
-                    tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => <Home color={color} size={size} strokeWidth={2.5} />,
                 }}
             />
             {/* Community/Help - Standard Tab */}
@@ -44,7 +45,7 @@ export default function TabLayout() {
                 name="community"
                 options={{
                     title: 'Assist',
-                    tabBarIcon: ({ color, size }) => <Wrench color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => <Wrench color={color} size={size} strokeWidth={2.5} />,
                 }}
             />
 
@@ -53,16 +54,20 @@ export default function TabLayout() {
                 name="explore"
                 options={{
                     title: 'Explore',
-                    tabBarIcon: ({ focused }) => (
-                        <View style={styles.centerButtonContainer}>
-                            <LinearGradient
-                                colors={[dColors.primary, isDarkMode ? '#45e3ff' : '#5AB2BF']} // Theme to Neon Cyan
-                                style={styles.centerButton}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            >
-                                <Compass color="#FFF" size={30} strokeWidth={2.5} />
-                            </LinearGradient>
+                    tabBarButton: (props) => (
+                        <View style={styles.exploreContainer}>
+                            <TouchableOpacity {...props} activeOpacity={0.8} style={styles.touchableArea}>
+                                <View style={styles.outerRing}>
+                                    <LinearGradient
+                                        colors={['#00f2ff', '#0066ff']}
+                                        style={styles.gradientCircle}
+                                    >
+                                        <View style={styles.innerCircle}>
+                                            <MaterialCommunityIcons name="compass-rose" size={32} color="white" />
+                                        </View>
+                                    </LinearGradient>
+                                </View>
+                            </TouchableOpacity>
                         </View>
                     ),
                     tabBarLabel: () => null,
@@ -73,14 +78,14 @@ export default function TabLayout() {
                 name="chat"
                 options={{
                     title: 'Chat',
-                    tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} strokeWidth={2.5} />,
                 }}
             />
             <Tabs.Screen
                 name="profile"
                 options={{
                     title: 'Profile',
-                    tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => <User color={color} size={size} strokeWidth={2.5} />,
                 }}
             />
         </Tabs>
@@ -88,19 +93,45 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-    centerButtonContainer: {
-        top: -15, // Float slightly higher due to size
-        shadowColor: '#45e3ff', // Neon Glow
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
-        shadowRadius: 10,
-        elevation: 10,
-    },
-    centerButton: {
-        width: 60, // Bigger
-        height: 60,
-        borderRadius: 30, // Circle
+    exploreContainer: {
+        top: -20, // Floating effect
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    touchableArea: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    outerRing: {
+        width: 70,
+        height: 70,
+        borderRadius: 35,
+        backgroundColor: 'rgba(0, 242, 255, 0.15)', // Very light neon shadow
+        alignItems: 'center',
+        justifyContent: 'center',
+        // iOS Shadow
+        shadowColor: "#00f2ff",
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 15,
+        // Android Shadow
+        elevation: 10,
+    },
+    gradientCircle: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    innerCircle: {
+        width: 54,
+        height: 54,
+        borderRadius: 27,
+        backgroundColor: '#121B22', // Dark theme inner color
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });

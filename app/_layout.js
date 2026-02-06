@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
+import { DiscussionProvider } from '../contexts/DiscussionContext';
 // Dynamic GoogleSignin import moved inside useEffect
 
 function RootLayoutNav() {
@@ -85,7 +86,9 @@ function RootLayoutNav() {
 export default function RootLayout() {
     return (
         <ThemeProvider>
-            <RootLayoutNav />
+            <DiscussionProvider>
+                <RootLayoutNav />
+            </DiscussionProvider>
         </ThemeProvider>
     );
 }

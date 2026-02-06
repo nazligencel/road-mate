@@ -1,10 +1,12 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform, TextInput } from 'react-native';
 import { getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Wrench, Zap, Droplets, Hammer, Plus, MessageSquare } from 'lucide-react-native';
+import { Wrench, Zap, Droplets, Hammer, Plus, MessageSquare, Search, Bookmark } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useDiscussions } from '../../contexts/DiscussionContext';
+import { router } from 'expo-router';
 
 const CATEGORIES = [
     { id: 1, name: 'Electrical', icon: Zap, color: '#F59E0B' },
@@ -13,31 +15,12 @@ const CATEGORIES = [
     { id: 4, name: 'Mechanical', icon: Wrench, color: '#EF4444' },
 ];
 
-const DISCUSSIONS = [
-    {
-        id: 1,
-        title: 'Help with Solar Setup?',
-        author: 'NewbieVan',
-        replies: 24,
-        tag: 'Electrical',
-        preview: 'I have 200W panels but my battery keeps draining...',
-        time: '2h ago'
-    },
-    {
-        id: 2,
-        title: 'Best insulation for cold climates?',
-        author: 'SnowSeeker',
-        replies: 12,
-        tag: 'General',
-        preview: 'Looking at Havelock wool vs Spray foam. Thoughts?',
-        time: '5h ago'
-    },
-];
 
-const GlassCard = ({ children, style, intensity = 20, tint = 'dark' }) => (
+
+const GlassCard = ({ children, style, intensity = 20, tint = 'dark', contentContainerStyle }) => (
     <View style={[style, { overflow: 'hidden' }]}>
         <BlurView intensity={intensity} tint={tint} style={StyleSheet.absoluteFill} />
-        <View style={{ padding: 16 }}>
+        <View style={[{ padding: 16 }, contentContainerStyle]}>
             {children}
         </View>
     </View>
@@ -47,6 +30,33 @@ export default function CommunityScreen() {
     const { isDarkMode } = useTheme();
     const colors = getColors(isDarkMode);
     const styles = useMemo(() => createStyles(colors), [colors]);
+    const { discussions, savedIds, toggleSave, fetchDiscussions } = useDiscussions();
+
+    const [selectedCategory, setSelectedCategory] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        fetchDiscussions();
+    }, []);
+
+    const filteredDiscussions = useMemo(() => {
+        return discussions.filter(item => {
+            // Filter by Category
+            if (selectedCategory) {
+                const categoryName = CATEGORIES.find(c => c.id === selectedCategory)?.name;
+                if (item.tag !== categoryName) return false;
+            }
+
+            // Filter by Search Query
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                return item.title.toLowerCase().includes(query) ||
+                    item.preview.toLowerCase().includes(query);
+            }
+
+            return true;
+        });
+    }, [discussions, selectedCategory, searchQuery]);
 
     return (
         <View style={styles.container}>
@@ -62,54 +72,108 @@ export default function CommunityScreen() {
 
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Builder Hub</Text>
-                <TouchableOpacity style={styles.createBtn}>
-                    <Plus color="#FFF" size={24} />
+                <TouchableOpacity style={styles.createBtnContainer} onPress={() => router.push('/create-discussion')}>
+                    <LinearGradient
+                        colors={[colors.primary, colors.online]}
+                        style={styles.createBtnGradient}
+                    >
+                        <View style={styles.createBtnInner}>
+                            <Plus color="#FFF" size={20} strokeWidth={3} />
+                        </View>
+                    </LinearGradient>
                 </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
                 <Text style={styles.sectionTitle}>Browse Topics</Text>
+
+                {/* Search Bar */}
+                <View style={styles.searchContainer}>
+                    <Search size={20} color={colors.textSecondary} />
+                    <TextInput
+                        placeholder="Search topics..."
+                        placeholderTextColor={colors.textSecondary}
+                        style={styles.searchInput}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                </View>
+
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
-                    {CATEGORIES.map((cat) => (
-                        <TouchableOpacity key={cat.id}>
-                            <GlassCard style={styles.categoryCard} intensity={15} tint={isDarkMode ? 'dark' : 'light'}>
-                                <View style={[styles.iconBox, { backgroundColor: cat.color + '20' }]}>
-                                    <cat.icon color={cat.color} size={24} />
-                                </View>
-                                <Text style={styles.categoryName}>{cat.name}</Text>
-                            </GlassCard>
-                        </TouchableOpacity>
-                    ))}
+                    {CATEGORIES.map((cat) => {
+                        const isSelected = selectedCategory === cat.id;
+                        return (
+                            <TouchableOpacity key={cat.id} onPress={() => setSelectedCategory(isSelected ? null : cat.id)}>
+                                <GlassCard
+                                    style={[
+                                        styles.categoryCard,
+                                        isSelected && { borderColor: '#22d3ee', borderWidth: 2 } // Cyan border for selected
+                                    ]}
+                                    intensity={20}
+                                    tint={isDarkMode ? 'dark' : 'light'}
+                                    contentContainerStyle={{ padding: 0, justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%' }}
+                                >
+                                    <View style={[
+                                        styles.iconBox,
+                                        { backgroundColor: cat.color + '15' } // Lighter background for better visibility
+                                    ]}>
+                                        <cat.icon color={cat.color} size={18} />
+                                    </View>
+                                    <Text style={[
+                                        styles.categoryName,
+                                        isSelected && { color: '#22d3ee', fontWeight: '700' }
+                                    ]}>{cat.name}</Text>
+                                </GlassCard>
+                            </TouchableOpacity>
+                        );
+                    })}
                 </ScrollView>
 
                 <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Recent Discussions</Text>
                 <View style={styles.discussionList}>
-                    {DISCUSSIONS.map((item) => (
-                        <TouchableOpacity key={item.id}>
-                            <GlassCard style={styles.discussionCard} tint={isDarkMode ? 'dark' : 'light'}>
-                                <View style={styles.discussionHeader}>
-                                    <View style={styles.tagBadge}>
-                                        <Text style={styles.tagText}>{item.tag}</Text>
-                                    </View>
-                                    <Text style={styles.timeText}>{item.time}</Text>
-                                </View>
-                                <Text style={styles.discussionTitle}>{item.title}</Text>
-                                <Text style={styles.discussionPreview}>{item.preview}</Text>
+                    {filteredDiscussions.length > 0 ? (
+                        filteredDiscussions.map((item) => (
+                            <TouchableOpacity key={item.id} onPress={() => router.push(`/discussion/${item.id}`)}>
+                                <GlassCard style={styles.discussionCard} tint={isDarkMode ? 'dark' : 'light'}>
+                                    <View style={styles.discussionHeader}>
+                                        <View style={styles.tagBadge}>
+                                            <Text style={styles.tagText}>{item.tag}</Text>
+                                        </View>
 
-                                <View style={styles.discussionFooter}>
-                                    <View style={styles.authorRow}>
-                                        <View style={styles.avatarPlaceholder} />
-                                        <Text style={styles.authorName}>{item.author}</Text>
+                                        {/* Bookmark Icon - Absolute Positioned */}
+                                        <TouchableOpacity style={styles.bookmarkBtn} onPress={() => toggleSave(item.id)}>
+                                            <Bookmark
+                                                size={20}
+                                                color={savedIds.includes(item.id) ? colors.primary : colors.textSecondary}
+                                                fill={savedIds.includes(item.id) ? colors.primary : 'none'}
+                                            />
+                                        </TouchableOpacity>
                                     </View>
-                                    <View style={styles.statsRow}>
-                                        <MessageSquare size={14} color={colors.textSecondary} />
-                                        <Text style={styles.statsText}>{item.replies}</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                                        <Text style={styles.timeText}>{item.time}</Text>
                                     </View>
-                                </View>
-                            </GlassCard>
-                        </TouchableOpacity>
-                    ))}
+                                    <Text style={styles.discussionTitle}>{item.title}</Text>
+                                    <Text style={styles.discussionPreview}>{item.preview}</Text>
+
+                                    <View style={styles.discussionFooter}>
+                                        <View style={styles.authorRow}>
+                                            <View style={styles.avatarPlaceholder} />
+                                            <Text style={styles.authorName}>{item.author}</Text>
+                                        </View>
+                                        <View style={styles.statsRow}>
+                                            <MessageSquare size={14} color={colors.textSecondary} />
+                                            <Text style={styles.statsText}>{item.replies}</Text>
+                                        </View>
+                                    </View>
+                                </GlassCard>
+                            </TouchableOpacity>
+                        ))
+                    ) : (
+                        <Text style={{ textAlign: 'center', color: colors.textSecondary, marginTop: 20 }}>
+                            No discussions found matching your criteria.
+                        </Text>
+                    )}
                 </View>
 
             </ScrollView>
@@ -126,7 +190,7 @@ const createStyles = (colors) => StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 24,
+        paddingHorizontal: 16,
         paddingTop: 60,
         paddingBottom: 20,
     },
@@ -135,59 +199,93 @@ const createStyles = (colors) => StyleSheet.create({
         fontWeight: 'bold',
         color: colors.text,
     },
-    createBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: colors.primary,
+    createBtnContainer: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    createBtnGradient: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        padding: 2, // Acts as border width
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
+    },
+    createBtnInner: {
+        flex: 1,
+        width: '100%',
+        borderRadius: 20, // Inner radius matches outer roughly
+        backgroundColor: '#1e293b', // Dark background to match theme
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     scrollContent: {
         paddingBottom: 100,
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.glassBackground,
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        marginHorizontal: 16,
+        marginBottom: 20,
+        height: 50,
+    },
+    searchInput: {
+        flex: 1,
+        marginLeft: 10,
+        color: colors.text,
+        fontSize: 15,
+        height: '100%',
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: '700',
         color: colors.text,
-        marginLeft: 24,
+        marginLeft: 16,
         marginBottom: 16,
     },
     categoriesScroll: {
-        paddingHorizontal: 24,
+        paddingHorizontal: 16,
         gap: 12,
     },
     categoryCard: {
-        width: 100,
-        height: 110,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 16,
-        borderWidth: 1,
+        width: 80,
+        height: 80, // Circular aspect ratio
+        borderRadius: 40, // Fully round
+        borderWidth: 1.5,
         borderColor: colors.cardBorder,
         backgroundColor: colors.glassBackground,
     },
     iconBox: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 12,
     },
     categoryName: {
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: '600',
         textAlign: 'center',
         color: colors.text,
+        marginTop: 4,
     },
     discussionList: {
-        paddingHorizontal: 24,
+        paddingHorizontal: 16,
         gap: 16,
+    },
+    bookmarkBtn: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        padding: 4,
     },
     discussionCard: {
         borderRadius: 16,
@@ -213,7 +311,8 @@ const createStyles = (colors) => StyleSheet.create({
         fontWeight: '600',
     },
     timeText: {
-        color: colors.textSecondary,
+        color: colors.textSecondary === '#64748b' ? '#94a3b8' : colors.textSecondary, // Use original or slightly adjusted if valid
+        opacity: 0.9, // Make it more visible
         fontSize: 12,
     },
     discussionTitle: {
@@ -224,7 +323,8 @@ const createStyles = (colors) => StyleSheet.create({
     },
     discussionPreview: {
         fontSize: 14,
-        color: colors.textSecondary,
+        color: colors.text, // Changed from textSecondary to text for better contrast
+        opacity: 0.8, // Slightly reduced opacity to distinguish from title, but much readable than grey
         marginBottom: 16,
         lineHeight: 20,
     },
@@ -248,7 +348,8 @@ const createStyles = (colors) => StyleSheet.create({
         backgroundColor: colors.primary,
     },
     authorName: {
-        color: colors.textSecondary,
+        color: colors.text, // Improved contrast
+        opacity: 0.8,
         fontSize: 13,
         fontWeight: '500',
     },
@@ -258,7 +359,8 @@ const createStyles = (colors) => StyleSheet.create({
         gap: 6,
     },
     statsText: {
-        color: colors.textSecondary,
+        color: colors.text, // Improved contrast
+        opacity: 0.8,
         fontSize: 12,
     },
 });

@@ -216,10 +216,17 @@ export default function HomeScreen() {
                         <View style={styles.headerLeft}>
                             <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
                                 <View style={styles.avatarContainer}>
-                                    <Image
-                                        source={{ uri: user?.profileImage || user?.image || 'https://via.placeholder.com/150' }}
-                                        style={styles.avatar}
-                                    />
+                                    <LinearGradient
+                                        colors={[colors.primary, colors.online]}
+                                        style={styles.avatarGradient}
+                                    >
+                                        <View style={styles.avatarInner}>
+                                            <Image
+                                                source={{ uri: user?.profileImage || user?.image || 'https://via.placeholder.com/150' }}
+                                                style={styles.avatar}
+                                            />
+                                        </View>
+                                    </LinearGradient>
                                     <View style={styles.onlineDot} />
                                 </View>
                             </TouchableOpacity>
@@ -235,7 +242,7 @@ export default function HomeScreen() {
                             style={styles.bellButton}
                             onPress={() => router.push('/notifications')}
                         >
-                            <Bell size={24} color={colors.text} />
+                            <Bell size={24} color={colors.text} fill={colors.text} />
                             {unreadCount > 0 && <View style={styles.notificationDot} />}
                         </TouchableOpacity>
                     </View>
@@ -324,10 +331,17 @@ export default function HomeScreen() {
                                 <Text style={styles.sectionTitle}>Campfire Feed</Text>
                             </View>
                             <TouchableOpacity
-                                style={styles.addActivityButton}
+                                style={styles.addActivityBtnContainer}
                                 onPress={() => router.push('/create-activity')}
                             >
-                                <Plus size={18} color="#FFF" />
+                                <LinearGradient
+                                    colors={[colors.primary, colors.online]}
+                                    style={styles.addActivityBtnGradient}
+                                >
+                                    <View style={styles.addActivityBtnInner}>
+                                        <Plus size={18} color="#FFF" strokeWidth={3} />
+                                    </View>
+                                </LinearGradient>
                             </TouchableOpacity>
                         </View>
                         <Text style={styles.sectionSubtitle}>Local activities happening now</Text>
@@ -393,13 +407,32 @@ const createStyles = (colors) => StyleSheet.create({
     },
     avatarContainer: {
         position: 'relative',
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    avatarGradient: {
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        padding: 2,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarInner: {
+        flex: 1,
+        width: '100%',
+        borderRadius: 26,
+        backgroundColor: colors.background,
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
     },
     avatar: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        borderWidth: 2,
-        borderColor: colors.primary,
+        width: '100%',
+        height: '100%',
     },
     onlineDot: {
         position: 'absolute',
@@ -705,17 +738,27 @@ const createStyles = (colors) => StyleSheet.create({
         fontSize: 13,
         fontWeight: '700',
     },
-    addActivityButton: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: colors.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
+    addActivityBtnContainer: {
         shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
         shadowRadius: 8,
         elevation: 5,
+    },
+    addActivityBtnGradient: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        padding: 2,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    addActivityBtnInner: {
+        flex: 1,
+        width: '100%',
+        borderRadius: 18,
+        backgroundColor: '#1e293b',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });

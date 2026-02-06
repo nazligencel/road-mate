@@ -459,6 +459,138 @@ export const MessageService = {
     }
 };
 
+export const DiscussionService = {
+    async getDiscussions(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/discussions`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) return [];
+            return await response.json();
+        } catch (error) {
+            console.error('Get discussions error:', error);
+            return [];
+        }
+    },
+
+    async getDiscussion(id, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/discussions/${id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch discussion');
+            return await response.json();
+        } catch (error) {
+            console.error('Get discussion error:', error);
+            throw error;
+        }
+    },
+
+    async createDiscussion(data, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/discussions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Failed to create discussion');
+            return result;
+        } catch (error) {
+            console.error('Create discussion error:', error);
+            throw error;
+        }
+    },
+
+    async uploadDiscussionImage(imageUri, token) {
+        try {
+            const formData = new FormData();
+            const filename = imageUri.split('/').pop();
+            const match = /\.(\w+)$/.exec(filename);
+            const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+            formData.append('file', { uri: imageUri, name: filename, type });
+
+            const response = await fetch(`${BASE_URL}/api/discussions/upload-image`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data',
+                },
+                body: formData,
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Upload failed');
+            return data;
+        } catch (error) {
+            console.error('Upload discussion image error:', error);
+            throw error;
+        }
+    },
+
+    async getComments(discussionId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/discussions/${discussionId}/comments`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) return [];
+            return await response.json();
+        } catch (error) {
+            console.error('Get comments error:', error);
+            return [];
+        }
+    },
+
+    async addComment(discussionId, text, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/discussions/${discussionId}/comments`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ text })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Failed to add comment');
+            return data;
+        } catch (error) {
+            console.error('Add comment error:', error);
+            throw error;
+        }
+    },
+
+    async toggleBookmark(discussionId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/discussions/${discussionId}/bookmark`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Toggle bookmark error:', error);
+            return { success: false };
+        }
+    },
+
+    async getSavedDiscussions(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/discussions/saved`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) return [];
+            return await response.json();
+        } catch (error) {
+            console.error('Get saved discussions error:', error);
+            return [];
+        }
+    }
+};
+
 export const ActivityService = {
     async getActivities(token) {
         try {
