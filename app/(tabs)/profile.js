@@ -3,12 +3,13 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Settings, MapPin, Calendar, Grid, Image as ImageIcon, Plus } from 'lucide-react-native';
+import { Settings, MapPin, Calendar, Grid, Image as ImageIcon, Plus, Crown } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ConnectionService, UserService, BASE_URL } from '../../services/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useDiscussions } from '../../contexts/DiscussionContext';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 
 const { width } = Dimensions.get('window');
 
@@ -34,6 +35,7 @@ export default function ProfileScreen() {
     const [selectedImage, setSelectedImage] = useState(null);
     const [galleryPhotos, setGalleryPhotos] = useState(PHOTOS);
     const { savedIds } = useDiscussions();
+    const { isPro } = useSubscription();
 
     useFocusEffect(
         useCallback(() => {
@@ -135,7 +137,19 @@ export default function ProfileScreen() {
                         <View style={styles.onlineStatus} />
                     </View>
 
-                    <Text style={styles.name}>{user?.name || 'Loading...'}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={styles.name}>{user?.name || 'Loading...'}</Text>
+                        {isPro && (
+                            <View style={{
+                                flexDirection: 'row', alignItems: 'center', gap: 4,
+                                backgroundColor: '#C5A05920', paddingHorizontal: 8, paddingVertical: 3,
+                                borderRadius: 10, borderWidth: 1, borderColor: '#C5A05940',
+                            }}>
+                                <Crown size={12} color="#C5A059" />
+                                <Text style={{ color: '#C5A059', fontSize: 11, fontWeight: 'bold' }}>PRO</Text>
+                            </View>
+                        )}
+                    </View>
                     <Text style={styles.username}>{user?.username}</Text>
 
                     <Text style={styles.bio}>{user?.bio}</Text>
@@ -173,6 +187,20 @@ export default function ProfileScreen() {
                             <Text style={styles.editBtnText}>Edit Profile</Text>
                         </LinearGradient>
                     </TouchableOpacity>
+
+                    {!isPro && (
+                        <TouchableOpacity style={{ width: '100%', marginTop: 8 }} onPress={() => router.push('/paywall')}>
+                            <LinearGradient
+                                colors={['#C5A059', '#E8C66A']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={[styles.editBtn, { flexDirection: 'row', gap: 8, justifyContent: 'center' }]}
+                            >
+                                <Crown size={16} color="#FFF" />
+                                <Text style={styles.editBtnText}>Upgrade to Pro</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 {/* Vehicle & Info */}

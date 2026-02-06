@@ -5,10 +5,11 @@ import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Search, Filter, Compass, Navigation, Zap, Wrench, ShoppingCart, ShoppingBag, ShoppingBasket, Fuel, MessageSquare, ArrowUpRight, Car, X, MapPin } from 'lucide-react-native';
+import { Search, Filter, Compass, Navigation, Zap, Wrench, ShoppingCart, ShoppingBag, ShoppingBasket, Fuel, MessageSquare, ArrowUpRight, Car, X, MapPin, AlertTriangle, Crown, Route } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { NomadService, PlacesService, NotificationService } from '../../services/api';
+import { NomadService, PlacesService, NotificationService, SOSService } from '../../services/api';
+import { useSubscription } from '../../contexts/SubscriptionContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -78,8 +79,10 @@ const mapStyle = [
 export default function ExploreScreen() {
     const { isDarkMode } = useTheme();
     const colors = getColors(isDarkMode);
+    const { isPro } = useSubscription();
     const styles = useMemo(() => createStyles(colors), [colors]);
     const [selectedNomad, setSelectedNomad] = useState(null);
+    const [sosUsers, setSosUsers] = useState([]);
     // Initialize with default location to prevent white screen if location fetch fails/delays
     const [location, setLocation] = useState({
         coords: {
@@ -145,6 +148,17 @@ export default function ExploreScreen() {
                                 } catch (err) {
                                     console.log("Initial nomad fetch error:", err);
                                     setActiveMarkers(mockPlaces.nomads);
+                                }
+
+                                // Fetch SOS users
+                                try {
+                                    const sos = await SOSService.getNearby(
+                                        newLocation.coords.latitude,
+                                        newLocation.coords.longitude
+                                    );
+                                    setSosUsers(sos || []);
+                                } catch (err) {
+                                    console.log("SOS fetch error:", err);
                                 }
                             }
                         }
@@ -298,6 +312,27 @@ export default function ExploreScreen() {
                 >
 
 
+                    {/* SOS Active Users - Red pulsing markers */}
+                    {sosUsers.map((sos) => (
+                        <Marker
+                            key={`sos-${sos.id}`}
+                            coordinate={{ latitude: sos.latitude, longitude: sos.longitude }}
+                            onPress={() => setSelectedNomad({ ...sos, isSOS: true, type: 'nomad' })}
+                            tracksViewChanges={false}
+                            anchor={{ x: 0.5, y: 0.5 }}
+                        >
+                            <View style={{
+                                width: 42, height: 42, borderRadius: 21,
+                                backgroundColor: '#EF4444', borderWidth: 3, borderColor: '#FCA5A5',
+                                justifyContent: 'center', alignItems: 'center',
+                                elevation: 8, shadowColor: '#EF4444', shadowOffset: { width: 0, height: 0 },
+                                shadowOpacity: 0.6, shadowRadius: 10,
+                            }}>
+                                <AlertTriangle size={20} color="#FFF" />
+                            </View>
+                        </Marker>
+                    ))}
+
                     {displayMarkers.map((marker) => {
                         const coord = marker.coordinate || { latitude: marker.latitude, longitude: marker.longitude };
                         if (!coord.latitude || !coord.longitude) return null;
@@ -339,7 +374,7 @@ export default function ExploreScreen() {
                                     backgroundColor: activeCategory === 'nomads' ? '#FFF' : iconBgColor,
                                     borderWidth: 2,
                                     borderColor: activeCategory === 'nomads'
-                                        ? (marker.status === 'Active' ? colors.online : colors.primary)
+                                        ? (marker.sosActive ? '#EF4444' : marker.status === 'Active' ? colors.online : colors.primary)
                                         : '#FFF',
                                     justifyContent: 'center',
                                     alignItems: 'center',
@@ -350,10 +385,14 @@ export default function ExploreScreen() {
                                     shadowRadius: 3,
                                 }}>
                                     {activeCategory === 'nomads' ? (
-                                        <Image
-                                            source={{ uri: marker.image || 'https://via.placeholder.com/100' }}
-                                            style={{ width: 26, height: 26, borderRadius: 13 }}
-                                        />
+                                        marker.sosActive ? (
+                                            <AlertTriangle size={18} color="#EF4444" />
+                                        ) : (
+                                            <Image
+                                                source={{ uri: marker.image || 'https://via.placeholder.com/100' }}
+                                                style={{ width: 26, height: 26, borderRadius: 13 }}
+                                            />
+                                        )
                                     ) : (
                                         MarkerComponent
                                     )}
@@ -417,9 +456,17 @@ export default function ExploreScreen() {
             <View style={styles.bottomArea}>
                 <View style={styles.bottomHeader}>
                     <Text style={styles.bottomTitle}>Nearby</Text>
-                    <TouchableOpacity>
-                        <Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text>
-                    </TouchableOpacity>
+                    {!isPro && activeCategory === 'nomads' && (
+                        <TouchableOpacity onPress={() => router.push('/paywall')} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <Crown size={14} color="#C5A059" />
+                            <Text style={{ color: '#C5A059', fontSize: 12, fontWeight: '600' }}>See 50km+ with Pro</Text>
+                        </TouchableOpacity>
+                    )}
+                    {(isPro || activeCategory !== 'nomads') && (
+                        <TouchableOpacity>
+                            <Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 <ScrollView
@@ -524,6 +571,14 @@ export default function ExploreScreen() {
                                         <MessageSquare size={24} color={colors.primary} />
                                     </TouchableOpacity>
                                 </View>
+                                {/* SOS Alert Banner */}
+                                {(selectedNomad.sosActive || selectedNomad.isSOS) && (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#EF444420', padding: 12, borderRadius: 12, marginBottom: 16 }}>
+                                        <AlertTriangle size={18} color="#EF4444" />
+                                        <Text style={{ color: '#EF4444', fontWeight: '600', fontSize: 14 }}>SOS Active - Needs Roadside Help</Text>
+                                    </View>
+                                )}
+
                                 <View style={styles.infoCardsRow}>
                                     <View style={styles.infoCard}>
                                         <Text style={[styles.infoCardLabel, { color: colors.textSecondary }]}>VEHICLE</Text>
@@ -533,7 +588,16 @@ export default function ExploreScreen() {
                                     </View>
                                     <View style={styles.infoCard}>
                                         <Text style={[styles.infoCardLabel, { color: colors.textSecondary }]}>ROUTE</Text>
-                                        <Text style={styles.infoCardValue}>{selectedNomad.route || 'Not specified'}</Text>
+                                        {selectedNomad.showRoute ? (
+                                            <Text style={styles.infoCardValue}>{selectedNomad.route || 'Not specified'}</Text>
+                                        ) : (
+                                            <TouchableOpacity onPress={() => { setSelectedNomad(null); router.push('/paywall'); }}>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                                    <Crown size={12} color="#C5A059" />
+                                                    <Text style={{ color: '#C5A059', fontSize: 12, fontWeight: '600' }}>Pro</Text>
+                                                </View>
+                                            </TouchableOpacity>
+                                        )}
                                     </View>
                                 </View>
                                 <TouchableOpacity

@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { DiscussionProvider } from '../contexts/DiscussionContext';
+import { SubscriptionProvider } from '../contexts/SubscriptionContext';
 // Dynamic GoogleSignin import moved inside useEffect
 
 function RootLayoutNav() {
@@ -86,9 +87,11 @@ function RootLayoutNav() {
 export default function RootLayout() {
     return (
         <ThemeProvider>
-            <DiscussionProvider>
-                <RootLayoutNav />
-            </DiscussionProvider>
+            <SubscriptionProvider>
+                <DiscussionProvider>
+                    <RootLayoutNav />
+                </DiscussionProvider>
+            </SubscriptionProvider>
         </ThemeProvider>
     );
 }

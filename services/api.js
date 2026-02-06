@@ -693,4 +693,175 @@ export const ActivityService = {
     }
 };
 
+export const SubscriptionService = {
+    async getStatus(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/subscription/status`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) return { isPro: false, subscriptionType: 'free' };
+            return await response.json();
+        } catch (error) {
+            console.error('Get subscription status error:', error);
+            return { isPro: false, subscriptionType: 'free' };
+        }
+    },
 
+    async verify(productId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/subscription/verify`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ productId })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Verify subscription error:', error);
+            return { success: false };
+        }
+    }
+};
+
+export const SOSService = {
+    async activate(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/sos/activate`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Activate SOS error:', error);
+            return { success: false };
+        }
+    },
+
+    async deactivate(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/sos/deactivate`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Deactivate SOS error:', error);
+            return { success: false };
+        }
+    },
+
+    async getNearby(lat, lng) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/sos/nearby?lat=${lat}&lng=${lng}`);
+            if (!response.ok) return [];
+            return await response.json();
+        } catch (error) {
+            console.error('Get nearby SOS error:', error);
+            return [];
+        }
+    }
+};
+
+export const AssistService = {
+    async create(data, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/assist`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Failed to create assist request');
+            return result;
+        } catch (error) {
+            console.error('Create assist request error:', error);
+            throw error;
+        }
+    },
+
+    async list(status = null) {
+        try {
+            const url = status
+                ? `${BASE_URL}/api/assist?status=${status}`
+                : `${BASE_URL}/api/assist`;
+            const response = await fetch(url);
+            if (!response.ok) return [];
+            return await response.json();
+        } catch (error) {
+            console.error('List assist requests error:', error);
+            return [];
+        }
+    },
+
+    async getDetail(id) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/assist/${id}`);
+            if (!response.ok) throw new Error('Failed to fetch assist detail');
+            return await response.json();
+        } catch (error) {
+            console.error('Get assist detail error:', error);
+            throw error;
+        }
+    },
+
+    async addMessage(id, content, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/assist/${id}/message`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ content })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Failed to add message');
+            return result;
+        } catch (error) {
+            console.error('Add assist message error:', error);
+            throw error;
+        }
+    },
+
+    async resolve(id, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/assist/${id}/resolve`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Resolve assist request error:', error);
+            return { success: false };
+        }
+    }
+};
+
+export const AIService = {
+    async chat(message, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/ai/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ message })
+            });
+            const data = await response.json();
+            if (response.status === 403 && data.requiresPro) {
+                return { requiresPro: true };
+            }
+            if (!response.ok) throw new Error(data.error || 'AI request failed');
+            return data;
+        } catch (error) {
+            console.error('AI chat error:', error);
+            throw error;
+        }
+    }
+};

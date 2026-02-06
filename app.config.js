@@ -44,6 +44,11 @@ export default {
             favicon: "./assets/favicon.png"
         },
         scheme: "road-mate",
+        extra: {
+            eas: {
+                projectId: "d50310df-3620-497f-b72e-6aa5ef455a99"
+            }
+        },
         plugins: [
             "expo-router",
             [

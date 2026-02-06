@@ -1,11 +1,14 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform, TextInput, Alert } from 'react-native';
 import { getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Wrench, Zap, Droplets, Hammer, Plus, MessageSquare, Search, Bookmark } from 'lucide-react-native';
+import { Wrench, Zap, Droplets, Hammer, Plus, MessageSquare, Search, Bookmark, AlertTriangle, Crown } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo, useState, useEffect } from 'react';
 import { useDiscussions } from '../../contexts/DiscussionContext';
+import { useSubscription } from '../../contexts/SubscriptionContext';
+import { SOSService } from '../../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 
 const CATEGORIES = [
@@ -29,9 +32,38 @@ export default function CommunityScreen() {
     const colors = getColors(isDarkMode);
     const styles = useMemo(() => createStyles(colors), [colors]);
     const { discussions, savedIds, toggleSave, fetchDiscussions } = useDiscussions();
+    const { isPro } = useSubscription();
 
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [sosActive, setSosActive] = useState(false);
+    const [sosLoading, setSosLoading] = useState(false);
+
+    const handleSOS = async () => {
+        if (!isPro) { router.push('/paywall'); return; }
+        setSosLoading(true);
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+            if (sosActive) {
+                const result = await SOSService.deactivate(token);
+                if (result.success) setSosActive(false);
+                setSosLoading(false);
+            } else {
+                Alert.alert('Activate SOS', 'This will alert nearby users that you need roadside help. Continue?', [
+                    { text: 'Cancel', style: 'cancel', onPress: () => setSosLoading(false) },
+                    { text: 'Activate SOS', style: 'destructive', onPress: async () => {
+                        const result = await SOSService.activate(token);
+                        if (result.success) setSosActive(true);
+                        setSosLoading(false);
+                    }}
+                ]);
+                return;
+            }
+        } catch (error) {
+            console.error('SOS error:', error);
+            setSosLoading(false);
+        }
+    };
 
     useEffect(() => {
         fetchDiscussions();
@@ -87,8 +119,6 @@ export default function CommunityScreen() {
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-                <Text style={styles.sectionTitle}>Browse Topics</Text>
-
                 {/* Search Bar */}
                 <View style={styles.searchContainer}>
                     <Search size={20} color={colors.textSecondary} />
@@ -100,6 +130,34 @@ export default function CommunityScreen() {
                         onChangeText={setSearchQuery}
                     />
                 </View>
+
+                {/* SOS Banner */}
+                <TouchableOpacity
+                    style={[styles.sosBanner, sosActive && styles.sosBannerActive]}
+                    onPress={handleSOS}
+                    disabled={sosLoading}
+                    activeOpacity={0.7}
+                >
+                    <View style={[styles.sosIcon, { backgroundColor: sosActive ? '#EF4444' : '#EF444420' }]}>
+                        <AlertTriangle size={18} color={sosActive ? '#FFF' : '#EF4444'} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <Text style={[styles.sosTitle, sosActive && { color: '#EF4444' }]}>
+                            {sosActive ? 'SOS Active' : 'Emergency SOS'}
+                        </Text>
+                        <Text style={styles.sosSub}>
+                            {sosActive ? 'Tap to deactivate' : 'Alert nearby travelers'}
+                        </Text>
+                    </View>
+                    {!isPro && (
+                        <View style={styles.proBadge}>
+                            <Crown size={10} color="#C5A059" />
+                            <Text style={styles.proBadgeText}>PRO</Text>
+                        </View>
+                    )}
+                </TouchableOpacity>
+
+                <Text style={styles.sectionTitle}>Browse Topics</Text>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
                     {CATEGORIES.map((cat) => {
@@ -225,6 +283,54 @@ const createStyles = (colors) => StyleSheet.create({
     },
     scrollContent: {
         paddingBottom: 100,
+    },
+    sosBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginHorizontal: 16,
+        marginBottom: 20,
+        padding: 14,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
+        backgroundColor: colors.glassBackground,
+    },
+    sosBannerActive: {
+        borderColor: '#EF4444',
+        borderWidth: 2,
+        backgroundColor: '#EF444410',
+    },
+    sosIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    sosTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: colors.text,
+    },
+    sosSub: {
+        fontSize: 11,
+        color: colors.textSecondary,
+        marginTop: 1,
+    },
+    proBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
+        backgroundColor: '#C5A05915',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 10,
+    },
+    proBadgeText: {
+        color: '#C5A059',
+        fontSize: 10,
+        fontWeight: '700',
     },
     searchContainer: {
         flexDirection: 'row',
