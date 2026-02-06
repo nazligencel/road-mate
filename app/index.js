@@ -169,15 +169,12 @@ export default function LoginScreen() {
                                 <Tent color="#FFF" size={32} strokeWidth={2.5} />
                             </View>
                             <Text style={styles.title}>RoadMate</Text>
-                            <Text style={styles.tagline}>VAST NATURAL SPACES</Text>
+                            <Text style={styles.tagline}>JOIN THE MODERN TRIBE OF NOMADS</Text>
                         </View>
 
                         {/* Bottom Content */}
                         <View style={styles.bottomContent}>
-                            <View style={styles.welcomeTextContainer}>
-                                <Text style={styles.welcomeTitle}>Welcome Back</Text>
-                                <Text style={styles.welcomeSubtitle}>Join the modern tribe of nomads.</Text>
-                            </View>
+
 
                             {/* Social Buttons */}
                             <View style={styles.socialGrid}>
@@ -237,45 +234,56 @@ export default function LoginScreen() {
                                 </View>
                             </View>
 
-                            {/* Email Login Button with Animated Neon Gradient */}
-                            <TouchableOpacity
-                                onPress={handleLogin}
-                                activeOpacity={0.8}
-                                style={styles.loginBtnContainer}
-                            >
-                                <View style={styles.loginButtonWrapper}>
-                                    <LinearGradient
-                                        colors={['#4A7A8C', '#45e3ff']}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 0 }}
-                                        style={styles.loginButton}
-                                    >
-                                        <Text style={styles.loginButtonText}>Login with Email</Text>
-                                    </LinearGradient>
-
-                                    {/* Shimmer Effect Overlay */}
-                                    <Animated.View
-                                        style={[
-                                            StyleSheet.absoluteFill,
-                                            {
-                                                transform: [{ translateX: shimmerTranslate }]
-                                            }
-                                        ]}
-                                    >
+                            {/* Actions Group with tighter spacing */}
+                            <View style={{ gap: 12, alignItems: 'center', width: '100%' }}>
+                                {/* Email Login Button with Animated Neon Gradient */}
+                                <TouchableOpacity
+                                    onPress={handleLogin}
+                                    activeOpacity={0.8}
+                                    style={styles.loginBtnContainer}
+                                >
+                                    <View style={styles.loginButtonWrapper}>
                                         <LinearGradient
-                                            colors={['transparent', 'rgba(255,255,255,0.4)', 'transparent']}
+                                            colors={['#4A7A8C', '#45e3ff']}
                                             start={{ x: 0, y: 0 }}
                                             end={{ x: 1, y: 0 }}
-                                            style={{ flex: 1 }}
-                                        />
-                                    </Animated.View>
-                                </View>
-                            </TouchableOpacity>
+                                            style={styles.loginButton}
+                                        >
+                                            <Text style={styles.loginButtonText}>Login with Email</Text>
+                                        </LinearGradient>
 
-                            {/* Footer Links */}
-                            <View style={styles.footer}>
+                                        {/* Shimmer Effect Overlay */}
+                                        <Animated.View
+                                            style={[
+                                                StyleSheet.absoluteFill,
+                                                {
+                                                    transform: [{ translateX: shimmerTranslate }]
+                                                }
+                                            ]}
+                                        >
+                                            <LinearGradient
+                                                colors={['transparent', 'rgba(255,255,255,0.4)', 'transparent']}
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 1, y: 0 }}
+                                                style={{ flex: 1 }}
+                                            />
+                                        </Animated.View>
+                                    </View>
+                                </TouchableOpacity>
+
+                                {/* Forgot Password */}
+                                <TouchableOpacity
+                                    onPress={() => alert('Reset Password feature coming soon!')}
+                                >
+                                    <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, textDecorationLine: 'underline' }}>Forgot Password?</Text>
+                                </TouchableOpacity>
+
+                                {/* New Account Link - Moved here for tighter spacing */}
                                 <Text style={styles.footerText}>New to the tribe? <Text style={styles.createAccountText} onPress={() => router.push('/signup')}>Create Account</Text></Text>
+                            </View>
 
+                            {/* Footer Icons & Brand */}
+                            <View style={[styles.footer, { marginTop: 20 }]}>
                                 <View style={styles.footerIcons}>
                                     <Compass color="rgba(255,255,255,0.4)" size={20} />
                                     <Droplets color="rgba(255,255,255,0.4)" size={20} />
@@ -375,8 +383,10 @@ const styles = StyleSheet.create({
         color: 'rgba(255,255,255,0.7)',
         fontSize: 10,
         fontWeight: '800',
-        letterSpacing: 5,
+        letterSpacing: 3,
         textTransform: 'uppercase',
+        textAlign: 'center',
+        paddingHorizontal: 20,
     },
     bottomContent: {
         gap: 24,
@@ -394,6 +404,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     socialGrid: {
+        marginTop: 32,
         flexDirection: 'row',
         gap: 16,
     },

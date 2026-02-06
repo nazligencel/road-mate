@@ -57,7 +57,7 @@ export default function CreateDiscussionScreen() {
 
             // Upload image first if selected
             if (image) {
-                const token = await AsyncStorage.getItem('token');
+                const token = await AsyncStorage.getItem('userToken');
                 if (token) {
                     try {
                         const uploadResult = await DiscussionService.uploadDiscussionImage(image, token);

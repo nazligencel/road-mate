@@ -49,7 +49,7 @@ export function DiscussionProvider({ children }) {
     const fetchDiscussions = useCallback(async () => {
         try {
             setLoading(true);
-            const token = await AsyncStorage.getItem('token');
+            const token = await AsyncStorage.getItem('userToken');
             if (!token) return; // Not logged in, keep local data
 
             const data = await DiscussionService.getDiscussions(token);
@@ -70,7 +70,7 @@ export function DiscussionProvider({ children }) {
 
     const addDiscussion = useCallback(async (discussion) => {
         try {
-            const token = await AsyncStorage.getItem('token');
+            const token = await AsyncStorage.getItem('userToken');
             if (token) {
                 const created = await DiscussionService.createDiscussion({
                     title: discussion.title,
@@ -109,7 +109,7 @@ export function DiscussionProvider({ children }) {
         });
 
         try {
-            const token = await AsyncStorage.getItem('token');
+            const token = await AsyncStorage.getItem('userToken');
             if (token) {
                 await DiscussionService.toggleBookmark(id, token);
             }

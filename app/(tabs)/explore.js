@@ -92,6 +92,7 @@ export default function ExploreScreen() {
     const [activeMarkers, setActiveMarkers] = useState([]); // Current markers on map
     const [isFetching, setIsFetching] = useState(false);
     const [activeCategory, setActiveCategory] = useState('nomads'); // nomads, mechanics, markets, fuel
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         let locationSubscription = null;
@@ -254,6 +255,23 @@ export default function ExploreScreen() {
         }
     };
 
+    const displayMarkers = useMemo(() => {
+        if (!searchQuery.trim()) return activeMarkers;
+        const words = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+        return activeMarkers.filter(item => {
+            const searchable = [
+                item.name,
+                item.vehicle,
+                item.vehicleModel,
+                item.vehicle_model,
+                item.status,
+                item.route,
+                item.address,
+            ].filter(Boolean).join(' ').toLowerCase();
+            return words.every(word => searchable.includes(word));
+        });
+    }, [activeMarkers, searchQuery]);
+
     const initialRegion = {
         latitude: location?.coords?.latitude || DEFAULT_LAT,
         longitude: location?.coords?.longitude || DEFAULT_LNG,
@@ -280,7 +298,7 @@ export default function ExploreScreen() {
                 >
 
 
-                    {activeMarkers.map((marker) => {
+                    {displayMarkers.map((marker) => {
                         const coord = marker.coordinate || { latitude: marker.latitude, longitude: marker.longitude };
                         if (!coord.latitude || !coord.longitude) return null;
 
@@ -353,6 +371,8 @@ export default function ExploreScreen() {
                         placeholder="Search nomads, places..."
                         placeholderTextColor={colors.textSecondary}
                         style={styles.searchInput}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
                     />
                     <TouchableOpacity style={styles.filterBtn}>
                         <Filter size={20} color={colors.primary} />
@@ -409,7 +429,7 @@ export default function ExploreScreen() {
                     snapToInterval={width * 0.8 + 16}
                     decelerationRate="fast"
                 >
-                    {activeMarkers.map((item) => {
+                    {displayMarkers.map((item) => {
                         const itemLat = item.coordinate?.latitude || item.latitude;
                         const itemLng = item.coordinate?.longitude || item.longitude;
 

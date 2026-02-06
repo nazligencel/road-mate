@@ -150,7 +150,7 @@ export default function SignupScreen() {
                             <View style={styles.fluCard}>
                                 <View style={styles.cardHeader}>
                                     <Text style={styles.welcomeTitle}>Create Account</Text>
-                                    <Text style={styles.welcomeSubtitle}>Begin your journey into the wild.</Text>
+                                    <Text style={styles.welcomeSubtitle}>New roads, new friends. Join the journey!</Text>
                                 </View>
 
                                 <View style={styles.form}>

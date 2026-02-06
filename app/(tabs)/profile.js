@@ -44,7 +44,7 @@ export default function ProfileScreen() {
     const loadUserProfile = async () => {
         try {
             setLoading(true);
-            const token = await AsyncStorage.getItem('token');
+            const token = await AsyncStorage.getItem('userToken');
             if (token) {
                 const [profileData, countData] = await Promise.all([
                     UserService.getUserDetails(token),
@@ -58,8 +58,10 @@ export default function ProfileScreen() {
                     bio: profileData.bio || 'Van Life Enthusiast | Explorer',
                     location: profileData.location || 'Currently in Antalya',
                     image: profileData.profileImage ? { uri: profileData.profileImage } : null,
-                    vehicle: 'Sprinter 2019',
-                    joinDate: 'March 2024'
+                    vehicle: profileData.vehicle || profileData.vehicleModel || 'Not set',
+                    joinDate: profileData.createdAt
+                        ? new Date(profileData.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                        : 'Unknown',
                 });
 
                 // Use backend gallery or fallback to dummy photos if empty
@@ -117,9 +119,7 @@ export default function ProfileScreen() {
             >
                 {/* Header Actions */}
                 <View style={styles.headerBar}>
-                    <TouchableOpacity style={styles.iconBtn} onPress={() => { }}>
-                        {/* Placeholder for QR or Share */}
-                    </TouchableOpacity>
+                    <View style={{ width: 40 }} />
                     <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/settings')}>
                         <Settings color="#FFF" size={24} />
                     </TouchableOpacity>
@@ -163,7 +163,7 @@ export default function ProfileScreen() {
                         </TouchableOpacity>
                     </View>
 
-                    <TouchableOpacity style={{ width: '100%' }}>
+                    <TouchableOpacity style={{ width: '100%' }} onPress={() => router.push('/edit-profile')}>
                         <LinearGradient
                             colors={[colors.primary, colors.online]}
                             start={{ x: 0, y: 0 }}
@@ -263,63 +263,62 @@ const createStyles = (colors) => StyleSheet.create({
     },
     profileCard: {
         marginHorizontal: 20,
-        backgroundColor: colors.glassBackground, // Changed from plain styled View to use background color for consistency
+        backgroundColor: colors.glassBackground,
         borderRadius: 24,
-        padding: 24,
+        padding: 16,
         alignItems: 'center',
         borderWidth: 1,
         borderColor: colors.cardBorder,
         marginBottom: 24,
-        // Removed explicit shadow props or kept them minimal if desired, heavily relying on border
     },
     avatarContainer: {
-        marginBottom: 16,
+        marginBottom: 8,
         position: 'relative',
     },
     avatar: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
+        width: 80,
+        height: 80,
+        borderRadius: 40,
         borderWidth: 3,
         borderColor: colors.background,
     },
     onlineStatus: {
-        width: 16,
-        height: 16,
-        borderRadius: 8,
+        width: 14,
+        height: 14,
+        borderRadius: 7,
         backgroundColor: colors.online,
         position: 'absolute',
-        bottom: 4,
-        right: 4,
+        bottom: 2,
+        right: 2,
         borderWidth: 2,
         borderColor: colors.background,
     },
     name: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: 'bold',
         color: colors.text,
-        marginBottom: 4,
+        marginBottom: 2,
     },
     username: {
-        fontSize: 14,
+        fontSize: 13,
         color: colors.primary,
-        marginBottom: 12,
+        marginBottom: 2,
     },
     bio: {
-        fontSize: 14,
+        fontSize: 13,
         color: colors.textSecondary,
         textAlign: 'center',
-        lineHeight: 20,
-        marginBottom: 16,
+        lineHeight: 18,
+        marginBottom: 4,
     },
     locationContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        marginBottom: 24,
+        marginBottom: 12,
         backgroundColor: colors.glassBackground,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
         borderRadius: 20,
     },
     locationText: {
@@ -331,7 +330,7 @@ const createStyles = (colors) => StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         width: '100%',
-        marginBottom: 24,
+        marginBottom: 12,
     },
     stat: {
         alignItems: 'center',
@@ -398,11 +397,11 @@ const createStyles = (colors) => StyleSheet.create({
     galleryGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 12,
+        gap: 8,
     },
     galleryItem: {
-        width: (width - 52) / 3,
-        height: (width - 52) / 3,
+        width: (width - 56) / 3,
+        height: (width - 56) / 3,
         borderRadius: 12,
         overflow: 'hidden',
     },

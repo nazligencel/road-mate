@@ -29,7 +29,7 @@ export default function DiscussionDetailScreen() {
         const loadDiscussion = async () => {
             // Try API first
             try {
-                const token = await AsyncStorage.getItem('token');
+                const token = await AsyncStorage.getItem('userToken');
                 if (token) {
                     const dto = await DiscussionService.getDiscussion(id, token);
                     setDiscussion({
@@ -77,7 +77,7 @@ export default function DiscussionDetailScreen() {
 
         setSendingComment(true);
         try {
-            const token = await AsyncStorage.getItem('token');
+            const token = await AsyncStorage.getItem('userToken');
             if (token) {
                 const created = await DiscussionService.addComment(id, newComment, token);
                 const mapped = {
