@@ -103,7 +103,6 @@ export default function SignupScreen() {
                 style={styles.backgroundImage}
                 resizeMode="cover"
             >
-                {/* Vibrant Overlay Matching Login */}
                 <LinearGradient
                     colors={['rgba(74, 122, 140, 0.4)', 'rgba(13, 26, 31, 0.7)', 'rgba(13, 26, 31, 0.9)']}
                     style={styles.gradient}

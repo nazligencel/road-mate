@@ -165,7 +165,7 @@ export default function ProfileScreen() {
 
                     <TouchableOpacity style={{ width: '100%' }} onPress={() => router.push('/edit-profile')}>
                         <LinearGradient
-                            colors={[colors.primary, colors.online]}
+                            colors={[colors.primary, '#5AB2BF']}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }}
                             style={styles.editBtn}
@@ -196,14 +196,25 @@ export default function ProfileScreen() {
 
                 {/* Gallery Section */}
                 <View style={styles.section}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                        <Text style={styles.sectionTitle}>Gallery</Text>
-                        <TouchableOpacity onPress={handleImageSelect}>
-                            <Plus color={colors.primary} size={20} />
-                        </TouchableOpacity>
-                    </View>
+                    <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Gallery</Text>
 
                     <View style={styles.galleryGrid}>
+                        {/* Add Photo Button as First Item */}
+                        <TouchableOpacity
+                            style={[styles.galleryItem, {
+                                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : colors.card,
+                                borderWidth: 1,
+                                borderColor: colors.cardBorder,
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                gap: 4
+                            }]}
+                            onPress={handleImageSelect}
+                        >
+                            <Plus color={colors.primary} size={24} />
+                            <Text style={{ color: colors.primary, fontSize: 10, fontWeight: 'bold' }}>Add Photo</Text>
+                        </TouchableOpacity>
+
                         {galleryPhotos.map((photo, index) => (
                             <TouchableOpacity key={index} style={styles.galleryItem}>
                                 <Image

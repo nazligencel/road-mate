@@ -139,15 +139,18 @@ export default function SettingsScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-            {/* Background Gradient - Dark mode only */}
-            {isDarkMode ? (
+            {/* Top Gradient Glow matching Profile */}
+            <View style={{ position: 'absolute', top: 0, width: '100%', height: 300 }}>
                 <LinearGradient
-                    colors={[colors.background, '#1e293b', colors.background]}
+                    colors={[colors.primary, colors.background]}
                     style={StyleSheet.absoluteFill}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    opacity={0.8}
                 />
-            ) : (
-                <View style={[StyleSheet.absoluteFill, { backgroundColor: '#F2F5F8' }]} />
-            )}
+            </View>
+            {/* Main Background */}
+            <View style={[StyleSheet.absoluteFill, { zIndex: -1, backgroundColor: colors.background }]} />
 
             {/* Header */}
             <View style={styles.header}>
@@ -164,7 +167,7 @@ export default function SettingsScreen() {
 
                 {/* Account Section */}
                 <Section title="Account" colors={colors} isDarkMode={isDarkMode}>
-                    <TouchableOpacity style={styles.accountRow} onPress={() => router.push('/edit-profile')}>
+                    <View style={styles.accountRow}>
                         <View style={[styles.avatarPlaceholder, {
                             backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : colors.primary + '20',
                             borderColor: isDarkMode ? 'rgba(255,255,255,0.2)' : colors.primary + '40'
@@ -177,11 +180,7 @@ export default function SettingsScreen() {
                             <Text style={[styles.accountName, { color: colors.text }]}>{userData?.name || 'Road Mate User'}</Text>
                             <Text style={[styles.accountEmail, { color: colors.textSecondary }]}>{userData?.email || 'user@roadmate.com'}</Text>
                         </View>
-                        <View style={styles.editProfileBtn}>
-                            <Text style={[styles.editProfileText, { color: colors.primary }]}>Edit</Text>
-                            <ChevronRight size={14} color={colors.textSecondary} />
-                        </View>
-                    </TouchableOpacity>
+                    </View>
                 </Section>
 
                 {/* Preferences Section */}
@@ -244,7 +243,10 @@ export default function SettingsScreen() {
                 {/* Privacy & About Grid */}
                 <View style={styles.gridRow}>
                     <Section title="Privacy & Security" style={styles.gridItem} colors={colors} isDarkMode={isDarkMode}>
-                        <TouchableOpacity style={[styles.smallMenuItem, { borderBottomColor: colors.border }]}>
+                        <TouchableOpacity
+                            style={[styles.smallMenuItem, { borderBottomColor: colors.border }]}
+                            onPress={() => router.push('/change-password')}
+                        >
                             <Lock size={16} color={colors.textSecondary} />
                             <Text style={[styles.smallMenuLabel, { color: colors.text }]}>Change Password</Text>
                         </TouchableOpacity>

@@ -55,19 +55,25 @@ export default function ChatScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-            {/* Background Gradient - Dark mode only */}
-            {isDarkMode ? (
+            {/* Top Gradient Glow matching Profile */}
+            <View style={{ position: 'absolute', top: 0, width: '100%', height: 300 }}>
                 <LinearGradient
-                    colors={[colors.background, '#1e293b', colors.background]}
+                    colors={[colors.primary, colors.background]}
                     style={StyleSheet.absoluteFill}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    opacity={0.8}
                 />
-            ) : (
-                <View style={[StyleSheet.absoluteFill, { backgroundColor: '#F2F5F8' }]} />
-            )}
+            </View>
+            {/* Main Background */}
+            <View style={[StyleSheet.absoluteFill, { zIndex: -1, backgroundColor: colors.background }]} />
 
             <View style={styles.header}>
                 <Text style={[styles.headerTitle, { color: colors.text }]}>Messages</Text>
-                <TouchableOpacity style={[styles.searchBtn, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }]}>
+                <TouchableOpacity
+                    style={[styles.searchBtn, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }]}
+                    onPress={() => alert('Search feature coming soon!')}
+                >
                     <Search size={24} color={colors.text} />
                 </TouchableOpacity>
             </View>
@@ -77,54 +83,54 @@ export default function ChatScreen() {
                     <ActivityIndicator size="large" color={colors.primary} />
                 </View>
             ) : (
-            <FlatList
-                data={conversations}
-                keyExtractor={(item) => item.odUserId?.toString() || Math.random().toString()}
-                contentContainerStyle={styles.list}
-                showsVerticalScrollIndicator={false}
-                renderItem={({ item }) => (
-                    <TouchableOpacity
-                        style={[styles.chatCard, { borderBottomColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }]}
-                        onPress={() => router.push({
-                            pathname: `/chat/${item.odUserId}`,
-                            params: { name: item.otherUserName, avatar: item.otherUserImage }
-                        })}
-                    >
-                        <View style={styles.avatarContainer}>
-                            <Image source={{ uri: item.otherUserImage || 'https://via.placeholder.com/150' }} style={styles.avatar} />
-                            {item.otherUserOnline && <View style={[styles.onlineBadge, { backgroundColor: colors.online, borderColor: colors.background }]} />}
-                        </View>
-                        <View style={styles.chatContent}>
-                            <View style={styles.topRow}>
-                                <Text style={[styles.name, { color: colors.text }]}>{item.otherUserName}</Text>
-                                <Text style={[styles.time, { color: colors.textSecondary }]}>{formatTime(item.lastMessageTime)}</Text>
+                <FlatList
+                    data={conversations}
+                    keyExtractor={(item) => item.odUserId?.toString() || Math.random().toString()}
+                    contentContainerStyle={styles.list}
+                    showsVerticalScrollIndicator={false}
+                    renderItem={({ item }) => (
+                        <TouchableOpacity
+                            style={[styles.chatCard, { borderBottomColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }]}
+                            onPress={() => router.push({
+                                pathname: `/chat/${item.odUserId}`,
+                                params: { name: item.otherUserName, avatar: item.otherUserImage }
+                            })}
+                        >
+                            <View style={styles.avatarContainer}>
+                                <Image source={{ uri: item.otherUserImage || 'https://via.placeholder.com/150' }} style={styles.avatar} />
+                                {item.otherUserOnline && <View style={[styles.onlineBadge, { backgroundColor: colors.online, borderColor: colors.background }]} />}
                             </View>
-                            <View style={styles.bottomRow}>
-                                <Text
-                                    style={[styles.message, { color: colors.textSecondary }, item.unreadCount > 0 && { color: colors.text, fontWeight: '500' }]}
-                                    numberOfLines={1}
-                                >
-                                    {item.lastMessage}
-                                </Text>
-                                {item.unreadCount > 0 && (
-                                    <View style={[styles.badge, { backgroundColor: colors.primary }]}>
-                                        <Text style={styles.badgeText}>{item.unreadCount}</Text>
-                                    </View>
-                                )}
+                            <View style={styles.chatContent}>
+                                <View style={styles.topRow}>
+                                    <Text style={[styles.name, { color: colors.text }]}>{item.otherUserName}</Text>
+                                    <Text style={[styles.time, { color: colors.textSecondary }]}>{formatTime(item.lastMessageTime)}</Text>
+                                </View>
+                                <View style={styles.bottomRow}>
+                                    <Text
+                                        style={[styles.message, { color: colors.textSecondary }, item.unreadCount > 0 && { color: colors.text, fontWeight: '500' }]}
+                                        numberOfLines={1}
+                                    >
+                                        {item.lastMessage}
+                                    </Text>
+                                    {item.unreadCount > 0 && (
+                                        <View style={[styles.badge, { backgroundColor: colors.primary }]}>
+                                            <Text style={styles.badgeText}>{item.unreadCount}</Text>
+                                        </View>
+                                    )}
+                                </View>
                             </View>
+                        </TouchableOpacity>
+                    )}
+                    ListEmptyComponent={() => (
+                        <View style={styles.emptyState}>
+                            <MessageCircle size={60} color={colors.textSecondary} />
+                            <Text style={[styles.emptyTitle, { color: colors.text }]}>No messages yet</Text>
+                            <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
+                                Connect with other nomads to start chatting
+                            </Text>
                         </View>
-                    </TouchableOpacity>
-                )}
-                ListEmptyComponent={() => (
-                    <View style={styles.emptyState}>
-                        <MessageCircle size={60} color={colors.textSecondary} />
-                        <Text style={[styles.emptyTitle, { color: colors.text }]}>No messages yet</Text>
-                        <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
-                            Connect with other nomads to start chatting
-                        </Text>
-                    </View>
-                )}
-            />
+                    )}
+                />
             )}
         </View>
     );

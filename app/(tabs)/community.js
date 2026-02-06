@@ -58,15 +58,18 @@ export default function CommunityScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Background Gradient */}
-            {isDarkMode ? (
+            {/* Top Gradient Glow matching Profile */}
+            <View style={{ position: 'absolute', top: 0, width: '100%', height: 300 }}>
                 <LinearGradient
-                    colors={[colors.background, '#1e293b', colors.background]}
+                    colors={[colors.primary, colors.background]}
                     style={StyleSheet.absoluteFill}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    opacity={0.8}
                 />
-            ) : (
-                <View style={[StyleSheet.absoluteFill, { backgroundColor: '#F2F5F8' }]} />
-            )}
+            </View>
+            {/* Main Background */}
+            <View style={[StyleSheet.absoluteFill, { zIndex: -1, backgroundColor: colors.background }]} />
 
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Builder Hub</Text>
@@ -360,5 +363,23 @@ const createStyles = (colors) => StyleSheet.create({
         color: colors.text, // Improved contrast
         opacity: 0.8,
         fontSize: 12,
+    },
+    headerBackground: {
+        height: 300,
+        width: '100%',
+        position: 'absolute',
+        top: 0,
+    },
+    headerImage: {
+        width: '100%',
+        height: '100%',
+        opacity: 0.7,
+    },
+    headerOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: '100%',
     },
 });
