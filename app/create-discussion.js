@@ -5,7 +5,6 @@ import { getColors } from '../constants/Colors';
 import { useTheme } from '../contexts/ThemeContext';
 import { ArrowLeft, Upload, Check, ChevronDown, Zap, Hammer, Droplets, Wrench } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { useDiscussions } from '../contexts/DiscussionContext';
 import { DiscussionService } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';

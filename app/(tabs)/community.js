@@ -15,8 +15,6 @@ const CATEGORIES = [
     { id: 4, name: 'Mechanical', icon: Wrench, color: '#EF4444' },
 ];
 
-
-
 const GlassCard = ({ children, style, intensity = 20, tint = 'dark', contentContainerStyle }) => (
     <View style={[style, { overflow: 'hidden' }]}>
         <BlurView intensity={intensity} tint={tint} style={StyleSheet.absoluteFill} />
@@ -60,7 +58,7 @@ export default function CommunityScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Background Gradient - Dark mode only */}
+            {/* Background Gradient */}
             {isDarkMode ? (
                 <LinearGradient
                     colors={[colors.background, '#1e293b', colors.background]}
@@ -333,7 +331,7 @@ const createStyles = (colors) => StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         borderTopWidth: 1,
-        borderTopColor: colors.glassBorder || 'rgba(255,255,255,0.1)',
+        borderTopColor: 'rgba(255,255,255,0.1)',
         paddingTop: 12,
     },
     authorRow: {

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DiscussionService } from '../services/api';
 
@@ -20,36 +20,9 @@ const INITIAL_DISCUSSIONS = [
         title: 'Best insulation for cold climates?',
         author: 'SnowSeeker',
         replies: 12,
-        tag: 'Carpentry',
+        tag: 'General',
         preview: 'Looking at Havelock wool vs Spray foam. Thoughts?',
         time: '5h ago'
-    },
-    {
-        id: 3,
-        title: 'Leaking water pump',
-        author: 'RoadRunner',
-        replies: 8,
-        tag: 'Plumbing',
-        preview: 'My Shurflo pump is pulsing and leaking at the fitting. Any quick fixes?',
-        time: '1d ago'
-    },
-    {
-        id: 4,
-        title: 'Engine overheating on grades',
-        author: 'VanLife99',
-        replies: 35,
-        tag: 'Mechanical',
-        preview: '2015 Sprinter gets hot when climbing steep hills. Coolant is full.',
-        time: '2d ago'
-    },
-    {
-        id: 5,
-        title: 'Cabinet latch recommendations',
-        author: 'WoodWorks',
-        replies: 15,
-        tag: 'Carpentry',
-        preview: 'Need heavy duty latches that wont open while driving on washboard roads.',
-        time: '3d ago'
     },
 ];
 

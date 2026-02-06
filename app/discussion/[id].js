@@ -121,9 +121,11 @@ export default function DiscussionDetailScreen() {
         );
     }
 
+    const isBookmarked = savedIds.includes(Number(id)) || savedIds.includes(String(id));
+
     return (
         <View style={styles.container}>
-            {/* Background */}
+            {/* ... Background ... */}
             {isDarkMode ? (
                 <LinearGradient
                     colors={[colors.background, '#1e293b', colors.background]}
@@ -135,102 +137,92 @@ export default function DiscussionDetailScreen() {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
                     <ArrowLeft color={colors.text} size={24} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Discussion</Text>
-                <TouchableOpacity style={styles.iconBtn}>
-                    <MoreHorizontal color={colors.text} size={24} />
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <TouchableOpacity style={styles.headerActionBtn} onPress={() => toggleSave(discussion.id)}>
+                        <Bookmark
+                            color={isBookmarked ? colors.primary : colors.text}
+                            fill={isBookmarked ? colors.primary : 'none'}
+                            size={24}
+                        />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.headerActionBtn}>
+                        <MoreHorizontal color={colors.text} size={24} />
+                    </TouchableOpacity>
+                </View>
             </View>
 
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                style={{ flex: 1 }}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-            >
-                <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                {/* Tag */}
+                <View style={styles.tagContainer}>
+                    <Text style={styles.tagText}>{discussion.tag}</Text>
+                </View>
 
-                    {/* Discussion Post */}
-                    <View style={styles.postCard}>
-                        {/* Header: Author & Time */}
-                        <View style={styles.postHeader}>
-                            <View style={styles.authorContainer}>
-                                <View style={styles.avatarPlaceholder}>
-                                    <Text style={styles.avatarText}>{discussion.author[0]}</Text>
-                                </View>
-                                <View>
-                                    <Text style={styles.authorName}>{discussion.author}</Text>
-                                    <Text style={styles.postTime}>{discussion.time}</Text>
-                                </View>
-                            </View>
-                            <TouchableOpacity onPress={() => toggleSave(discussion.id)}>
-                                <Bookmark
-                                    size={24}
-                                    color={savedIds.includes(discussion.id) ? colors.primary : colors.textSecondary}
-                                    fill={savedIds.includes(discussion.id) ? colors.primary : 'none'}
-                                />
-                            </TouchableOpacity>
+                {/* Title */}
+                <Text style={styles.title}>{discussion.title}</Text>
+
+                {/* Author Info */}
+                <View style={styles.metaRow}>
+                    <View style={styles.authorContainer}>
+                        <View style={styles.avatarPlaceholder}>
+                            <User size={16} color="#FFF" />
                         </View>
-
-                        {/* Title & Tag */}
-                        <View style={styles.tagContainer}>
-                            <Text style={styles.tagText}>{discussion.tag}</Text>
-                        </View>
-                        <Text style={styles.postTitle}>{discussion.title}</Text>
-
-                        {/* Content */}
-                        <Text style={styles.postBody}>{discussion.preview}</Text>
-
-                        {/* Optional Image */}
-                        {discussion.image && (
-                            <Image source={{ uri: discussion.image }} style={styles.postImage} />
-                        )}
-
-                        {/* Stats */}
-                        <View style={styles.statsContainer}>
-                            <View style={styles.statItem}>
-                                <MessageSquare size={16} color={colors.textSecondary} />
-                                <Text style={styles.statText}>{comments.length} Comments</Text>
-                            </View>
-                        </View>
+                        <Text style={styles.authorName}>{discussion.author}</Text>
                     </View>
+                    <View style={styles.timeContainer}>
+                        <Clock size={14} color={colors.textSecondary} />
+                        <Text style={styles.timeText}>{discussion.time}</Text>
+                    </View>
+                </View>
 
-                    {/* Comments Section */}
-                    <Text style={styles.sectionTitle}>Comments</Text>
-                    {loadingComments ? (
-                        <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
-                    ) : (
-                        <View style={styles.commentsList}>
-                            {comments.length > 0 ? comments.map((comment) => (
-                                <View key={comment.id} style={styles.commentCard}>
-                                    <View style={styles.commentHeader}>
-                                        <View style={styles.authorContainer}>
-                                            <View style={[styles.avatarPlaceholder, { width: 32, height: 32, borderRadius: 16, backgroundColor: comment.isOwn ? colors.primary : colors.secondary }]}>
-                                                <Text style={styles.avatarText}>{comment.author[0]}</Text>
-                                            </View>
-                                            <View>
-                                                <Text style={styles.commentAuthor}>{comment.author}</Text>
-                                                <Text style={styles.commentTime}>{comment.time}</Text>
-                                            </View>
+                {/* Image if exists */}
+                {discussion.image && (
+                    <Image source={{ uri: discussion.image }} style={styles.discussionImage} resizeMode="cover" />
+                )}
+
+                {/* Content */}
+                <Text style={styles.content}>{discussion.preview}</Text>
+
+                {/* Comments Section */}
+                <Text style={styles.sectionTitle}>Comments</Text>
+                {loadingComments ? (
+                    <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
+                ) : (
+                    <View style={styles.commentsList}>
+                        {comments.length > 0 ? comments.map((comment) => (
+                            <View key={comment.id} style={styles.commentCard}>
+                                <View style={styles.commentHeader}>
+                                    <View style={styles.authorContainer}>
+                                        <View style={[styles.avatarPlaceholder, { width: 32, height: 32, borderRadius: 16, backgroundColor: comment.isOwn ? colors.primary : colors.secondary }]}>
+                                            <Text style={styles.avatarText}>{comment.author[0]}</Text>
+                                        </View>
+                                        <View>
+                                            <Text style={styles.commentAuthor}>{comment.author}</Text>
+                                            <Text style={styles.commentTime}>{comment.time}</Text>
                                         </View>
                                     </View>
-                                    <Text style={styles.commentText}>{comment.text}</Text>
                                 </View>
-                            )) : (
-                                <Text style={{ color: colors.textSecondary, textAlign: 'center', marginTop: 20 }}>
-                                    No comments yet. Be the first to comment!
-                                </Text>
-                            )}
-                        </View>
-                    )}
+                                <Text style={styles.commentText}>{comment.text}</Text>
+                            </View>
+                        )) : (
+                            <Text style={{ color: colors.textSecondary, textAlign: 'center', marginTop: 20 }}>
+                                No comments yet. Be the first to comment!
+                            </Text>
+                        )}
+                    </View>
+                )}
+            </ScrollView>
 
-                </ScrollView>
-
-                {/* Input Bar */}
+            {/* Comment Input */}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+            >
                 <View style={styles.inputBar}>
                     <TextInput
-                        placeholder="Write a comment..."
+                        placeholder="Add a comment..."
                         placeholderTextColor={colors.textSecondary}
                         style={styles.input}
                         value={newComment}
@@ -270,137 +262,118 @@ const createStyles = (colors) => StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: colors.cardBorder,
     },
-    iconBtn: {
+    backBtn: {
         padding: 8,
     },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: colors.text,
+    headerActionBtn: {
+        padding: 8,
     },
     scrollContent: {
+        padding: 20,
         paddingBottom: 100,
-    },
-    postCard: {
-        padding: 24,
-        borderBottomWidth: 8,
-        borderBottomColor: colors.glassBackground,
-    },
-    postHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 16,
-    },
-    authorContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    avatarPlaceholder: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: colors.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    avatarText: {
-        color: '#FFF',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    authorName: {
-        color: colors.text,
-        fontWeight: '700',
-        fontSize: 16,
-    },
-    postTime: {
-        color: colors.textSecondary,
-        fontSize: 12,
     },
     tagContainer: {
         alignSelf: 'flex-start',
-        backgroundColor: colors.glassBackground,
+        backgroundColor: colors.primary + '20',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 8,
         marginBottom: 12,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
     },
     tagText: {
         color: colors.primary,
         fontSize: 12,
-        fontWeight: '600',
+        fontWeight: 'bold',
     },
-    postTitle: {
-        fontSize: 22,
+    title: {
+        fontSize: 24,
         fontWeight: 'bold',
         color: colors.text,
-        marginBottom: 12,
-        lineHeight: 30,
+        marginBottom: 16,
+        lineHeight: 32,
     },
-    postBody: {
-        fontSize: 16,
-        color: colors.text,
-        lineHeight: 24,
+    metaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         marginBottom: 20,
-        opacity: 0.9,
     },
-    postImage: {
+    authorContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    avatarPlaceholder: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: colors.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    authorName: {
+        color: colors.text,
+        fontWeight: '600',
+        fontSize: 14,
+    },
+    timeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    timeText: {
+        color: colors.textSecondary,
+        fontSize: 12,
+    },
+    discussionImage: {
         width: '100%',
         height: 200,
         borderRadius: 16,
         marginBottom: 20,
     },
-    statsContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 20,
-        paddingTop: 16,
-        borderTopWidth: 1,
-        borderTopColor: colors.cardBorder,
-    },
-    statItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    statText: {
-        color: colors.textSecondary,
-        fontSize: 14,
+    content: {
+        fontSize: 16,
+        color: colors.text,
+        lineHeight: 24,
+        marginBottom: 32,
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
         color: colors.text,
-        paddingHorizontal: 24,
-        marginTop: 24,
         marginBottom: 16,
+        borderTopWidth: 1,
+        borderTopColor: colors.cardBorder,
+        paddingTop: 20,
     },
     commentsList: {
-        paddingHorizontal: 24,
         gap: 16,
     },
     commentCard: {
-        backgroundColor: colors.glassBackground,
         padding: 16,
-        borderRadius: 16,
+        borderRadius: 12,
+        backgroundColor: colors.glassBackground,
         borderWidth: 1,
         borderColor: colors.cardBorder,
     },
     commentHeader: {
-        marginBottom: 10,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 8,
     },
     commentAuthor: {
         color: colors.text,
-        fontWeight: '600',
-        fontSize: 14,
+        fontWeight: 'bold',
+        fontSize: 13,
     },
     commentTime: {
         color: colors.textSecondary,
         fontSize: 11,
+    },
+    avatarText: {
+        color: '#FFF',
+        fontSize: 12,
+        fontWeight: 'bold',
     },
     commentText: {
         color: colors.text,
@@ -409,29 +382,26 @@ const createStyles = (colors) => StyleSheet.create({
     },
     inputBar: {
         flexDirection: 'row',
+        alignItems: 'flex-end',
         padding: 16,
-        paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+        backgroundColor: colors.glassBackground,
         borderTopWidth: 1,
         borderTopColor: colors.cardBorder,
-        backgroundColor: colors.background,
         gap: 12,
-        alignItems: 'flex-end',
     },
     input: {
         flex: 1,
-        backgroundColor: colors.glassBackground,
+        backgroundColor: colors.background,
         borderRadius: 20,
         paddingHorizontal: 16,
         paddingVertical: 10,
-        color: colors.text,
         maxHeight: 100,
-        borderWidth: 1,
-        borderColor: colors.cardBorder,
+        color: colors.text,
     },
     sendBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',

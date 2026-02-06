@@ -1,12 +1,10 @@
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions, Modal, Alert, ActivityIndicator, Platform } from 'react-native';
-import React, { useState, useCallback } from 'react';
-import { Colors, getColors } from '../../constants/Colors';
+import { View, Text, StyleSheet, Image, Pressable, ScrollView, Dimensions, TouchableOpacity, RefreshControl, Platform } from 'react-native';
+import React, { useState, useMemo, useCallback } from 'react';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Settings, Edit2, LogOut, QrCode, Scan, Plus, Trash2, X } from 'lucide-react-native';
-import QRCode from 'react-native-qrcode-svg';
-import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { Settings, MapPin, Calendar, Grid, Image as ImageIcon, Plus } from 'lucide-react-native';
+import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ConnectionService, UserService, BASE_URL } from '../../services/api';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,20 +13,23 @@ import { useDiscussions } from '../../contexts/DiscussionContext';
 const { width } = Dimensions.get('window');
 
 const PHOTOS = [
-    { id: '1', url: 'https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=300&q=80' },
-    { id: '2', url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=300&q=80' },
-    { id: '3', url: 'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=300&q=80' },
-    { id: '4', url: 'https://images.unsplash.com/photo-1530789253388-582c481c54b0?w=300&q=80' },
+    'https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=400&q=80',
+    'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400&q=80',
+    'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=400&q=80',
+    'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400&q=80',
+    'https://images.unsplash.com/photo-1533873984035-25970ab07461?w=400&q=80',
+    'https://images.unsplash.com/photo-1504851149312-7a075b496cc7?w=400&q=80',
 ];
 
 export default function ProfileScreen() {
     const router = useRouter();
     const { isDarkMode } = useTheme();
     const colors = getColors(isDarkMode);
-    const [qrVisible, setQrVisible] = useState(false);
-    const [profileImage, setProfileImage] = useState('https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80');
-    const [isUploading, setIsUploading] = useState(false);
-    const [userData, setUserData] = useState(null);
+    const styles = useMemo(() => createStyles(colors), [colors]);
+
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [connectionCount, setConnectionCount] = useState(0);
     const [selectedImage, setSelectedImage] = useState(null);
     const [galleryPhotos, setGalleryPhotos] = useState(PHOTOS);
@@ -36,204 +37,123 @@ export default function ProfileScreen() {
 
     useFocusEffect(
         useCallback(() => {
-            loadUserData();
+            loadUserProfile();
         }, [])
     );
 
-    const loadUserData = async () => {
+    const loadUserProfile = async () => {
         try {
-            const token = await AsyncStorage.getItem('userToken');
-
+            setLoading(true);
+            const token = await AsyncStorage.getItem('token');
             if (token) {
-                // Fetch fresh user data from backend
-                const user = await UserService.getUserDetails(token);
-                setUserData(user);
+                const [profileData, countData] = await Promise.all([
+                    UserService.getUserDetails(token),
+                    ConnectionService.getConnectionCount(token)
+                ]);
 
-                // Handle profile image
-                if (user.profileImageUrl) {
-                    const fullUrl = user.profileImageUrl.startsWith('http')
-                        ? user.profileImageUrl
-                        : `${BASE_URL}${user.profileImageUrl}`;
-                    setProfileImage(fullUrl);
+                setUser({
+                    id: profileData.id,
+                    name: profileData.name,
+                    username: profileData.username || `@${profileData.name.replace(/\s+/g, '').toLowerCase()}`,
+                    bio: profileData.bio || 'Van Life Enthusiast | Explorer',
+                    location: profileData.location || 'Currently in Antalya',
+                    image: profileData.profileImage ? { uri: profileData.profileImage } : null,
+                    vehicle: 'Sprinter 2019',
+                    joinDate: 'March 2024'
+                });
+
+                // Use backend gallery or fallback to dummy photos if empty
+                if (profileData.galleryImages && profileData.galleryImages.length > 0) {
+                    setGalleryPhotos(profileData.galleryImages);
+                } else {
+                    setGalleryPhotos(PHOTOS); // Keep dummy photos for visual if none
                 }
 
-                // Handle gallery images
-                if (user.galleryImages && Array.isArray(user.galleryImages)) {
-                    // Expecting backend to return [{id, imageUrl}, ...]
-                    const formattedGallery = user.galleryImages.map(img => ({
-                        id: img.id,
-                        url: img.imageUrl.startsWith('http') ? img.imageUrl : `${BASE_URL}${img.imageUrl}`
-                    }));
-                    setGalleryPhotos(formattedGallery);
-                }
-
-                const countResult = await ConnectionService.getConnectionCount(token);
-                setConnectionCount(countResult.count || 0);
+                setConnectionCount(countData.count);
             }
         } catch (error) {
-            console.error('Error loading user data:', error);
+            console.error('Failed to load profile:', error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
         }
     };
 
-    const openQRScanner = () => {
-        router.push('/scan-qr');
+    const handleRefresh = () => {
+        setRefreshing(true);
+        loadUserProfile();
     };
 
-    const pickImage = async () => {
-        try {
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [1, 1],
-                quality: 0.8,
-            });
-
-            if (!result.canceled) {
-                setIsUploading(true);
-                const token = await AsyncStorage.getItem('userToken');
-                if (token) {
-                    const uploadResult = await UserService.uploadProfileImage(result.assets[0].uri, token);
-
-                    if (uploadResult.imageUrl) {
-                        const fullUrl = uploadResult.imageUrl.startsWith('http')
-                            ? uploadResult.imageUrl
-                            : `${BASE_URL}${uploadResult.imageUrl}`;
-                        setProfileImage(fullUrl);
-
-                        // Update local user data
-                        if (userData) {
-                            setUserData({ ...userData, profileImageUrl: uploadResult.imageUrl });
-                        }
-                    }
-                }
-                setIsUploading(false);
-            }
-        } catch (error) {
-            console.error('Error picking image:', error);
-            Alert.alert('Error', 'Failed to pick image. Please try again.');
-            setIsUploading(false);
-        }
-    };
-
-    const addGalleryPhoto = async () => {
-        try {
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [1, 1],
-                quality: 0.8,
-            });
-
-            if (!result.canceled) {
-                const token = await AsyncStorage.getItem('userToken');
-                if (token) {
-                    const uploadResult = await UserService.uploadGalleryImage(result.assets[0].uri, token);
-
-                    if (uploadResult.imageUrl) {
-                        const fullUrl = uploadResult.imageUrl.startsWith('http')
-                            ? uploadResult.imageUrl
-                            : `${BASE_URL}${uploadResult.imageUrl}`;
-
-                        setGalleryPhotos(prev => [{ id: uploadResult.id, url: fullUrl }, ...prev]);
-                        Alert.alert('Success', 'Photo added to gallery!');
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Error adding gallery photo:', error);
-            Alert.alert('Error', 'Failed to add photo. Please try again.');
-        }
-    };
-
-    const handleImagePress = (photo) => {
-        setSelectedImage(photo);
-    };
-
-    const handleDeleteImage = async () => {
-        if (!selectedImage || !selectedImage.id) return;
-
-        Alert.alert(
-            "Delete User",
-            "Are you sure you want to delete this photo?",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            const token = await AsyncStorage.getItem('userToken');
-                            if (token) {
-                                await UserService.deleteGalleryImage(selectedImage.id, token);
-                                // Updates UI
-                                setGalleryPhotos(prev => prev.filter(img => img.id !== selectedImage.id));
-                                setSelectedImage(null); // Close modal
-                                Alert.alert("Success", "Photo deleted successfully.");
-                            }
-                        } catch (error) {
-                            Alert.alert("Error", "Failed to delete photo: " + error.message);
-                        }
-                    }
-                }
-            ]
-        );
+    const handleImageSelect = () => {
+        // Placeholder for gallery image selection logic
+        // In a real app, this would open the image picker
+        console.log('Select image for gallery');
     };
 
     return (
-        <View style={[styles.mainContainer, { backgroundColor: colors.background }]}>
-            {/* Background Gradient - Dark mode only */}
-            {isDarkMode ? (
+        <View style={styles.container}>
+            {/* Background Image / Gradient */}
+            <View style={styles.headerBackground}>
+                {user?.image ? (
+                    <Image source={user.image} style={styles.headerImage} blurRadius={10} />
+                ) : (
+                    <LinearGradient
+                        colors={[colors.primary, '#0f172a']}
+                        style={StyleSheet.absoluteFill}
+                    />
+                )}
+                {/* Overlay Gradient for Fade */}
                 <LinearGradient
-                    colors={[colors.background, '#1e293b', colors.background]}
-                    style={StyleSheet.absoluteFill}
+                    colors={['transparent', colors.background]}
+                    style={styles.headerOverlay}
                 />
-            ) : (
-                <View style={[StyleSheet.absoluteFill, { backgroundColor: '#F2F5F8' }]} />
-            )}
+            </View>
 
-            <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-                <View style={styles.header}>
-                    <Text style={[styles.headerTitle, { color: colors.text }]}>Profile</Text>
-                    <View style={{ flexDirection: 'row', gap: 15 }}>
-                        <TouchableOpacity onPress={openQRScanner}>
-                            <Scan color={colors.text} size={24} />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setQrVisible(true)}>
-                            <QrCode color={colors.text} size={24} />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => router.push('/settings')}>
-                            <Settings color={colors.text} size={24} />
-                        </TouchableOpacity>
-                    </View>
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.text} />
+                }
+            >
+                {/* Header Actions */}
+                <View style={styles.headerBar}>
+                    <TouchableOpacity style={styles.iconBtn} onPress={() => { }}>
+                        {/* Placeholder for QR or Share */}
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/settings')}>
+                        <Settings color="#FFF" size={24} />
+                    </TouchableOpacity>
                 </View>
 
-                <View style={styles.profileHeader}>
+                {/* Profile Card */}
+                <View style={styles.profileCard}>
                     <View style={styles.avatarContainer}>
                         <Image
-                            source={{ uri: profileImage }}
+                            source={user?.image || { uri: 'https://via.placeholder.com/150' }}
                             style={styles.avatar}
                         />
-                        {isUploading && (
-                            <View style={styles.loadingOverlay}>
-                                <ActivityIndicator color="#FFF" />
-                            </View>
-                        )}
-                        <TouchableOpacity style={[styles.editBtn, { backgroundColor: colors.primary, borderColor: colors.background }]} onPress={pickImage}>
-                            <Edit2 size={16} color="#FFF" />
-                        </TouchableOpacity>
+                        <View style={styles.onlineStatus} />
                     </View>
-                    <Text style={[styles.name, { color: colors.text }]}>{userData?.name || 'Road Mate User'}</Text>
-                    <Text style={[styles.bio, { color: colors.textSecondary }]}>{userData?.status || 'Digital Nomad & Van Builder'}</Text>
 
-                    {/* Stats Row - Original box style, just updated colors/border for theme compatibility */}
-                    <View style={[styles.statsRow, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)', borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)' }]}>
+                    <Text style={styles.name}>{user?.name || 'Loading...'}</Text>
+                    <Text style={styles.username}>{user?.username}</Text>
+
+                    <Text style={styles.bio}>{user?.bio}</Text>
+
+                    <View style={styles.locationContainer}>
+                        <MapPin size={14} color={colors.textSecondary} />
+                        <Text style={styles.locationText}>{user?.location}</Text>
+                    </View>
+
+                    {/* Stats */}
+                    <View style={styles.statsContainer}>
                         <View style={styles.stat}>
                             <Text style={[styles.statValue, { color: colors.text }]}>{connectionCount}</Text>
                             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Connections</Text>
                         </View>
                         <View style={[styles.statDivider, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]} />
                         <View style={styles.stat}>
-                            <Text style={[styles.statValue, { color: colors.text }]}>{galleryPhotos.length}</Text>
+                            <Text style={[styles.statValue, { color: colors.text }]}>12</Text>
                             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Build Posts</Text>
                         </View>
                         <View style={[styles.statDivider, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]} />
@@ -245,360 +165,249 @@ export default function ProfileScreen() {
 
                     <TouchableOpacity style={{ width: '100%' }}>
                         <LinearGradient
-                            colors={['rgba(244, 63, 94, 0.2)', 'rgba(244, 63, 94, 0.05)']}
+                            colors={[colors.primary, colors.online]}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }}
-                            style={styles.premiumBanner}
+                            style={styles.editBtn}
                         >
-                            <Text style={styles.premiumTitle}>Upgrade to Premium</Text>
-                            <Text style={styles.premiumDesc}>See who liked you & unlimited swipes</Text>
+                            <Text style={styles.editBtnText}>Edit Profile</Text>
                         </LinearGradient>
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.gallerySection}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={[styles.sectionTitle, { color: colors.text }]}>My Gallery</Text>
+                {/* Vehicle & Info */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Vehicle Info</Text>
+                    <BlurView intensity={isDarkMode ? 20 : 40} tint={isDarkMode ? 'dark' : 'light'} style={styles.infoCard}>
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>Vehicle</Text>
+                            <Text style={styles.infoValue}>{user?.vehicle}</Text>
+                        </View>
+                        <View style={[styles.separator, { backgroundColor: colors.cardBorder }]} />
+                        <View style={styles.infoRow}>
+                            <Text style={styles.infoLabel}>Member Since</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Calendar size={14} color={colors.textSecondary} />
+                                <Text style={styles.infoValue}>{user?.joinDate}</Text>
+                            </View>
+                        </View>
+                    </BlurView>
+                </View>
 
-                    </View>
-                    <View style={styles.grid}>
-                        {/* Add Photo Button */}
-                        <TouchableOpacity style={[styles.addPhotoBtn, { borderColor: colors.primary + '60', backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }]} onPress={addGalleryPhoto}>
-                            <Plus size={28} color={colors.primary} />
-                            <Text style={[styles.addPhotoText, { color: colors.primary }]}>Add Photo</Text>
+                {/* Gallery Section */}
+                <View style={styles.section}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                        <Text style={styles.sectionTitle}>Gallery</Text>
+                        <TouchableOpacity onPress={handleImageSelect}>
+                            <Plus color={colors.primary} size={20} />
                         </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.galleryGrid}>
                         {galleryPhotos.map((photo, index) => (
-                            <TouchableOpacity key={index} onPress={() => handleImagePress(photo)}>
-                                <Image source={{ uri: photo.url }} style={[styles.gridImage, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }]} />
+                            <TouchableOpacity key={index} style={styles.galleryItem}>
+                                <Image
+                                    source={typeof photo === 'string' ? { uri: photo } : photo}
+                                    style={styles.galleryImage}
+                                />
                             </TouchableOpacity>
                         ))}
                     </View>
                 </View>
 
-                <TouchableOpacity style={styles.logoutBtn}>
-                    <LogOut size={20} color={colors.error} />
-                    <Text style={[styles.logoutText, { color: colors.error }]}>Log Out</Text>
-                </TouchableOpacity>
-
-                {/* Full Screen Image Modal */}
-                <Modal
-                    visible={!!selectedImage}
-                    transparent={true}
-                    animationType="fade"
-                    onRequestClose={() => setSelectedImage(null)}
-                >
-                    <View style={styles.fullImageModal}>
-                        <TouchableOpacity
-                            style={styles.closeImageBtn}
-                            onPress={() => setSelectedImage(null)}
-                        >
-                            <X color="#FFF" size={30} />
-                        </TouchableOpacity>
-
-                        <Image
-                            source={{ uri: selectedImage?.url }}
-                            style={styles.fullImage}
-                            resizeMode="contain"
-                        />
-
-                        <TouchableOpacity
-                            style={styles.deleteImageBtn}
-                            onPress={handleDeleteImage}
-                        >
-                            <Trash2 color="#FF4444" size={24} />
-                            <Text style={styles.deleteImageText}>Delete Photo</Text>
-                        </TouchableOpacity>
-                    </View>
-                </Modal>
-
-                {/* QR Modal */}
-                <Modal
-                    visible={qrVisible}
-                    transparent={true}
-                    animationType="fade"
-                    onRequestClose={() => setQrVisible(false)}
-                >
-                    <TouchableOpacity
-                        style={styles.modalOverlay}
-                        activeOpacity={1}
-                        onPress={() => setQrVisible(false)}
-                    >
-                        <View style={styles.qrContainer}>
-                            <Text style={styles.qrTitle}>My Connection QR</Text>
-                            <View style={styles.qrWrapper}>
-                                <QRCode
-                                    value={`road-mate://nomad/${userData?.id || 'guest'}`}
-                                    size={200}
-                                    color={colors.background}
-                                    backgroundColor="#FFF"
-                                />
-                            </View>
-                            <Text style={styles.qrDesc}>Other nomads can scan this to connect with you.</Text>
-                            <TouchableOpacity style={[styles.closeModalBtn, { backgroundColor: colors.primary }]} onPress={() => setQrVisible(false)}>
-                                <Text style={styles.closeModalText}>Close</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </TouchableOpacity>
-                </Modal>
             </ScrollView>
         </View>
     );
 }
 
-const styles = StyleSheet.create({
-    mainContainer: {
-        flex: 1,
-        backgroundColor: Colors.background,
-    },
+const createStyles = (colors) => StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: colors.background,
     },
-    header: {
+    headerBackground: {
+        height: 280,
+        width: '100%',
+        position: 'absolute',
+        top: 0,
+    },
+    headerImage: {
+        width: '100%',
+        height: '100%',
+        opacity: 0.6,
+    },
+    headerOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 150,
+    },
+    scrollContent: {
+        paddingTop: 60,
+        paddingBottom: 100,
+    },
+    headerBar: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 24,
-        paddingTop: 60,
-        paddingBottom: 20,
+        paddingHorizontal: 20,
+        marginBottom: 20,
     },
-    headerTitle: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: Colors.text,
-    },
-    profileHeader: {
+    iconBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 24,
-        marginBottom: 32,
+    },
+    profileCard: {
+        marginHorizontal: 20,
+        backgroundColor: colors.glassBackground, // Changed from plain styled View to use background color for consistency
+        borderRadius: 24,
+        padding: 24,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
+        marginBottom: 24,
+        // Removed explicit shadow props or kept them minimal if desired, heavily relying on border
     },
     avatarContainer: {
         marginBottom: 16,
         position: 'relative',
     },
     avatar: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
+        width: 100,
+        height: 100,
+        borderRadius: 50,
         borderWidth: 3,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderColor: colors.background,
     },
-    editBtn: {
+    onlineStatus: {
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        backgroundColor: colors.online,
         position: 'absolute',
-        bottom: 0,
-        right: 0,
-        backgroundColor: Colors.primary,
-        padding: 8,
-        borderRadius: 20,
-        borderWidth: 3,
-        borderColor: Colors.background,
-    },
-    loadingOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
+        bottom: 4,
+        right: 4,
+        borderWidth: 2,
+        borderColor: colors.background,
     },
     name: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: Colors.text,
-        marginBottom: 8,
+        color: colors.text,
+        marginBottom: 4,
+    },
+    username: {
+        fontSize: 14,
+        color: colors.primary,
+        marginBottom: 12,
     },
     bio: {
         fontSize: 14,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         textAlign: 'center',
-        marginBottom: 24,
         lineHeight: 20,
+        marginBottom: 16,
     },
-    statsRow: {
+    locationContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 16,
-        padding: 16,
-        width: '100%',
-        justifyContent: 'space-around',
+        gap: 6,
         marginBottom: 24,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        backgroundColor: colors.glassBackground,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    locationText: {
+        color: colors.textSecondary,
+        fontSize: 12,
+    },
+    statsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        marginBottom: 24,
     },
     stat: {
         alignItems: 'center',
+        flex: 1,
+    },
+    statDivider: {
+        width: 1,
+        height: 24,
     },
     statValue: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: Colors.text,
+        marginBottom: 4,
     },
     statLabel: {
         fontSize: 12,
-        color: Colors.textSecondary,
-        marginTop: 4,
     },
-    statDivider: {
-        width: 1,
-        height: 30,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    },
-    premiumBanner: {
-        width: '100%',
-        padding: 16,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: 'rgba(244, 63, 94, 0.3)',
+    editBtn: {
+        paddingVertical: 12,
+        borderRadius: 12,
         alignItems: 'center',
     },
-    premiumTitle: {
-        color: '#F43F5E',
+    editBtnText: {
+        color: '#FFF',
+        fontSize: 14,
         fontWeight: 'bold',
-        fontSize: 16,
-        marginBottom: 4,
     },
-    premiumDesc: {
-        color: Colors.textSecondary,
-        fontSize: 12,
-        opacity: 0.9,
-    },
-    gallerySection: {
-        paddingHorizontal: 24,
-        marginBottom: 32,
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
+    section: {
+        paddingHorizontal: 20,
+        marginBottom: 24,
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: Colors.text,
+        color: colors.text,
+        marginBottom: 12,
     },
-    grid: {
+    infoCard: {
+        borderRadius: 16,
+        padding: 16,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
+    },
+    infoRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 4,
+    },
+    infoLabel: {
+        color: colors.textSecondary,
+        fontSize: 14,
+    },
+    infoValue: {
+        color: colors.text,
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    separator: {
+        height: 1,
+        marginVertical: 12,
+    },
+    galleryGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 12,
     },
-    gridImage: {
-        width: (width - 48 - 12) / 2,
-        height: 150,
+    galleryItem: {
+        width: (width - 52) / 3,
+        height: (width - 52) / 3,
         borderRadius: 12,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        overflow: 'hidden',
     },
-    addPhotoBtn: {
-        width: (width - 48 - 12) / 2,
-        height: 150,
-        borderRadius: 12,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderWidth: 2,
-        borderColor: Colors.primary + '60',
-        borderStyle: 'dashed',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 8,
-    },
-    addPhotoText: {
-        color: Colors.primary,
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    logoutBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        marginBottom: 40,
-    },
-    logoutText: {
-        color: Colors.error,
-        fontWeight: '600',
-        fontSize: 16,
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.7)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    qrContainer: {
-        backgroundColor: 'rgba(30, 30, 30, 0.95)',
-        padding: 30,
-        borderRadius: 30,
-        alignItems: 'center',
-        width: '80%',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-    },
-    qrTitle: {
-        color: '#FFF',
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 20,
-    },
-    qrWrapper: {
-        padding: 20,
-        backgroundColor: '#FFF',
-        borderRadius: 20,
-        marginBottom: 20,
-    },
-    qrDesc: {
-        color: '#BBB',
-        textAlign: 'center',
-        fontSize: 14,
-        marginBottom: 20,
-    },
-    closeModalBtn: {
-        backgroundColor: Colors.primary,
-        paddingHorizontal: 30,
-        paddingVertical: 12,
-        borderRadius: 15,
-    },
-    closeModalText: {
-        color: '#FFF',
-        fontWeight: 'bold',
-    },
-    fullImageModal: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.95)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    fullImage: {
+    galleryImage: {
         width: '100%',
-        height: '80%',
-        borderRadius: 8,
-    },
-    closeImageBtn: {
-        position: 'absolute',
-        top: 50,
-        right: 20,
-        zIndex: 10,
-        padding: 10,
-    },
-    deleteImageBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        backgroundColor: 'rgba(255, 68, 68, 0.15)',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 20,
-        marginTop: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 68, 68, 0.3)',
-    },
-    deleteImageText: {
-        color: '#FF4444',
-        fontWeight: 'bold',
-        fontSize: 16,
+        height: '100%',
     },
 });

@@ -72,6 +72,25 @@ export default function HomeScreen() {
     const [isFetching, setIsFetching] = useState(false);
     const [weather, setWeather] = useState(null);
     const [address, setAddress] = useState('Locating...');
+    const [joiningId, setJoiningId] = useState(null);
+
+    const handleJoin = async (activityId) => {
+        try {
+            setJoiningId(activityId);
+            const token = await AsyncStorage.getItem('userToken');
+            if (!token) return;
+            const result = await ActivityService.joinActivity(activityId, token);
+            if (result.success) {
+                setActivities(prev => prev.map(a =>
+                    a.id === activityId ? { ...a, hasJoined: true } : a
+                ));
+            }
+        } catch (error) {
+            console.error('Join activity error:', error);
+        } finally {
+            setJoiningId(null);
+        }
+    };
 
     // Load data whenever the screen comes into focus
     useFocusEffect(
@@ -363,8 +382,14 @@ export default function HomeScreen() {
                                                 <View style={styles.attendees}>
                                                     <Text style={{ fontSize: 10, color: colors.textSecondary }}>{item.location}</Text>
                                                 </View>
-                                                <TouchableOpacity style={styles.joinButton}>
-                                                    <Text style={styles.joinText}>Join</Text>
+                                                <TouchableOpacity
+                                                    style={[styles.joinButton, item.hasJoined && { backgroundColor: colors.online }]}
+                                                    onPress={(e) => { e.stopPropagation?.(); handleJoin(item.id); }}
+                                                    disabled={item.hasJoined || joiningId === item.id}
+                                                >
+                                                    <Text style={styles.joinText}>
+                                                        {item.hasJoined ? 'Joined' : joiningId === item.id ? '...' : 'Join'}
+                                                    </Text>
                                                 </TouchableOpacity>
                                             </View>
                                         </View>
