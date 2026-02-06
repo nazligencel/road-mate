@@ -198,12 +198,26 @@ export default function ProfileScreen() {
                 <View style={styles.section}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                         <Text style={styles.sectionTitle}>Gallery</Text>
-                        <TouchableOpacity onPress={handleImageSelect}>
-                            <Plus color={colors.primary} size={20} />
-                        </TouchableOpacity>
                     </View>
 
                     <View style={styles.galleryGrid}>
+                        {/* Add Photo Card */}
+                        <TouchableOpacity
+                            style={[styles.galleryItem, {
+                                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : colors.card,
+                                borderWidth: 1,
+                                borderStyle: 'dashed',
+                                borderColor: colors.cardBorder,
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                gap: 4
+                            }]}
+                            onPress={handleImageSelect}
+                        >
+                            <Plus color={colors.primary} size={24} />
+                            <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '600' }}>Add Photo</Text>
+                        </TouchableOpacity>
+
                         {galleryPhotos.map((photo, index) => (
                             <TouchableOpacity key={index} style={styles.galleryItem}>
                                 <Image
