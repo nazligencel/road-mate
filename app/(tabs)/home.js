@@ -5,13 +5,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Bell, Navigation, Flame, Plus, MapPin } from 'lucide-react-native';
+import { Bell, Navigation, Flame, Plus, MapPin, Sparkles, Crown, ChevronRight } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
 import { NomadService, ActivityService, UserService, NotificationService } from '../../services/api';
 import { BlurView } from 'expo-blur';
 import { useFocusEffect } from 'expo-router';
+import { useSubscription } from '../../contexts/SubscriptionContext';
+
 
 const { width } = Dimensions.get('window');
 
@@ -63,6 +65,7 @@ const GlassCard = ({ children, style, intensity = 20, tint = 'dark' }) => (
 export default function HomeScreen() {
     const { isDarkMode } = useTheme();
     const colors = getColors(isDarkMode);
+    const { isPro } = useSubscription();
     const styles = useMemo(() => createStyles(colors), [colors]);
     const [location, setLocation] = useState(null);
     const [nearbyNomads, setNearbyNomads] = useState([]);
@@ -73,7 +76,6 @@ export default function HomeScreen() {
     const [weather, setWeather] = useState(null);
     const [address, setAddress] = useState('Locating...');
     const [joiningId, setJoiningId] = useState(null);
-
     const handleJoin = async (activityId) => {
         try {
             setJoiningId(activityId);
@@ -318,6 +320,37 @@ export default function HomeScreen() {
                         </View>
                     </View>
 
+                    {/* AI Road Assistant */}
+                    <TouchableOpacity
+                        style={styles.aiCard}
+                        onPress={() => isPro ? router.push('/ai-assistant') : router.push('/paywall')}
+                        activeOpacity={0.8}
+                    >
+                        <BlurView intensity={20} tint={isDarkMode ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+                        <View style={styles.aiCardContent}>
+                            <LinearGradient
+                                colors={[colors.primary, colors.online]}
+                                style={styles.aiIconGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Sparkles size={20} color="#FFF" />
+                            </LinearGradient>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.aiTitle}>AI Road Assistant</Text>
+                                <Text style={styles.aiSub}>Routes, vehicle help & travel tips</Text>
+                            </View>
+                            {!isPro ? (
+                                <View style={styles.aiProBadge}>
+                                    <Crown size={11} color="#C5A059" />
+                                    <Text style={styles.aiProText}>PRO</Text>
+                                </View>
+                            ) : (
+                                <ChevronRight size={18} color={colors.textSecondary} />
+                            )}
+                        </View>
+                    </TouchableOpacity>
+
                     {/* Nearby Nomads */}
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
@@ -407,6 +440,7 @@ export default function HomeScreen() {
                     </View>
 
                 </ScrollView>
+
             </SafeAreaView>
         </View>
     );
@@ -613,6 +647,53 @@ const createStyles = (colors) => StyleSheet.create({
         color: '#FFFFFF',
         fontWeight: '700',
         fontSize: 14,
+    },
+    // AI Card
+    aiCard: {
+        marginHorizontal: 20,
+        marginBottom: 24,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
+        backgroundColor: colors.glassBackground,
+        overflow: 'hidden',
+    },
+    aiCardContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        gap: 14,
+    },
+    aiIconGradient: {
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    aiTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: colors.text,
+    },
+    aiSub: {
+        fontSize: 12,
+        color: colors.textSecondary,
+        marginTop: 2,
+    },
+    aiProBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#C5A05915',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    aiProText: {
+        color: '#C5A059',
+        fontSize: 11,
+        fontWeight: '700',
     },
     // Nomads
     section: {

@@ -28,10 +28,12 @@ import {
     FileText,
     Shield,
     LogOut,
-    Globe
+    Globe,
+    Crown
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSubscription } from '../contexts/SubscriptionContext';
 
 const { width } = Dimensions.get('window');
 
@@ -104,6 +106,7 @@ export default function SettingsScreen() {
     const router = useRouter();
     const { isDarkMode, toggleTheme } = useTheme();
     const colors = getColors(isDarkMode);
+    const { isPro, restorePurchases } = useSubscription();
     const [userData, setUserData] = useState(null);
     const [notifications, setNotifications] = useState(true);
     const [locationServices, setLocationServices] = useState(false);
@@ -181,6 +184,65 @@ export default function SettingsScreen() {
                             <Text style={[styles.accountName, { color: colors.text }]}>{userData?.name || 'Road Mate User'}</Text>
                             <Text style={[styles.accountEmail, { color: colors.textSecondary }]}>{userData?.email || 'user@roadmate.com'}</Text>
                         </View>
+                    </View>
+                </Section>
+
+                {/* Subscription Section */}
+                <Section title="Subscription" colors={colors} isDarkMode={isDarkMode}>
+                    <View style={{ padding: 16 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                <View style={{
+                                    width: 36, height: 36, borderRadius: 18,
+                                    backgroundColor: isPro ? '#C5A05920' : (isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'),
+                                    justifyContent: 'center', alignItems: 'center',
+                                }}>
+                                    <Crown size={18} color={isPro ? '#C5A059' : colors.textSecondary} />
+                                </View>
+                                <View>
+                                    <Text style={[styles.menuLabel, { color: colors.text }]}>
+                                        {isPro ? 'RoadMate Pro' : 'Free Plan'}
+                                    </Text>
+                                    <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
+                                        {isPro ? 'All features unlocked' : 'Limited features'}
+                                    </Text>
+                                </View>
+                            </View>
+                            {isPro && (
+                                <View style={{
+                                    backgroundColor: '#C5A05920', paddingHorizontal: 10, paddingVertical: 4,
+                                    borderRadius: 10, borderWidth: 1, borderColor: '#C5A05940',
+                                }}>
+                                    <Text style={{ color: '#C5A059', fontSize: 11, fontWeight: 'bold' }}>ACTIVE</Text>
+                                </View>
+                            )}
+                        </View>
+
+                        {!isPro ? (
+                            <TouchableOpacity
+                                style={{
+                                    backgroundColor: '#C5A059', borderRadius: 12, paddingVertical: 12,
+                                    alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8,
+                                }}
+                                onPress={() => router.push('/paywall')}
+                            >
+                                <Crown size={16} color="#FFF" />
+                                <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 14 }}>Upgrade to Pro</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <Text style={{ fontSize: 12, color: colors.textSecondary, textAlign: 'center' }}>
+                                Manage your subscription in device settings
+                            </Text>
+                        )}
+
+                        <TouchableOpacity
+                            style={{ marginTop: 10, alignItems: 'center' }}
+                            onPress={restorePurchases}
+                        >
+                            <Text style={{ fontSize: 13, color: colors.textSecondary, textDecorationLine: 'underline' }}>
+                                Restore Purchases
+                            </Text>
+                        </TouchableOpacity>
                     </View>
                 </Section>
 
