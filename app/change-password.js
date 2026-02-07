@@ -1,11 +1,13 @@
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getColors } from '../constants/Colors';
 import { useTheme } from '../contexts/ThemeContext';
 import { ChevronLeft, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { BASE_URL } from '../services/api';
 
 export default function ChangePasswordScreen() {
     const { isDarkMode } = useTheme();
@@ -38,8 +40,26 @@ export default function ChangePasswordScreen() {
 
         setLoading(true);
         try {
-            // Mock API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            const token = await AsyncStorage.getItem('userToken');
+            const response = await fetch(`${BASE_URL}/api/users/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    currentPassword,
+                    newPassword,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                Alert.alert('Error', data.message || 'Failed to change password.');
+                return;
+            }
+
             Alert.alert('Success', 'Your password has been changed successfully.', [
                 { text: 'OK', onPress: () => router.back() }
             ]);

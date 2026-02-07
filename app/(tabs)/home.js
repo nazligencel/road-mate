@@ -13,6 +13,7 @@ import { NomadService, ActivityService, UserService, NotificationService } from 
 import { BlurView } from 'expo-blur';
 import { useFocusEffect } from 'expo-router';
 import { useSubscription } from '../../contexts/SubscriptionContext';
+import { useSettings } from '../../contexts/SettingsContext';
 
 
 const { width } = Dimensions.get('window');
@@ -66,6 +67,7 @@ export default function HomeScreen() {
     const { isDarkMode } = useTheme();
     const colors = getColors(isDarkMode);
     const { isPro } = useSubscription();
+    const { notifications, locationServices, t } = useSettings();
     const styles = useMemo(() => createStyles(colors), [colors]);
     const [location, setLocation] = useState(null);
     const [nearbyNomads, setNearbyNomads] = useState([]);
@@ -127,8 +129,12 @@ export default function HomeScreen() {
                     //     }]);
                     // });
 
-                    // Fetch Notifications
-                    NotificationService.getUnreadCount(token).then(data => setUnreadCount(data.count)).catch(console.log);
+                    // Fetch Notifications (only if enabled)
+                    if (notifications) {
+                        NotificationService.getUnreadCount(token).then(data => setUnreadCount(data.count)).catch(console.log);
+                    } else {
+                        setUnreadCount(0);
+                    }
                 }
             };
             loadData();
@@ -138,6 +144,12 @@ export default function HomeScreen() {
     useEffect(() => {
         let locationSubscription = null;
         let userToken = null;
+
+        if (!locationServices) {
+            setAddress(t('locationDisabled'));
+            setWeather(null);
+            return;
+        }
 
         (async () => {
             try {
@@ -209,7 +221,7 @@ export default function HomeScreen() {
         return () => {
             if (locationSubscription) locationSubscription.remove();
         };
-    }, []);
+    }, [locationServices]);
 
     const initialRegion = {
         latitude: location ? location.coords.latitude : 37.0322,
@@ -267,7 +279,7 @@ export default function HomeScreen() {
                             onPress={() => router.push('/notifications')}
                         >
                             <Bell size={24} color={colors.text} fill={colors.text} />
-                            {unreadCount > 0 && <View style={styles.notificationDot} />}
+                            {notifications && unreadCount > 0 && <View style={styles.notificationDot} />}
                         </TouchableOpacity>
                     </View>
 

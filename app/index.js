@@ -19,13 +19,13 @@ const ADVENTURE_THEME = {
 
 import * as Location from 'expo-location';
 import { AuthService } from '../services/AuthService';
+import { useSettings } from '../contexts/SettingsContext';
 // Dynamic GoogleSignin import moved inside functions to prevent crash on boot
-
-// ... (existing imports)
 
 export default function LoginScreen() {
     const shimmerValue = useRef(new Animated.Value(0)).current;
     const [weather, setWeather] = useState(null);
+    const { locationServices } = useSettings();
 
     useEffect(() => {
         // Animation Loop
@@ -38,40 +38,43 @@ export default function LoginScreen() {
             })
         ).start();
 
-        // Fetch Weather
-        (async () => {
-            try {
-                // Check if services are enabled
-                const enabled = await Location.hasServicesEnabledAsync();
-                if (!enabled) {
-                    setWeather('N/A');
-                    return;
-                }
-
-                let { status } = await Location.requestForegroundPermissionsAsync();
-                if (status !== 'granted') {
-                    setWeather('ERR');
-                    return;
-                }
-
-                let location = await Location.getCurrentPositionAsync({
-                    accuracy: Location.Accuracy.Balanced,
-                });
-
-                if (location) {
-                    const response = await fetch(
-                        `https://api.open-meteo.com/v1/forecast?latitude=${location.coords.latitude}&longitude=${location.coords.longitude}&current_weather=true`
-                    );
-                    const data = await response.json();
-                    if (data.current_weather) {
-                        setWeather(Math.round(data.current_weather.temperature));
+        // Fetch Weather (only if location services enabled)
+        if (!locationServices) {
+            setWeather('N/A');
+        } else {
+            (async () => {
+                try {
+                    const enabled = await Location.hasServicesEnabledAsync();
+                    if (!enabled) {
+                        setWeather('N/A');
+                        return;
                     }
+
+                    let { status } = await Location.requestForegroundPermissionsAsync();
+                    if (status !== 'granted') {
+                        setWeather('ERR');
+                        return;
+                    }
+
+                    let location = await Location.getCurrentPositionAsync({
+                        accuracy: Location.Accuracy.Balanced,
+                    });
+
+                    if (location) {
+                        const response = await fetch(
+                            `https://api.open-meteo.com/v1/forecast?latitude=${location.coords.latitude}&longitude=${location.coords.longitude}&current_weather=true`
+                        );
+                        const data = await response.json();
+                        if (data.current_weather) {
+                            setWeather(Math.round(data.current_weather.temperature));
+                        }
+                    }
+                } catch (error) {
+                    console.log("Weather Location Error:", error.message);
+                    setWeather('N/A');
                 }
-            } catch (error) {
-                console.log("Weather Location Error:", error.message);
-                setWeather('N/A');
-            }
-        })();
+            })();
+        }
     }, []);
 
     const shimmerTranslate = shimmerValue.interpolate({

@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { NomadService, PlacesService, NotificationService, SOSService } from '../../services/api';
 import { useSubscription } from '../../contexts/SubscriptionContext';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -80,6 +81,7 @@ export default function ExploreScreen() {
     const { isDarkMode } = useTheme();
     const colors = getColors(isDarkMode);
     const { isPro } = useSubscription();
+    const { locationServices } = useSettings();
     const styles = useMemo(() => createStyles(colors), [colors]);
     const [selectedNomad, setSelectedNomad] = useState(null);
     const [sosUsers, setSosUsers] = useState([]);
@@ -100,6 +102,11 @@ export default function ExploreScreen() {
     useEffect(() => {
         let locationSubscription = null;
         let initialFetchDone = false;
+
+        if (!locationServices) {
+            setLoading(false);
+            return;
+        }
 
         (async () => {
             try {
@@ -179,7 +186,7 @@ export default function ExploreScreen() {
                 locationSubscription.remove();
             }
         };
-    }, []);
+    }, [locationServices]);
 
     // Helper to update markers based on category
     const updateMarkers = (category, places) => {

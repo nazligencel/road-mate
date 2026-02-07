@@ -15,12 +15,14 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AssistService, SOSService } from '../services/api';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import { useSettings } from '../contexts/SettingsContext';
 import * as Location from 'expo-location';
 
 export default function AssistScreen() {
     const { isDarkMode } = useTheme();
     const colors = getColors(isDarkMode);
     const { isPro } = useSubscription();
+    const { locationServices } = useSettings();
     const styles = useMemo(() => createStyles(colors), [colors]);
 
     const [requests, setRequests] = useState([]);
@@ -81,6 +83,7 @@ export default function AssistScreen() {
     }, [filter]);
 
     const getUserLocation = async () => {
+        if (!locationServices) return;
         try {
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status === 'granted') {

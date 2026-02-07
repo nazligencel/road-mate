@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { DiscussionProvider } from '../contexts/DiscussionContext';
 import { SubscriptionProvider } from '../contexts/SubscriptionContext';
+import { SettingsProvider } from '../contexts/SettingsContext';
 // Dynamic GoogleSignin import moved inside useEffect
 
 function RootLayoutNav() {
@@ -78,6 +79,9 @@ function RootLayoutNav() {
                     <Stack.Screen name="index" options={{ headerShown: false }} />
                     <Stack.Screen name="signup" options={{ headerShown: false }} />
                     <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="settings" options={{ headerShown: false }} />
+                    <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
+                    <Stack.Screen name="vehicle-info" options={{ headerShown: false }} />
                 </Stack>
             </SafeAreaProvider>
         </GestureHandlerRootView>
@@ -87,11 +91,13 @@ function RootLayoutNav() {
 export default function RootLayout() {
     return (
         <ThemeProvider>
-            <SubscriptionProvider>
-                <DiscussionProvider>
-                    <RootLayoutNav />
-                </DiscussionProvider>
-            </SubscriptionProvider>
+            <SettingsProvider>
+                <SubscriptionProvider>
+                    <DiscussionProvider>
+                        <RootLayoutNav />
+                    </DiscussionProvider>
+                </SubscriptionProvider>
+            </SettingsProvider>
         </ThemeProvider>
     );
 }

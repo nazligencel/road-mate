@@ -6,6 +6,9 @@ import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 
 const SubscriptionContext = createContext();
 
+// ⚠️ TEST MODE: Set to true to simulate Pro user (set false for production)
+const DEV_FORCE_PRO = __DEV__ ? true : false;
+
 // RevenueCat API keys from .env
 const REVENUECAT_API_KEY = Platform.OS === 'ios'
     ? (process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || '')
@@ -22,6 +25,13 @@ export function SubscriptionProvider({ children }) {
 
     const initializeSubscription = async () => {
         try {
+            if (DEV_FORCE_PRO) {
+                console.log('[DEV] Forcing Pro mode for testing');
+                setIsPro(true);
+                setIsLoading(false);
+                return;
+            }
+
             if (!REVENUECAT_API_KEY) {
                 console.log('RevenueCat API key not set, falling back to backend check');
                 await checkBackendStatus();
