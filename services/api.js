@@ -316,6 +316,24 @@ export const UserService = {
         }
     },
 
+    async registerPushToken(pushToken, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/users/push-token`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ pushToken })
+            });
+            if (!response.ok) throw new Error('Failed to register push token');
+            return await response.json();
+        } catch (error) {
+            console.error('Register push token error:', error);
+            throw error;
+        }
+    },
+
     async deleteGalleryImage(imageId, token) {
         try {
             const response = await fetch(`${BASE_URL}/api/users/gallery/${imageId}`, {

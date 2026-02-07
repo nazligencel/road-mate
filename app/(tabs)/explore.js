@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, TextInput, ScrollView, Platform, Modal, ActivityIndicator, Linking, Alert } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -7,7 +7,7 @@ import { getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Search, Filter, Compass, Navigation, Zap, Wrench, ShoppingCart, ShoppingBag, ShoppingBasket, Fuel, MessageSquare, ArrowUpRight, Car, X, MapPin, AlertTriangle, Crown, Route } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { NomadService, PlacesService, NotificationService, SOSService } from '../../services/api';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -85,6 +85,8 @@ export default function ExploreScreen() {
     const styles = useMemo(() => createStyles(colors), [colors]);
     const [selectedNomad, setSelectedNomad] = useState(null);
     const [sosUsers, setSosUsers] = useState([]);
+    const mapRef = useRef(null);
+    const { focusLat, focusLng } = useLocalSearchParams();
     // Initialize with default location to prevent white screen if location fetch fails/delays
     const [location, setLocation] = useState({
         coords: {
@@ -213,6 +215,22 @@ export default function ExploreScreen() {
         updateMarkers(activeCategory, nearbyPlaces);
     }, []);
 
+    // Focus map on SOS location when navigated from notification
+    useEffect(() => {
+        if (focusLat && focusLng && mapRef.current) {
+            const lat = parseFloat(focusLat);
+            const lng = parseFloat(focusLng);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                mapRef.current.animateToRegion({
+                    latitude: lat,
+                    longitude: lng,
+                    latitudeDelta: 0.02,
+                    longitudeDelta: 0.02,
+                }, 1000);
+            }
+        }
+    }, [focusLat, focusLng]);
+
     const handleGetDirections = (lat, lng, label) => {
         const scheme = Platform.select({ ios: 'maps:0,0?q=', android: 'geo:0,0?q=' });
         const latLng = `${lat},${lng}`;
@@ -309,6 +327,7 @@ export default function ExploreScreen() {
                 </View>
             ) : (
                 <MapView
+                    ref={mapRef}
                     provider={PROVIDER_GOOGLE}
                     style={styles.map}
                     initialRegion={initialRegion}
