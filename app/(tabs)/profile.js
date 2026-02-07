@@ -3,13 +3,15 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Settings, MapPin, Calendar, Grid, Image as ImageIcon, Plus, Crown } from 'lucide-react-native';
+import { Settings, MapPin, Calendar, Grid, Image as ImageIcon, Plus, Crown, Car, ChevronRight } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ConnectionService, UserService, BASE_URL } from '../../services/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useDiscussions } from '../../contexts/DiscussionContext';
 import { useSubscription } from '../../contexts/SubscriptionContext';
+import { useSettings } from '../../contexts/SettingsContext';
+import * as Location from 'expo-location';
 
 const { width } = Dimensions.get('window');
 
@@ -34,14 +36,42 @@ export default function ProfileScreen() {
     const [connectionCount, setConnectionCount] = useState(0);
     const [selectedImage, setSelectedImage] = useState(null);
     const [galleryPhotos, setGalleryPhotos] = useState(PHOTOS);
+    const [currentLocation, setCurrentLocation] = useState('');
     const { savedIds } = useDiscussions();
     const { isPro } = useSubscription();
+    const { locationServices, t } = useSettings();
 
     useFocusEffect(
         useCallback(() => {
             loadUserProfile();
-        }, [])
+            if (locationServices) {
+                fetchCurrentLocation();
+            } else {
+                setCurrentLocation(t('locationDisabled'));
+            }
+        }, [locationServices])
     );
+
+    const fetchCurrentLocation = async () => {
+        try {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') return;
+
+            const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            const [place] = await Location.reverseGeocodeAsync({
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+            });
+
+            if (place) {
+                const city = place.city || place.subregion || place.region || '';
+                const country = place.country || '';
+                setCurrentLocation(city ? `${city}, ${country}` : country);
+            }
+        } catch (e) {
+            console.log('Location fetch error:', e.message);
+        }
+    };
 
     const loadUserProfile = async () => {
         try {
@@ -57,10 +87,13 @@ export default function ProfileScreen() {
                     id: profileData.id,
                     name: profileData.name,
                     username: profileData.username || `@${profileData.name.replace(/\s+/g, '').toLowerCase()}`,
-                    bio: profileData.bio || 'Van Life Enthusiast | Explorer',
-                    location: profileData.location || 'Currently in Antalya',
+                    tagline: profileData.tagline || '',
+                    bio: profileData.status || '',
+                    location: profileData.location || '',
                     image: profileData.profileImage ? { uri: profileData.profileImage } : null,
-                    vehicle: profileData.vehicle || profileData.vehicleModel || 'Not set',
+                    vehicle: profileData.vehicle || '',
+                    vehicleBrand: profileData.vehicleBrand || '',
+                    vehicleModel: profileData.vehicleModel || '',
                     joinDate: profileData.createdAt
                         ? new Date(profileData.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
                         : 'Unknown',
@@ -152,12 +185,16 @@ export default function ProfileScreen() {
                     </View>
                     <Text style={styles.username}>{user?.username}</Text>
 
-                    <Text style={styles.bio}>{user?.bio}</Text>
+                    {user?.tagline ? (
+                        <Text style={styles.bio}>{user.tagline}</Text>
+                    ) : null}
 
-                    <View style={styles.locationContainer}>
-                        <MapPin size={14} color={colors.textSecondary} />
-                        <Text style={styles.locationText}>{user?.location}</Text>
-                    </View>
+                    {currentLocation ? (
+                        <View style={styles.locationContainer}>
+                            <MapPin size={14} color={colors.textSecondary} />
+                            <Text style={styles.locationText}>{currentLocation}</Text>
+                        </View>
+                    ) : null}
 
                     {/* Stats */}
                     <View style={styles.statsContainer}>
@@ -205,13 +242,35 @@ export default function ProfileScreen() {
 
                 {/* Vehicle & Info */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Vehicle Info</Text>
-                    <BlurView intensity={isDarkMode ? 20 : 40} tint={isDarkMode ? 'dark' : 'light'} style={styles.infoCard}>
-                        <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Vehicle</Text>
-                            <Text style={styles.infoValue}>{user?.vehicle}</Text>
-                        </View>
-                        <View style={[styles.separator, { backgroundColor: colors.cardBorder }]} />
+                    <Text style={styles.sectionTitle}>Vehicle & Info</Text>
+                    <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/vehicle-info')}>
+                        <BlurView intensity={isDarkMode ? 20 : 40} tint={isDarkMode ? 'dark' : 'light'} style={styles.infoCard}>
+                            <View style={styles.infoRow}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                                    <View style={{
+                                        width: 40, height: 40, borderRadius: 12,
+                                        backgroundColor: colors.primary + '15',
+                                        justifyContent: 'center', alignItems: 'center',
+                                    }}>
+                                        <Car size={20} color={colors.primary} />
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.infoValue}>
+                                            {user?.vehicleBrand && user?.vehicleModel
+                                                ? `${user.vehicleBrand} ${user.vehicleModel}`
+                                                : (user?.vehicle || 'Not set')}
+                                        </Text>
+                                        {user?.vehicle ? (
+                                            <Text style={[styles.infoLabel, { marginTop: 2 }]}>{user.vehicle}</Text>
+                                        ) : null}
+                                    </View>
+                                </View>
+                                <ChevronRight size={16} color={colors.textSecondary} />
+                            </View>
+                        </BlurView>
+                    </TouchableOpacity>
+
+                    <BlurView intensity={isDarkMode ? 20 : 40} tint={isDarkMode ? 'dark' : 'light'} style={[styles.infoCard, { marginTop: 10 }]}>
                         <View style={styles.infoRow}>
                             <Text style={styles.infoLabel}>Member Since</Text>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

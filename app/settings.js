@@ -9,10 +9,12 @@ import {
     Image,
     Alert,
     Dimensions,
-    Platform
+    Platform,
+    Modal
 } from 'react-native';
 import { getColors } from '../constants/Colors';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -29,7 +31,8 @@ import {
     Shield,
     LogOut,
     Globe,
-    Crown
+    Crown,
+    Check
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -107,9 +110,18 @@ export default function SettingsScreen() {
     const { isDarkMode, toggleTheme } = useTheme();
     const colors = getColors(isDarkMode);
     const { isPro, restorePurchases } = useSubscription();
+    const {
+        notifications, setNotifications,
+        locationServices, setLocationServices,
+        language, setLanguage, t
+    } = useSettings();
     const [userData, setUserData] = useState(null);
-    const [notifications, setNotifications] = useState(true);
-    const [locationServices, setLocationServices] = useState(false);
+    const [showLanguagePicker, setShowLanguagePicker] = useState(false);
+
+    const LANGUAGES = [
+        { code: 'en', label: 'English', flag: '🇺🇸' },
+        { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
+    ];
 
     useEffect(() => {
         loadUserData();
@@ -127,10 +139,10 @@ export default function SettingsScreen() {
     };
 
     const handleLogout = () => {
-        Alert.alert('Log Out', 'Are you sure?', [
-            { text: 'Cancel', style: 'cancel' },
+        Alert.alert(t('logOut'), t('logOutConfirm'), [
+            { text: t('cancel'), style: 'cancel' },
             {
-                text: 'Log Out',
+                text: t('logOut'),
                 style: 'destructive',
                 onPress: async () => {
                     await AsyncStorage.removeItem('userToken');
@@ -140,9 +152,10 @@ export default function SettingsScreen() {
         ]);
     };
 
+    const languageDisplayName = LANGUAGES.find(l => l.code === language)?.label || 'English';
+
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-            {/* Background Gradient - Dark mode only */}
             {/* Top Gradient Glow matching Profile */}
             <View style={{ position: 'absolute', top: 0, width: '100%', height: 300 }}>
                 <LinearGradient
@@ -164,13 +177,13 @@ export default function SettingsScreen() {
                 >
                     <ArrowLeft size={24} color={colors.text} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: colors.text }]}>Settings</Text>
+                <Text style={[styles.headerTitle, { color: colors.text }]}>{t('settings')}</Text>
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
                 {/* Account Section */}
-                <Section title="Account" colors={colors} isDarkMode={isDarkMode}>
+                <Section title={t('account')} colors={colors} isDarkMode={isDarkMode}>
                     <View style={styles.accountRow}>
                         <View style={[styles.avatarPlaceholder, {
                             backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : colors.primary + '20',
@@ -181,14 +194,14 @@ export default function SettingsScreen() {
                             </Text>
                         </View>
                         <View style={styles.accountInfo}>
-                            <Text style={[styles.accountName, { color: colors.text }]}>{userData?.name || 'Road Mate User'}</Text>
+                            <Text style={[styles.accountName, { color: colors.text }]}>{userData?.name || t('roadMateUser')}</Text>
                             <Text style={[styles.accountEmail, { color: colors.textSecondary }]}>{userData?.email || 'user@roadmate.com'}</Text>
                         </View>
                     </View>
                 </Section>
 
                 {/* Subscription Section */}
-                <Section title="Subscription" colors={colors} isDarkMode={isDarkMode}>
+                <Section title={t('subscription')} colors={colors} isDarkMode={isDarkMode}>
                     <View style={{ padding: 16 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -201,10 +214,10 @@ export default function SettingsScreen() {
                                 </View>
                                 <View>
                                     <Text style={[styles.menuLabel, { color: colors.text }]}>
-                                        {isPro ? 'RoadMate Pro' : 'Free Plan'}
+                                        {isPro ? t('roadMatePro') : t('freePlan')}
                                     </Text>
                                     <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
-                                        {isPro ? 'All features unlocked' : 'Limited features'}
+                                        {isPro ? t('allFeaturesUnlocked') : t('limitedFeatures')}
                                     </Text>
                                 </View>
                             </View>
@@ -213,7 +226,7 @@ export default function SettingsScreen() {
                                     backgroundColor: '#C5A05920', paddingHorizontal: 10, paddingVertical: 4,
                                     borderRadius: 10, borderWidth: 1, borderColor: '#C5A05940',
                                 }}>
-                                    <Text style={{ color: '#C5A059', fontSize: 11, fontWeight: 'bold' }}>ACTIVE</Text>
+                                    <Text style={{ color: '#C5A059', fontSize: 11, fontWeight: 'bold' }}>{t('active')}</Text>
                                 </View>
                             )}
                         </View>
@@ -227,11 +240,11 @@ export default function SettingsScreen() {
                                 onPress={() => router.push('/paywall')}
                             >
                                 <Crown size={16} color="#FFF" />
-                                <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 14 }}>Upgrade to Pro</Text>
+                                <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 14 }}>{t('upgradeToPro')}</Text>
                             </TouchableOpacity>
                         ) : (
                             <Text style={{ fontSize: 12, color: colors.textSecondary, textAlign: 'center' }}>
-                                Manage your subscription in device settings
+                                {t('manageSubscription')}
                             </Text>
                         )}
 
@@ -240,17 +253,17 @@ export default function SettingsScreen() {
                             onPress={restorePurchases}
                         >
                             <Text style={{ fontSize: 13, color: colors.textSecondary, textDecorationLine: 'underline' }}>
-                                Restore Purchases
+                                {t('restorePurchases')}
                             </Text>
                         </TouchableOpacity>
                     </View>
                 </Section>
 
                 {/* Preferences Section */}
-                <Section title="Preferences" colors={colors} isDarkMode={isDarkMode}>
+                <Section title={t('preferences')} colors={colors} isDarkMode={isDarkMode}>
                     <MenuItem
                         icon={Bell}
-                        label="Notifications"
+                        label={t('notifications')}
                         type="toggle"
                         toggleValue={notifications}
                         onToggle={setNotifications}
@@ -259,7 +272,7 @@ export default function SettingsScreen() {
                     />
                     <MenuItem
                         icon={Moon}
-                        label="Dark Mode"
+                        label={t('darkMode')}
                         type="toggle"
                         toggleValue={isDarkMode}
                         onToggle={toggleTheme}
@@ -268,7 +281,7 @@ export default function SettingsScreen() {
                     />
                     <MenuItem
                         icon={MapPin}
-                        label="Location Services"
+                        label={t('locationServices')}
                         type="toggle"
                         toggleValue={locationServices}
                         onToggle={setLocationServices}
@@ -277,26 +290,32 @@ export default function SettingsScreen() {
                     />
                     <MenuItem
                         icon={Globe}
-                        label="Language"
-                        value="English"
+                        label={t('language')}
+                        value={languageDisplayName}
                         isLast
+                        onPress={() => setShowLanguagePicker(true)}
                         colors={colors}
                         isDarkMode={isDarkMode}
                     />
                 </Section>
 
                 {/* Vehicle Section */}
-                <Section title="Vehicle" colors={colors} isDarkMode={isDarkMode}>
+                <Section title={t('vehicle')} colors={colors} isDarkMode={isDarkMode}>
                     <View style={styles.vehicleRow}>
                         <Car size={24} color={colors.primary} style={[styles.vehicleIcon, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : colors.primary + '10' }]} />
                         <View>
-                            <Text style={[styles.menuLabel, { color: colors.text }]}>My Vehicle</Text>
-                            <Text style={[styles.menuSubLabel, { color: colors.textSecondary }]}>{userData?.vehicle || 'Mercedes Sprinter'}</Text>
+                            <Text style={[styles.menuLabel, { color: colors.text }]}>{t('myVehicle')}</Text>
+                            <Text style={[styles.menuSubLabel, { color: colors.textSecondary }]}>
+                                {userData?.vehicleBrand && userData?.vehicleModel
+                                    ? `${userData.vehicleBrand} ${userData.vehicleModel}`
+                                    : (userData?.vehicle || t('notSpecified'))}
+                            </Text>
                         </View>
                     </View>
                     <View style={[styles.divider, { backgroundColor: colors.border }]} />
                     <MenuItem
-                        label="Edit vehicle info"
+                        label={t('editVehicleInfo')}
+                        onPress={() => router.push('/vehicle-info')}
                         isLast
                         colors={colors}
                         isDarkMode={isDarkMode}
@@ -305,39 +324,38 @@ export default function SettingsScreen() {
 
                 {/* Privacy & About Grid */}
                 <View style={styles.gridRow}>
-                    <Section title="Privacy & Security" style={styles.gridItem} colors={colors} isDarkMode={isDarkMode}>
-                        <TouchableOpacity style={[styles.smallMenuItem, { borderBottomColor: colors.border }]}>
+                    <Section title={t('privacySecurity')} style={styles.gridItem} colors={colors} isDarkMode={isDarkMode}>
+                        <TouchableOpacity style={[styles.smallMenuItem, { borderBottomColor: colors.border }]} onPress={() => router.push('/change-password')}>
                             <Lock size={16} color={colors.textSecondary} />
-                            <Text style={[styles.smallMenuLabel, { color: colors.text }]}>Change Password</Text>
+                            <Text style={[styles.smallMenuLabel, { color: colors.text }]}>{t('changePassword')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={[styles.smallMenuItem, { borderBottomColor: colors.border }]}>
                             <UserX size={16} color={colors.textSecondary} />
-                            <Text style={[styles.smallMenuLabel, { color: colors.text }]}>Blocked Users</Text>
+                            <Text style={[styles.smallMenuLabel, { color: colors.text }]}>{t('blockedUsers')}</Text>
                             <ChevronRight size={12} color={colors.textSecondary} />
                         </TouchableOpacity>
                         <TouchableOpacity style={[styles.smallMenuItem, { borderBottomWidth: 0 }]}>
                             <Trash2 size={16} color={colors.error} />
-                            <Text style={[styles.smallMenuLabel, { color: colors.error }]}>Delete Account</Text>
+                            <Text style={[styles.smallMenuLabel, { color: colors.error }]}>{t('deleteAccount')}</Text>
                         </TouchableOpacity>
                     </Section>
 
-                    <Section title="About" style={styles.gridItem} colors={colors} isDarkMode={isDarkMode}>
+                    <Section title={t('about')} style={styles.gridItem} colors={colors} isDarkMode={isDarkMode}>
                         <TouchableOpacity style={[styles.smallMenuItem, { borderBottomColor: colors.border }]}>
                             <FileText size={16} color={colors.textSecondary} />
-                            <Text style={[styles.smallMenuLabel, { color: colors.text }]}>Terms</Text>
+                            <Text style={[styles.smallMenuLabel, { color: colors.text }]}>{t('terms')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={[styles.smallMenuItem, { borderBottomColor: colors.border }]}>
                             <Shield size={16} color={colors.textSecondary} />
-                            <Text style={[styles.smallMenuLabel, { color: colors.text }]}>Privacy</Text>
+                            <Text style={[styles.smallMenuLabel, { color: colors.text }]}>{t('privacy')}</Text>
                         </TouchableOpacity>
                         <View style={[styles.smallMenuItem, { borderBottomWidth: 0, justifyContent: 'space-between' }]}>
-                            <Text style={[styles.smallMenuLabel, { color: colors.text }]}>Version</Text>
+                            <Text style={[styles.smallMenuLabel, { color: colors.text }]}>{t('version')}</Text>
                             <Text style={[styles.versionText, { color: colors.textSecondary }]}>1.0.0</Text>
                         </View>
                     </Section>
                 </View>
 
-                {/* Logout Button */}
                 {/* Logout Section */}
                 <Section colors={colors} isDarkMode={isDarkMode} style={{ marginTop: 10 }}>
                     <TouchableOpacity
@@ -346,12 +364,46 @@ export default function SettingsScreen() {
                     >
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                             <LogOut size={20} color={colors.error} style={{ marginRight: 8 }} />
-                            <Text style={[styles.menuLabel, { color: colors.error, marginLeft: 0 }]}>Log Out</Text>
+                            <Text style={[styles.menuLabel, { color: colors.error, marginLeft: 0 }]}>{t('logOut')}</Text>
                         </View>
                     </TouchableOpacity>
                 </Section>
 
             </ScrollView>
+
+            {/* Language Picker Modal */}
+            <Modal
+                visible={showLanguagePicker}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowLanguagePicker(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowLanguagePicker(false)}
+                >
+                    <View style={[styles.languageModal, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} onStartShouldSetResponder={() => true}>
+                        <Text style={[styles.languageModalTitle, { color: colors.text }]}>{t('selectLanguage')}</Text>
+                        {LANGUAGES.map((lang) => (
+                            <TouchableOpacity
+                                key={lang.code}
+                                style={[styles.languageOption, { borderBottomColor: colors.border }]}
+                                onPress={() => {
+                                    setLanguage(lang.code);
+                                    setShowLanguagePicker(false);
+                                }}
+                            >
+                                <Text style={styles.languageFlag}>{lang.flag}</Text>
+                                <Text style={[styles.languageLabel, { color: colors.text }]}>{lang.label}</Text>
+                                {language === lang.code && (
+                                    <Check size={18} color={colors.primary} />
+                                )}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </View>
     );
 }
@@ -515,5 +567,38 @@ const styles = StyleSheet.create({
     logoutText: {
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    languageModal: {
+        width: '80%',
+        borderRadius: 20,
+        padding: 20,
+        borderWidth: 1,
+    },
+    languageModalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 16,
+        textAlign: 'center',
+    },
+    languageOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        gap: 12,
+    },
+    languageFlag: {
+        fontSize: 24,
+    },
+    languageLabel: {
+        fontSize: 16,
+        fontWeight: '500',
+        flex: 1,
     },
 });

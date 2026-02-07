@@ -1,27 +1,36 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Image, Platform, KeyboardAvoidingView, Modal, FlatList } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Save, User, Mail, Car, FileText, Camera } from 'lucide-react-native';
+import { ArrowLeft, Save, User, Mail, FileText, Camera, Sparkles, Wand2, X } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { UserService, BASE_URL } from '../services/api';
 import { getColors } from '../constants/Colors';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSubscription } from '../contexts/SubscriptionContext';
 
 export default function EditProfileScreen() {
     const router = useRouter();
     const { isDarkMode } = useTheme();
     const colors = getColors(isDarkMode);
+    const { isPro } = useSubscription();
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [showAiSuggestions, setShowAiSuggestions] = useState(false);
+    const [aiSuggestions, setAiSuggestions] = useState([]);
     const [userData, setUserData] = useState({
         name: '',
         email: '',
         vehicle: '',
-        bio: '', // Assuming 'status' is mapped to bio or similar
+        vehicleBrand: '',
+        vehicleModel: '',
+        bio: '',
+        tagline: '',
+        location: '',
         profileImageUrl: null
     });
 
@@ -39,7 +48,11 @@ export default function EditProfileScreen() {
                     name: user.name || '',
                     email: user.email || '',
                     vehicle: user.vehicle || '',
-                    bio: user.status || '', // Using status as bio
+                    vehicleBrand: user.vehicleBrand || '',
+                    vehicleModel: user.vehicleModel || '',
+                    bio: user.status || '',
+                    tagline: user.tagline || '',
+                    location: user.location || '',
                     profileImageUrl: user.profileImageUrl ?
                         (user.profileImageUrl.startsWith('http') ? user.profileImageUrl : `${BASE_URL}${user.profileImageUrl}`)
                         : null
@@ -65,8 +78,8 @@ export default function EditProfileScreen() {
             if (token) {
                 const updateData = {
                     name: userData.name,
-                    vehicle: userData.vehicle,
                     status: userData.bio,
+                    tagline: userData.tagline,
                 };
 
                 await UserService.updateProfile(updateData, token);
@@ -86,6 +99,38 @@ export default function EditProfileScreen() {
             Alert.alert('Error', 'Failed to update profile');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const generateTaglineSuggestions = async () => {
+        setAiLoading(true);
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+            const prompt = `Generate 5 short creative profile taglines (max 40 chars each) for a road trip / van life app user. User info: Name: "${userData.name}", Vehicle: "${userData.vehicleBrand} ${userData.vehicleModel}".  Return ONLY a JSON array of 5 strings, no explanation. Example: ["Tagline 1","Tagline 2","Tagline 3","Tagline 4","Tagline 5"]`;
+
+            const response = await fetch(`${BASE_URL}/api/ai/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ message: prompt }),
+            });
+
+            if (!response.ok) {
+                Alert.alert('Error', 'Failed to generate suggestions');
+                return;
+            }
+
+            const data = await response.json();
+            const parsed = JSON.parse(data.reply);
+            setAiSuggestions(Array.isArray(parsed) ? parsed : []);
+            setShowAiSuggestions(true);
+        } catch (error) {
+            console.error('AI tagline error:', error);
+            Alert.alert('Error', 'Could not generate tagline suggestions');
+        } finally {
+            setAiLoading(false);
         }
     };
 
@@ -231,18 +276,39 @@ export default function EditProfileScreen() {
                                 </View>
 
                                 <View style={styles.inputGroup}>
-                                    <Text style={[styles.label, { color: colors.textSecondary }]}>Vehicle Model</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <Text style={[styles.label, { color: colors.textSecondary }]}>Tagline</Text>
+                                        {isPro && (
+                                            <TouchableOpacity
+                                                onPress={generateTaglineSuggestions}
+                                                disabled={aiLoading}
+                                                style={{
+                                                    flexDirection: 'row', alignItems: 'center', gap: 4,
+                                                    backgroundColor: '#C5A05915', paddingHorizontal: 10, paddingVertical: 4,
+                                                    borderRadius: 8, borderWidth: 1, borderColor: '#C5A05930',
+                                                }}
+                                            >
+                                                {aiLoading ? (
+                                                    <ActivityIndicator size={14} color="#C5A059" />
+                                                ) : (
+                                                    <Wand2 size={14} color="#C5A059" />
+                                                )}
+                                                <Text style={{ color: '#C5A059', fontSize: 12, fontWeight: '600' }}>AI Suggest</Text>
+                                            </TouchableOpacity>
+                                        )}
+                                    </View>
                                     <View style={[styles.inputWrapper, {
                                         backgroundColor: isDarkMode ? 'rgba(0,0,0,0.2)' : colors.background,
                                         borderColor: colors.border
                                     }]}>
-                                        <Car size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                                        <Sparkles size={20} color={colors.textSecondary} style={styles.inputIcon} />
                                         <TextInput
                                             style={[styles.input, { color: colors.text }]}
-                                            value={userData.vehicle}
-                                            onChangeText={(text) => setUserData({ ...userData, vehicle: text })}
-                                            placeholder="e.g. Mercedes Sprinter"
+                                            value={userData.tagline}
+                                            onChangeText={(text) => setUserData({ ...userData, tagline: text })}
+                                            placeholder="e.g. Van Life Enthusiast | Explorer"
                                             placeholderTextColor={colors.textSecondary + '80'}
+                                            maxLength={50}
                                         />
                                     </View>
                                 </View>
@@ -296,6 +362,45 @@ export default function EditProfileScreen() {
 
                 </ScrollView>
             </KeyboardAvoidingView>
+
+            {/* AI Suggestions Modal */}
+            <Modal visible={showAiSuggestions} transparent animationType="slide">
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, {
+                        backgroundColor: isDarkMode ? '#1a1a2e' : '#fff',
+                        borderColor: colors.cardBorder,
+                    }]}>
+                        <View style={styles.modalHeader}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <Wand2 size={20} color="#C5A059" />
+                                <Text style={[styles.modalTitle, { color: colors.text }]}>AI Suggestions</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowAiSuggestions(false)}>
+                                <X size={22} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 16 }}>
+                            Tap a suggestion to use it as your tagline
+                        </Text>
+                        {aiSuggestions.map((suggestion, index) => (
+                            <TouchableOpacity
+                                key={index}
+                                style={[styles.suggestionItem, {
+                                    backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                                    borderColor: colors.cardBorder,
+                                }]}
+                                onPress={() => {
+                                    setUserData({ ...userData, tagline: suggestion });
+                                    setShowAiSuggestions(false);
+                                }}
+                            >
+                                <Sparkles size={16} color={colors.primary} />
+                                <Text style={{ color: colors.text, fontSize: 14, flex: 1 }}>{suggestion}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -422,5 +527,35 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         letterSpacing: 0.5,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+        borderWidth: 1,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    suggestionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: 14,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginBottom: 8,
     },
 });
