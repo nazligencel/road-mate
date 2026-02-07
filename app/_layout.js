@@ -3,12 +3,14 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Colors, getColors } from '../constants/Colors';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { DiscussionProvider } from '../contexts/DiscussionContext';
 import { SubscriptionProvider } from '../contexts/SubscriptionContext';
-import { SettingsProvider } from '../contexts/SettingsContext';
+import { SettingsProvider, useSettings } from '../contexts/SettingsContext';
+import * as Notifications from 'expo-notifications';
+import { registerForPushNotificationsAsync } from '../utils/notifications';
 // Dynamic GoogleSignin import moved inside useEffect
 
 function RootLayoutNav() {
@@ -17,6 +19,9 @@ function RootLayoutNav() {
     const [isMounted, setIsMounted] = useState(false);
     const { isDarkMode } = useTheme();
     const colors = getColors(isDarkMode);
+    const { notifications: notificationsEnabled } = useSettings();
+    const notificationListener = useRef();
+    const responseListener = useRef();
 
     useEffect(() => {
         setIsMounted(true);
@@ -31,6 +36,45 @@ function RootLayoutNav() {
             console.log("Google Signin logic skipped (native module not found).");
         }
     }, []);
+
+    // Push notification registration
+    useEffect(() => {
+        if (!isMounted || !notificationsEnabled) return;
+
+        const setupNotifications = async () => {
+            const token = await AsyncStorage.getItem('userToken');
+            if (token) {
+                await registerForPushNotificationsAsync(token);
+            }
+        };
+
+        setupNotifications();
+
+        // Listener for notifications received while app is foregrounded
+        notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+            console.log('Notification received:', notification);
+        });
+
+        // Listener for when user taps on a notification
+        responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+            const data = response.notification.request.content.data;
+            if (data?.type === 'SOS' && data?.lat && data?.lng) {
+                router.push({
+                    pathname: '/(tabs)/explore',
+                    params: { focusLat: data.lat, focusLng: data.lng }
+                });
+            }
+        });
+
+        return () => {
+            if (notificationListener.current) {
+                Notifications.removeNotificationSubscription(notificationListener.current);
+            }
+            if (responseListener.current) {
+                Notifications.removeNotificationSubscription(responseListener.current);
+            }
+        };
+    }, [isMounted, notificationsEnabled]);
 
     useEffect(() => {
         if (!isMounted) return;

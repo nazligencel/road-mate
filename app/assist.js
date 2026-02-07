@@ -30,6 +30,8 @@ export default function AssistScreen() {
     const [filter, setFilter] = useState('open');
     const [sosActive, setSosActive] = useState(false);
     const [sosLoading, setSosLoading] = useState(false);
+    const [sosActivatedAt, setSosActivatedAt] = useState(null);
+    const [sosCountdown, setSosCountdown] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
@@ -50,12 +52,15 @@ export default function AssistScreen() {
             const token = await AsyncStorage.getItem('userToken');
             if (sosActive) {
                 const result = await SOSService.deactivate(token);
-                if (result.success) setSosActive(false);
+                if (result.success) {
+                    setSosActive(false);
+                    setSosActivatedAt(null);
+                }
                 setSosLoading(false);
             } else {
                 Alert.alert(
                     'Activate SOS',
-                    'This will alert nearby users that you need roadside help. Continue?',
+                    'This will send push notifications to all nearby users within 100km. Continue?',
                     [
                         { text: 'Cancel', style: 'cancel', onPress: () => setSosLoading(false) },
                         {
@@ -63,7 +68,15 @@ export default function AssistScreen() {
                             style: 'destructive',
                             onPress: async () => {
                                 const result = await SOSService.activate(token);
-                                if (result.success) setSosActive(true);
+                                if (result.success) {
+                                    setSosActive(true);
+                                    setSosActivatedAt(result.sosActivatedAt || new Date().toISOString());
+                                    const count = result.notifiedCount || 0;
+                                    Alert.alert(
+                                        'SOS Activated',
+                                        `${count} nearby user${count !== 1 ? 's have' : ' has'} been notified via push notification.`
+                                    );
+                                }
                                 setSosLoading(false);
                             }
                         }
@@ -76,6 +89,36 @@ export default function AssistScreen() {
             setSosLoading(false);
         }
     };
+
+    // SOS countdown timer — 2 hour auto-expire
+    useEffect(() => {
+        if (!sosActive || !sosActivatedAt) {
+            setSosCountdown('');
+            return;
+        }
+
+        const updateCountdown = () => {
+            const activated = new Date(sosActivatedAt);
+            const expires = new Date(activated.getTime() + 2 * 60 * 60 * 1000);
+            const now = new Date();
+            const remaining = expires - now;
+
+            if (remaining <= 0) {
+                setSosActive(false);
+                setSosActivatedAt(null);
+                setSosCountdown('');
+                return;
+            }
+
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+            setSosCountdown(`Auto-expires in ${minutes}m ${seconds}s`);
+        };
+
+        updateCountdown();
+        const interval = setInterval(updateCountdown, 1000);
+        return () => clearInterval(interval);
+    }, [sosActive, sosActivatedAt]);
 
     useEffect(() => {
         loadRequests();
@@ -226,7 +269,9 @@ export default function AssistScreen() {
                         {sosActive ? 'SOS Active — Nearby users are alerted' : 'Emergency SOS'}
                     </Text>
                     <Text style={styles.sosSubtitle}>
-                        {sosActive ? 'Tap to deactivate' : 'Alert nearby users you need roadside help'}
+                        {sosActive
+                            ? (sosCountdown || 'Tap to deactivate')
+                            : 'Alert nearby users you need roadside help'}
                     </Text>
                 </View>
                 {!isPro && (

@@ -63,6 +63,13 @@ export default {
                 {
                     photosPermission: "Allow Road Mate to access your photos to set profile picture."
                 }
+            ],
+            [
+                "expo-notifications",
+                {
+                    icon: "./assets/icon.png",
+                    color: "#EF4444"
+                }
             ]
         ]
     }
