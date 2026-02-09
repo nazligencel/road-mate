@@ -860,6 +860,60 @@ export const AssistService = {
     }
 };
 
+export const BlockService = {
+    async blockUser(userId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/blocks/${userId}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Block user error:', error);
+            return { success: false };
+        }
+    },
+
+    async unblockUser(userId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/blocks/${userId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Unblock user error:', error);
+            return { success: false };
+        }
+    },
+
+    async getBlockedUsers(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/blocks`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) return [];
+            return await response.json();
+        } catch (error) {
+            console.error('Get blocked users error:', error);
+            return [];
+        }
+    },
+
+    async checkBlocked(userId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/blocks/check/${userId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) return { isBlocked: false, isBlockedByThem: false };
+            return await response.json();
+        } catch (error) {
+            console.error('Check blocked error:', error);
+            return { isBlocked: false, isBlockedByThem: false };
+        }
+    }
+};
+
 export const AIService = {
     async chat(message, token) {
         try {

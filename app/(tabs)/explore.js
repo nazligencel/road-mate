@@ -5,10 +5,10 @@ import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Search, Filter, Compass, Navigation, Zap, Wrench, ShoppingCart, ShoppingBag, ShoppingBasket, Fuel, MessageSquare, ArrowUpRight, Car, X, MapPin, AlertTriangle, Crown, Route } from 'lucide-react-native';
+import { Search, Filter, Compass, Navigation, Zap, Wrench, ShoppingCart, ShoppingBag, ShoppingBasket, Fuel, MessageSquare, ArrowUpRight, Car, X, MapPin, AlertTriangle, Crown, Route, ShieldBan } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { NomadService, PlacesService, NotificationService, SOSService } from '../../services/api';
+import { NomadService, PlacesService, NotificationService, SOSService, BlockService } from '../../services/api';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 import { useSettings } from '../../contexts/SettingsContext';
 
@@ -148,12 +148,11 @@ export default function ExploreScreen() {
                                         newLocation.coords.longitude,
                                         token
                                     );
-                                    if (realNomads && realNomads.length > 0) {
-                                        const nomadsWithType = realNomads.map(n => ({ ...n, type: 'nomad' }));
-                                        setActiveMarkers(nomadsWithType);
-                                    } else {
-                                        setActiveMarkers(mockPlaces.nomads);
-                                    }
+                                    const nomadsWithType = (realNomads || []).map(n => ({ ...n, type: 'nomad' }));
+                                    // Merge real nomads with mock, avoid duplicate IDs
+                                    const realIds = new Set(nomadsWithType.map(n => n.id));
+                                    const filtered = mockPlaces.nomads.filter(m => !realIds.has(m.id));
+                                    setActiveMarkers([...nomadsWithType, ...filtered]);
                                 } catch (err) {
                                     console.log("Initial nomad fetch error:", err);
                                     setActiveMarkers(mockPlaces.nomads);
@@ -261,15 +260,12 @@ export default function ExploreScreen() {
                     token
                 );
 
-                if (realNomads && realNomads.length > 0) {
-                    console.log(`✅ Fetched ${realNomads.length} real nomads`);
-                    // Add type field for marker rendering
-                    const nomadsWithType = realNomads.map(n => ({ ...n, type: 'nomad' }));
-                    setActiveMarkers(nomadsWithType);
-                } else {
-                    console.log(`⚠️ No real nomads found, using mock data`);
-                    updateMarkers(category, nearbyPlaces);
-                }
+                const nomadsWithType = (realNomads || []).map(n => ({ ...n, type: 'nomad' }));
+                // Merge real nomads with mock, avoid duplicate IDs
+                const realIds = new Set(nomadsWithType.map(n => n.id));
+                const mockNomads = nearbyPlaces.nomads.filter(m => !realIds.has(m.id));
+                console.log(`✅ ${nomadsWithType.length} real + ${mockNomads.length} mock nomads`);
+                setActiveMarkers([...nomadsWithType, ...mockNomads]);
             } else {
                 // For non-nomad categories, fetch from Google Places API
                 const realPlaces = await PlacesService.getNearbyPlaces(
@@ -654,6 +650,46 @@ export default function ExploreScreen() {
                                     <MapPin size={24} color="#0C1210" />
                                     <Text style={styles.mainActionBtnText}>Create Meeting Point</Text>
                                 </TouchableOpacity>
+
+                                {/* Block User Button */}
+                                {activeCategory === 'nomads' && (
+                                    <TouchableOpacity
+                                        style={styles.blockUserBtn}
+                                        onPress={() => {
+                                            Alert.alert(
+                                                'Block User',
+                                                `Are you sure you want to block ${selectedNomad.name || 'this user'}?`,
+                                                [
+                                                    { text: 'Cancel', style: 'cancel' },
+                                                    {
+                                                        text: 'Block',
+                                                        style: 'destructive',
+                                                        onPress: async () => {
+                                                            try {
+                                                                const token = await AsyncStorage.getItem('userToken');
+                                                                if (token) {
+                                                                    const result = await BlockService.blockUser(selectedNomad.id, token);
+                                                                    if (result.success) {
+                                                                        // Remove from markers immediately
+                                                                        setActiveMarkers(prev => prev.filter(m => m.id !== selectedNomad.id));
+                                                                        setSelectedNomad(null);
+                                                                    } else {
+                                                                        Alert.alert('Error', result.error || 'Failed to block user');
+                                                                    }
+                                                                }
+                                                            } catch (error) {
+                                                                Alert.alert('Error', 'Failed to block user');
+                                                            }
+                                                        }
+                                                    }
+                                                ]
+                                            );
+                                        }}
+                                    >
+                                        <ShieldBan size={16} color="#EF4444" />
+                                        <Text style={styles.blockUserBtnText}>Block User</Text>
+                                    </TouchableOpacity>
+                                )}
                             </View>
                         )}
                     </View>
@@ -776,5 +812,7 @@ const createStyles = (colors) => StyleSheet.create({
     infoCardLabel: { color: colors.textSecondary, fontSize: 10, marginBottom: 4 },
     infoCardValue: { color: colors.text, fontSize: 14, fontWeight: 'bold' },
     mainActionBtn: { backgroundColor: colors.primary, height: 55, borderRadius: 15, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
-    mainActionBtnText: { color: '#000', fontWeight: 'bold', fontSize: 16 }
+    mainActionBtnText: { color: '#000', fontWeight: 'bold', fontSize: 16 },
+    blockUserBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 12, paddingVertical: 10 },
+    blockUserBtnText: { color: '#EF4444', fontSize: 14, fontWeight: '600' },
 });

@@ -1,19 +1,32 @@
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
+let Notifications;
+let Device;
+try {
+    Notifications = require('expo-notifications');
+    Device = require('expo-device');
+} catch (e) {
+    console.log('Notification modules not available:', e.message);
+}
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { UserService } from '../services/api';
 
 // Configure how notifications appear when app is in foreground
-Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-    }),
-});
+if (Notifications) {
+    Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+            shouldShowAlert: true,
+            shouldPlaySound: true,
+            shouldSetBadge: true,
+        }),
+    });
+}
 
 export async function registerForPushNotificationsAsync(token) {
+    if (!Notifications || !Device) {
+        console.log('Notification modules not loaded, skipping registration');
+        return null;
+    }
+
     let pushToken;
 
     if (!Device.isDevice) {
