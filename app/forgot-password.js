@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { Mail, ChevronLeft, Tent, CheckCircle2, ArrowRight, Lock, KeyRound, Eye, EyeOff } from 'lucide-react-native';
 import { getColors } from '../constants/Colors';
 import { useTheme } from '../contexts/ThemeContext';
+import { isValidEmail } from '../utils/validation';
 
 const { width, height } = Dimensions.get('window');
 
@@ -50,7 +51,7 @@ export default function ForgotPasswordScreen() {
     });
 
     const handleSendEmail = async () => {
-        if (!email || !email.includes('@')) {
+        if (!email || !isValidEmail(email)) {
             Alert.alert('Invalid Email', 'Please enter a valid email address.');
             return;
         }

@@ -55,6 +55,14 @@ const translations = {
 
         // Location disabled
         locationDisabled: 'Location disabled',
+
+        // Validation
+        fieldRequired: 'This field is required',
+        invalidEmail: 'Please enter a valid email address',
+        passwordTooShort: 'Password must be at least 6 characters',
+        passwordsDoNotMatch: 'Passwords do not match',
+        fieldTooLong: 'This field is too long',
+        nameTooLong: 'Name must be at most 50 characters',
     },
     tr: {
         // Settings Screen
@@ -112,6 +120,14 @@ const translations = {
 
         // Location disabled
         locationDisabled: 'Konum kapalı',
+
+        // Validation
+        fieldRequired: 'Bu alan zorunludur',
+        invalidEmail: 'Geçerli bir e-posta adresi giriniz',
+        passwordTooShort: 'Şifre en az 6 karakter olmalıdır',
+        passwordsDoNotMatch: 'Şifreler eşleşmiyor',
+        fieldTooLong: 'Bu alan çok uzun',
+        nameTooLong: 'İsim en fazla 50 karakter olmalıdır',
     },
 };
 

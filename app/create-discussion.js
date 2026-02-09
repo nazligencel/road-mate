@@ -139,6 +139,7 @@ export default function CreateDiscussionScreen() {
                         style={styles.input}
                         value={title}
                         onChangeText={setTitle}
+                        maxLength={200}
                     />
                 </View>
 
@@ -153,6 +154,7 @@ export default function CreateDiscussionScreen() {
                         textAlignVertical="top"
                         value={description}
                         onChangeText={setDescription}
+                        maxLength={5000}
                     />
                 </View>
 
