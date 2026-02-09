@@ -20,6 +20,7 @@ const ADVENTURE_THEME = {
 import * as Location from 'expo-location';
 import { AuthService } from '../services/AuthService';
 import { useSettings } from '../contexts/SettingsContext';
+import { isValidEmail, isNotEmpty } from '../utils/validation';
 // Dynamic GoogleSignin import moved inside functions to prevent crash on boot
 
 export default function LoginScreen() {
@@ -86,6 +87,19 @@ export default function LoginScreen() {
     const [password, setPassword] = useState('');
 
     const handleLogin = async () => {
+        if (!isNotEmpty(email)) {
+            alert("Please enter your email address.");
+            return;
+        }
+        if (!isValidEmail(email)) {
+            alert("Please enter a valid email address.");
+            return;
+        }
+        if (!isNotEmpty(password)) {
+            alert("Please enter your password.");
+            return;
+        }
+
         try {
             // Test login - backend'de test kullanıcısı oluşturur ve token döner
             const response = await AuthService.testLogin();

@@ -6,6 +6,7 @@ import { User, Mail, Lock, Eye, EyeOff, Tent, ArrowLeft, Compass, Droplets, Moun
 // Dynamic GoogleSignin import moved inside handleGoogleLogin to prevent crash on boot
 import { AuthService } from '../services/AuthService';
 import { Image } from 'react-native';
+import { isValidEmail, isValidPassword } from '../utils/validation';
 
 const { width } = Dimensions.get('window');
 
@@ -48,6 +49,14 @@ export default function SignupScreen() {
     const handleSignup = async () => {
         if (!name || !email || !password) {
             alert("Lütfen tüm alanları doldurunuz.");
+            return;
+        }
+        if (!isValidEmail(email)) {
+            alert("Geçerli bir e-posta adresi giriniz.");
+            return;
+        }
+        if (!isValidPassword(password)) {
+            alert("Şifre en az 6 karakter olmalıdır.");
             return;
         }
 
@@ -162,6 +171,7 @@ export default function SignupScreen() {
                                             placeholderTextColor="rgba(255,255,255,0.3)"
                                             value={name}
                                             onChangeText={setName}
+                                            maxLength={50}
                                         />
                                     </View>
 
@@ -187,6 +197,7 @@ export default function SignupScreen() {
                                             value={password}
                                             onChangeText={setPassword}
                                             secureTextEntry={!showPassword}
+                                            maxLength={100}
                                         />
                                         <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                                             {showPassword ? (

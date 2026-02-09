@@ -67,8 +67,12 @@ export default function EditProfileScreen() {
     };
 
     const handleSave = async () => {
-        if (!userData.name) {
+        if (!userData.name || !userData.name.trim()) {
             Alert.alert('Error', 'Name is required');
+            return;
+        }
+        if (userData.name.trim().length > 50) {
+            Alert.alert('Error', 'Name must be at most 50 characters');
             return;
         }
 
@@ -254,6 +258,7 @@ export default function EditProfileScreen() {
                                             onChangeText={(text) => setUserData({ ...userData, name: text })}
                                             placeholder="Enter your name"
                                             placeholderTextColor={colors.textSecondary + '80'}
+                                            maxLength={50}
                                         />
                                     </View>
                                 </View>

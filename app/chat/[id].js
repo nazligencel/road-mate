@@ -252,6 +252,7 @@ export default function ChatDetailScreen() {
                         value={inputText}
                         onChangeText={setInputText}
                         multiline
+                        maxLength={5000}
                     />
                     <TouchableOpacity
                         onPress={handleSend}

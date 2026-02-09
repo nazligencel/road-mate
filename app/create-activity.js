@@ -43,7 +43,7 @@ export default function CreateActivityScreen() {
     };
 
     const handleCreate = async () => {
-        if (!formData.title || !formData.location || !formData.date) {
+        if (!formData.title.trim() || !formData.location.trim() || !formData.date) {
             Alert.alert('Missing Fields', 'Please fill in all required fields.');
             return;
         }
@@ -132,6 +132,7 @@ export default function CreateActivityScreen() {
                                     placeholderTextColor={colors.textSecondary}
                                     value={formData.title}
                                     onChangeText={(text) => setFormData({ ...formData, title: text })}
+                                    maxLength={200}
                                 />
                             </View>
                         </View>
@@ -205,6 +206,7 @@ export default function CreateActivityScreen() {
                                     value={formData.description}
                                     onChangeText={(text) => setFormData({ ...formData, description: text })}
                                     multiline
+                                    maxLength={2000}
                                 />
                             </View>
                         </View>
