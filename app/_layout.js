@@ -9,8 +9,15 @@ import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { DiscussionProvider } from '../contexts/DiscussionContext';
 import { SubscriptionProvider } from '../contexts/SubscriptionContext';
 import { SettingsProvider, useSettings } from '../contexts/SettingsContext';
-import * as Notifications from 'expo-notifications';
-import { registerForPushNotificationsAsync } from '../utils/notifications';
+let Notifications;
+let registerForPushNotificationsAsync;
+try {
+    Notifications = require('expo-notifications');
+    const notifUtils = require('../utils/notifications');
+    registerForPushNotificationsAsync = notifUtils.registerForPushNotificationsAsync;
+} catch (e) {
+    console.log('Notifications module not available:', e.message);
+}
 // Dynamic GoogleSignin import moved inside useEffect
 
 function RootLayoutNav() {
@@ -39,12 +46,16 @@ function RootLayoutNav() {
 
     // Push notification registration
     useEffect(() => {
-        if (!isMounted || !notificationsEnabled) return;
+        if (!isMounted || !notificationsEnabled || !Notifications) return;
 
         const setupNotifications = async () => {
-            const token = await AsyncStorage.getItem('userToken');
-            if (token) {
-                await registerForPushNotificationsAsync(token);
+            try {
+                const token = await AsyncStorage.getItem('userToken');
+                if (token && registerForPushNotificationsAsync) {
+                    await registerForPushNotificationsAsync(token);
+                }
+            } catch (e) {
+                console.log('Push notification setup skipped:', e.message);
             }
         };
 
@@ -126,6 +137,7 @@ function RootLayoutNav() {
                     <Stack.Screen name="settings" options={{ headerShown: false }} />
                     <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
                     <Stack.Screen name="vehicle-info" options={{ headerShown: false }} />
+                    <Stack.Screen name="blocked-users" options={{ headerShown: false }} />
                 </Stack>
             </SafeAreaProvider>
         </GestureHandlerRootView>

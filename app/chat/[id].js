@@ -1,13 +1,13 @@
-import { View, Text, StyleSheet, TextInput, FlatList, KeyboardAvoidingView, Platform, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, FlatList, KeyboardAvoidingView, Platform, TouchableOpacity, Image, ActivityIndicator, Alert, Modal } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../constants/Colors';
-import { ArrowLeft, Send, Phone, Video } from 'lucide-react-native';
+import { ArrowLeft, Send, Phone, Video, MoreVertical, ShieldOff, ShieldBan } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MessageService } from '../../services/api';
+import { MessageService, BlockService } from '../../services/api';
 
 const formatTime = (dateString) => {
     if (!dateString) return '';
@@ -24,7 +24,70 @@ export default function ChatDetailScreen() {
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
+    const [isBlocked, setIsBlocked] = useState(false);
+    const [isBlockedByThem, setIsBlockedByThem] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
     const flatListRef = useRef(null);
+
+    // Check block status on mount
+    useEffect(() => {
+        const checkBlockStatus = async () => {
+            try {
+                const token = await AsyncStorage.getItem('userToken');
+                if (token) {
+                    const result = await BlockService.checkBlocked(id, token);
+                    setIsBlocked(result.isBlocked);
+                    setIsBlockedByThem(result.isBlockedByThem);
+                }
+            } catch (error) {
+                console.error('Error checking block status:', error);
+            }
+        };
+        checkBlockStatus();
+    }, [id]);
+
+    const handleBlock = async () => {
+        setShowMenu(false);
+        Alert.alert(
+            'Block User',
+            `Are you sure you want to block ${name || 'this user'}? They won't be able to message you.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Block',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const token = await AsyncStorage.getItem('userToken');
+                            if (token) {
+                                const result = await BlockService.blockUser(id, token);
+                                if (result.success) {
+                                    setIsBlocked(true);
+                                }
+                            }
+                        } catch (error) {
+                            Alert.alert('Error', 'Failed to block user');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleUnblock = async () => {
+        setShowMenu(false);
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+            if (token) {
+                const result = await BlockService.unblockUser(id, token);
+                if (result.success) {
+                    setIsBlocked(false);
+                }
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to unblock user');
+        }
+    };
 
     const loadMessages = async () => {
         try {
@@ -108,9 +171,29 @@ export default function ChatDetailScreen() {
                         <TouchableOpacity style={styles.iconButton}>
                             <Video size={20} color={colors.primary} />
                         </TouchableOpacity>
+                        <TouchableOpacity style={styles.iconButton} onPress={() => setShowMenu(true)}>
+                            <MoreVertical size={20} color={colors.textSecondary} />
+                        </TouchableOpacity>
                     </View>
                 </View>
             </SafeAreaView>
+
+            {/* Block Banner */}
+            {isBlocked && (
+                <View style={[styles.blockBanner, { backgroundColor: isDarkMode ? '#7f1d1d' : '#fef2f2' }]}>
+                    <ShieldBan size={16} color="#EF4444" />
+                    <Text style={[styles.blockBannerText, { color: '#EF4444' }]}>You blocked this user</Text>
+                    <TouchableOpacity onPress={handleUnblock}>
+                        <Text style={[styles.unblockLink, { color: colors.primary }]}>Unblock</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+            {isBlockedByThem && !isBlocked && (
+                <View style={[styles.blockBanner, { backgroundColor: isDarkMode ? '#7f1d1d' : '#fef2f2' }]}>
+                    <ShieldOff size={16} color="#EF4444" />
+                    <Text style={[styles.blockBannerText, { color: '#EF4444' }]}>You can't reply to this conversation</Text>
+                </View>
+            )}
 
             {loading ? (
                 <View style={styles.loadingContainer}>
@@ -150,32 +233,65 @@ export default function ChatDetailScreen() {
             />
             )}
 
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-                style={[styles.inputContainer, {
-                    backgroundColor: isDarkMode ? '#1e293b' : '#FFF',
-                    borderTopColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
-                }]}
-            >
-                <TextInput
-                    style={[styles.input, {
-                        backgroundColor: isDarkMode ? 'rgba(0,0,0,0.2)' : '#F1F5F9',
-                        color: colors.text
+            {!(isBlocked || isBlockedByThem) && (
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+                    style={[styles.inputContainer, {
+                        backgroundColor: isDarkMode ? '#1e293b' : '#FFF',
+                        borderTopColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
                     }]}
-                    placeholder="Type a message..."
-                    placeholderTextColor={colors.textSecondary}
-                    value={inputText}
-                    onChangeText={setInputText}
-                    multiline
-                />
-                <TouchableOpacity
-                    onPress={handleSend}
-                    style={[styles.sendButton, { backgroundColor: colors.primary }]}
                 >
-                    <Send size={20} color="#FFF" />
+                    <TextInput
+                        style={[styles.input, {
+                            backgroundColor: isDarkMode ? 'rgba(0,0,0,0.2)' : '#F1F5F9',
+                            color: colors.text
+                        }]}
+                        placeholder="Type a message..."
+                        placeholderTextColor={colors.textSecondary}
+                        value={inputText}
+                        onChangeText={setInputText}
+                        multiline
+                    />
+                    <TouchableOpacity
+                        onPress={handleSend}
+                        style={[styles.sendButton, { backgroundColor: colors.primary }]}
+                    >
+                        <Send size={20} color="#FFF" />
+                    </TouchableOpacity>
+                </KeyboardAvoidingView>
+            )}
+
+            {/* Menu Modal */}
+            <Modal
+                visible={showMenu}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowMenu(false)}
+            >
+                <TouchableOpacity
+                    style={styles.menuOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowMenu(false)}
+                >
+                    <View style={[styles.menuContainer, {
+                        backgroundColor: isDarkMode ? '#334155' : '#FFF',
+                        borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                    }]}>
+                        {isBlocked ? (
+                            <TouchableOpacity style={styles.menuOption} onPress={handleUnblock}>
+                                <ShieldOff size={18} color={colors.primary} />
+                                <Text style={[styles.menuOptionText, { color: colors.text }]}>Unblock User</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity style={styles.menuOption} onPress={handleBlock}>
+                                <ShieldBan size={18} color="#EF4444" />
+                                <Text style={[styles.menuOptionText, { color: '#EF4444' }]}>Block User</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </TouchableOpacity>
-            </KeyboardAvoidingView>
+            </Modal>
         </View>
     );
 }
@@ -286,5 +402,50 @@ const styles = StyleSheet.create({
         borderRadius: 22,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    blockBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+    },
+    blockBannerText: {
+        flex: 1,
+        fontSize: 13,
+        fontWeight: '500',
+    },
+    unblockLink: {
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    menuOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        justifyContent: 'flex-start',
+        alignItems: 'flex-end',
+        paddingTop: 110,
+        paddingRight: 16,
+    },
+    menuContainer: {
+        borderRadius: 12,
+        borderWidth: 1,
+        minWidth: 180,
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+    },
+    menuOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+    },
+    menuOptionText: {
+        fontSize: 15,
+        fontWeight: '500',
     },
 });

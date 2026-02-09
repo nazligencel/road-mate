@@ -329,7 +329,7 @@ export default function SettingsScreen() {
                             <Lock size={16} color={colors.textSecondary} />
                             <Text style={[styles.smallMenuLabel, { color: colors.text }]}>{t('changePassword')}</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.smallMenuItem, { borderBottomColor: colors.border }]}>
+                        <TouchableOpacity style={[styles.smallMenuItem, { borderBottomColor: colors.border }]} onPress={() => router.push('/blocked-users')}>
                             <UserX size={16} color={colors.textSecondary} />
                             <Text style={[styles.smallMenuLabel, { color: colors.text }]}>{t('blockedUsers')}</Text>
                             <ChevronRight size={12} color={colors.textSecondary} />
