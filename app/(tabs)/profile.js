@@ -15,14 +15,6 @@ import * as Location from 'expo-location';
 
 const { width } = Dimensions.get('window');
 
-const PHOTOS = [
-    'https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=400&q=80',
-    'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400&q=80',
-    'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=400&q=80',
-    'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400&q=80',
-    'https://images.unsplash.com/photo-1533873984035-25970ab07461?w=400&q=80',
-    'https://images.unsplash.com/photo-1504851149312-7a075b496cc7?w=400&q=80',
-];
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -35,7 +27,7 @@ export default function ProfileScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [connectionCount, setConnectionCount] = useState(0);
     const [selectedImage, setSelectedImage] = useState(null);
-    const [galleryPhotos, setGalleryPhotos] = useState(PHOTOS);
+    const [galleryPhotos, setGalleryPhotos] = useState([]);
     const [currentLocation, setCurrentLocation] = useState('');
     const { savedIds } = useDiscussions();
     const { isPro } = useSubscription();
@@ -99,11 +91,8 @@ export default function ProfileScreen() {
                         : 'Unknown',
                 });
 
-                // Use backend gallery or fallback to dummy photos if empty
                 if (profileData.galleryImages && profileData.galleryImages.length > 0) {
                     setGalleryPhotos(profileData.galleryImages);
-                } else {
-                    setGalleryPhotos(PHOTOS); // Keep dummy photos for visual if none
                 }
 
                 setConnectionCount(countData.count);
@@ -168,21 +157,31 @@ export default function ProfileScreen() {
                             style={styles.avatar}
                         />
                         <View style={styles.onlineStatus} />
-                    </View>
-
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <Text style={styles.name}>{user?.name || 'Loading...'}</Text>
                         {isPro && (
                             <View style={{
-                                flexDirection: 'row', alignItems: 'center', gap: 4,
-                                backgroundColor: '#C5A05920', paddingHorizontal: 8, paddingVertical: 3,
-                                borderRadius: 10, borderWidth: 1, borderColor: '#C5A05940',
+                                position: 'absolute',
+                                top: -2,
+                                right: -2,
+                                width: 28,
+                                height: 28,
+                                borderRadius: 14,
+                                backgroundColor: '#C5A059',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                borderWidth: 2.5,
+                                borderColor: colors.background,
+                                shadowColor: '#C5A059',
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.5,
+                                shadowRadius: 4,
+                                elevation: 5,
                             }}>
-                                <Crown size={12} color="#C5A059" />
-                                <Text style={{ color: '#C5A059', fontSize: 11, fontWeight: 'bold' }}>PRO</Text>
+                                <Crown size={14} color="#FFF" strokeWidth={2.5} />
                             </View>
                         )}
                     </View>
+
+                    <Text style={styles.name}>{user?.name || 'Loading...'}</Text>
                     <Text style={styles.username}>{user?.username}</Text>
 
                     {user?.tagline ? (
@@ -204,7 +203,7 @@ export default function ProfileScreen() {
                         </View>
                         <View style={[styles.statDivider, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]} />
                         <View style={styles.stat}>
-                            <Text style={[styles.statValue, { color: colors.text }]}>12</Text>
+                            <Text style={[styles.statValue, { color: colors.text }]}>{galleryPhotos.length}</Text>
                             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Build Posts</Text>
                         </View>
                         <View style={[styles.statDivider, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]} />

@@ -7,7 +7,7 @@ import { getColors } from '../constants/Colors';
 import { ArrowLeft, Calendar, MapPin, AlignLeft, Type, Clock, Camera } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ActivityService } from '../services/api';
+import { ActivityService, PlacesService } from '../services/api';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as ImagePicker from 'expo-image-picker';
 
@@ -28,6 +28,34 @@ export default function CreateActivityScreen() {
         type: 'Social',
         image: null
     });
+
+    const [locationSuggestions, setLocationSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const locationTimeout = React.useRef(null);
+
+    const handleLocationChange = (text) => {
+        setFormData({ ...formData, location: text });
+
+        if (locationTimeout.current) clearTimeout(locationTimeout.current);
+
+        if (text.length < 2) {
+            setLocationSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
+
+        locationTimeout.current = setTimeout(async () => {
+            const suggestions = await PlacesService.autocomplete(text);
+            setLocationSuggestions(suggestions);
+            setShowSuggestions(suggestions.length > 0);
+        }, 300);
+    };
+
+    const selectLocation = (suggestion) => {
+        setFormData({ ...formData, location: suggestion.description });
+        setShowSuggestions(false);
+        setLocationSuggestions([]);
+    };
 
     const pickImage = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -58,9 +86,13 @@ export default function CreateActivityScreen() {
 
             let imageUrl = null;
             if (formData.image) {
-                // Upload image first
-                const uploadResult = await ActivityService.uploadActivityImage(formData.image, token);
-                imageUrl = uploadResult.imageUrl;
+                try {
+                    const uploadResult = await ActivityService.uploadActivityImage(formData.image, token);
+                    imageUrl = uploadResult.imageUrl;
+                } catch (uploadError) {
+                    console.error('Image upload failed:', uploadError);
+                    // Continue without image
+                }
             }
 
             await ActivityService.createActivity({ ...formData, image: imageUrl }, token);
@@ -137,18 +169,35 @@ export default function CreateActivityScreen() {
                             </View>
                         </View>
 
-                        <View style={styles.inputGroup}>
+                        <View style={[styles.inputGroup, { zIndex: 10 }]}>
                             <Text style={[styles.label, { color: colors.textSecondary }]}>LOCATION</Text>
                             <View style={[styles.inputWrapper, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.2)' : '#F1F5F9' }]}>
                                 <MapPin size={20} color={colors.textSecondary} />
                                 <TextInput
                                     style={[styles.input, { color: colors.text }]}
-                                    placeholder="Joshua Tree, Campsite B..."
+                                    placeholder="Istanbul, Berlin, Paris..."
                                     placeholderTextColor={colors.textSecondary}
                                     value={formData.location}
-                                    onChangeText={(text) => setFormData({ ...formData, location: text })}
+                                    onChangeText={handleLocationChange}
                                 />
                             </View>
+                            {showSuggestions && (
+                                <View style={[styles.suggestionsContainer, { backgroundColor: isDarkMode ? '#1e293b' : '#FFF', borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }]}>
+                                    {locationSuggestions.map((item, index) => (
+                                        <TouchableOpacity
+                                            key={item.placeId || index}
+                                            style={[styles.suggestionItem, index < locationSuggestions.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F1F5F9' }]}
+                                            onPress={() => selectLocation(item)}
+                                        >
+                                            <MapPin size={16} color={colors.textSecondary} />
+                                            <View style={{ flex: 1, marginLeft: 10 }}>
+                                                <Text style={[styles.suggestionMain, { color: colors.text }]}>{item.mainText}</Text>
+                                                {item.secondaryText ? <Text style={[styles.suggestionSecondary, { color: colors.textSecondary }]}>{item.secondaryText}</Text> : null}
+                                            </View>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            )}
                         </View>
 
                         <View style={styles.row}>
@@ -338,5 +387,26 @@ const styles = StyleSheet.create({
     imagePlaceholderText: {
         fontSize: 14,
         fontWeight: '600',
+    },
+    suggestionsContainer: {
+        marginTop: 4,
+        borderRadius: 12,
+        borderWidth: 1,
+        overflow: 'hidden',
+        maxHeight: 200,
+    },
+    suggestionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+    },
+    suggestionMain: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    suggestionSecondary: {
+        fontSize: 12,
+        marginTop: 2,
     },
 });

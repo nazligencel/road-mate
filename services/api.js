@@ -75,19 +75,24 @@ export const PlacesService = {
     async getNearbyPlaces(lat, lng, category, radius = 5000) {
         try {
             const url = `${BASE_URL}/api/places/nearby?lat=${lat}&lng=${lng}&category=${category}&radius=${radius}`;
-            console.log('📍 Fetching places from backend:', category);
-
             const response = await fetch(url);
-            if (!response.ok) {
-                console.error(`❌ Places fetch failed (${response.status})`);
-                return [];
-            }
-
-            const places = await response.json();
-            console.log(`✅ Received ${places.length} ${category} from backend`);
-            return places;
+            if (!response.ok) return [];
+            return await response.json();
         } catch (error) {
             console.error('Error fetching places from backend:', error);
+            return [];
+        }
+    },
+
+    async autocomplete(input) {
+        try {
+            if (!input || input.length < 2) return [];
+            const url = `${BASE_URL}/api/places/autocomplete?input=${encodeURIComponent(input)}`;
+            const response = await fetch(url);
+            if (!response.ok) return [];
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching autocomplete:', error);
             return [];
         }
     }
@@ -649,15 +654,15 @@ export const ActivityService = {
             const formData = new FormData();
             const filename = imageUri.split('/').pop();
             const match = /\.(\w+)$/.exec(filename);
-            const type = match ? `image/${match[1]}` : `image/jpeg`;
+            const type = match ? `image/${match[1]}` : 'image/jpeg';
+            const uri = Platform.OS === 'android' ? imageUri : imageUri.replace('file://', '');
 
-            formData.append('file', { uri: imageUri, name: filename, type });
+            formData.append('file', { uri, name: filename, type });
 
             const response = await fetch(`${BASE_URL}/api/activities/upload-image`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data',
                 },
                 body: formData,
             });
@@ -842,6 +847,40 @@ export const AssistService = {
             return result;
         } catch (error) {
             console.error('Add assist message error:', error);
+            throw error;
+        }
+    },
+
+    async edit(id, data, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/assist/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Failed to edit request');
+            return result;
+        } catch (error) {
+            console.error('Edit assist request error:', error);
+            throw error;
+        }
+    },
+
+    async delete(id, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/assist/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Failed to delete request');
+            return result;
+        } catch (error) {
+            console.error('Delete assist request error:', error);
             throw error;
         }
     },

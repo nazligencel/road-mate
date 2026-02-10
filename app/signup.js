@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Dimensions, ImageBackground, Animated } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Dimensions, ImageBackground, Animated, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { User, Mail, Lock, Eye, EyeOff, Tent, ArrowLeft, Compass, Droplets, Mountain } from 'lucide-react-native';
@@ -148,138 +148,143 @@ export default function SignupScreen() {
                             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                             style={styles.mainContent}
                         >
-                            <View style={styles.logoSection}>
-                                <View style={styles.logoCircle}>
-                                    <Tent color="rgba(255,255,255,0.9)" size={28} strokeWidth={1.5} />
-                                </View>
-                                <Text style={styles.mainTitle}>JOIN TRIBE</Text>
-                            </View>
-
-                            {/* Transparent Flu Card */}
-                            <View style={styles.fluCard}>
-                                <View style={styles.cardHeader}>
-                                    <Text style={styles.welcomeTitle}>Create Account</Text>
-                                    <Text style={styles.welcomeSubtitle}>New roads, new friends. Join the journey!</Text>
+                            <ScrollView
+                                contentContainerStyle={styles.scrollContent}
+                                showsVerticalScrollIndicator={false}
+                            >
+                                <View style={styles.logoSection}>
+                                    <View style={styles.logoCircle}>
+                                        <Tent color="rgba(255,255,255,0.9)" size={28} strokeWidth={1.5} />
+                                    </View>
+                                    <Text style={styles.mainTitle}>JOIN TRIBE</Text>
                                 </View>
 
-                                <View style={styles.form}>
-                                    <View style={styles.inputWrapper}>
-                                        <User color="rgba(255,255,255,0.5)" size={20} style={styles.inputIcon} />
-                                        <TextInput
-                                            style={styles.input}
-                                            placeholder="Full Name"
-                                            placeholderTextColor="rgba(255,255,255,0.3)"
-                                            value={name}
-                                            onChangeText={setName}
-                                            maxLength={50}
-                                        />
+                                {/* Transparent Flu Card */}
+                                <View style={styles.fluCard}>
+                                    <View style={styles.cardHeader}>
+                                        <Text style={styles.welcomeTitle}>Create Account</Text>
+                                        <Text style={styles.welcomeSubtitle}>New roads, new friends. Join the journey!</Text>
                                     </View>
 
-                                    <View style={styles.inputWrapper}>
-                                        <Mail color="rgba(255,255,255,0.5)" size={20} style={styles.inputIcon} />
-                                        <TextInput
-                                            style={styles.input}
-                                            placeholder="Email Address"
-                                            placeholderTextColor="rgba(255,255,255,0.3)"
-                                            value={email}
-                                            onChangeText={setEmail}
-                                            keyboardType="email-address"
-                                            autoCapitalize="none"
-                                        />
-                                    </View>
+                                    <View style={styles.form}>
+                                        <View style={styles.inputWrapper}>
+                                            <User color="rgba(255,255,255,0.5)" size={20} style={styles.inputIcon} />
+                                            <TextInput
+                                                style={styles.input}
+                                                placeholder="Full Name"
+                                                placeholderTextColor="rgba(255,255,255,0.3)"
+                                                value={name}
+                                                onChangeText={setName}
+                                                maxLength={50}
+                                            />
+                                        </View>
 
-                                    <View style={styles.inputWrapper}>
-                                        <Lock color="rgba(255,255,255,0.5)" size={20} style={styles.inputIcon} />
-                                        <TextInput
-                                            style={styles.input}
-                                            placeholder="Password"
-                                            placeholderTextColor="rgba(255,255,255,0.3)"
-                                            value={password}
-                                            onChangeText={setPassword}
-                                            secureTextEntry={!showPassword}
-                                            maxLength={100}
-                                        />
-                                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                                            {showPassword ? (
-                                                <EyeOff color="rgba(255,255,255,0.5)" size={20} />
-                                            ) : (
-                                                <Eye color="rgba(255,255,255,0.5)" size={20} />
-                                            )}
+                                        <View style={styles.inputWrapper}>
+                                            <Mail color="rgba(255,255,255,0.5)" size={20} style={styles.inputIcon} />
+                                            <TextInput
+                                                style={styles.input}
+                                                placeholder="Email Address"
+                                                placeholderTextColor="rgba(255,255,255,0.3)"
+                                                value={email}
+                                                onChangeText={setEmail}
+                                                keyboardType="email-address"
+                                                autoCapitalize="none"
+                                            />
+                                        </View>
+
+                                        <View style={styles.inputWrapper}>
+                                            <Lock color="rgba(255,255,255,0.5)" size={20} style={styles.inputIcon} />
+                                            <TextInput
+                                                style={styles.input}
+                                                placeholder="Password"
+                                                placeholderTextColor="rgba(255,255,255,0.3)"
+                                                value={password}
+                                                onChangeText={setPassword}
+                                                secureTextEntry={!showPassword}
+                                                maxLength={100}
+                                            />
+                                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                                {showPassword ? (
+                                                    <EyeOff color="rgba(255,255,255,0.5)" size={20} />
+                                                ) : (
+                                                    <Eye color="rgba(255,255,255,0.5)" size={20} />
+                                                )}
+                                            </TouchableOpacity>
+                                        </View>
+
+                                        <TouchableOpacity
+                                            style={styles.primaryBtn}
+                                            onPress={handleSignup}
+                                            activeOpacity={0.9}
+                                        >
+                                            <LinearGradient
+                                                colors={['#4A7A8C', '#5AB2BF']}
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 1, y: 0 }}
+                                                style={styles.primaryBtnGradient}
+                                            >
+                                                <Text style={styles.primaryBtnText}>{loading ? 'Creating...' : 'Sign Up'}</Text>
+                                                {/* Shimmer Effect */}
+                                                <Animated.View
+                                                    style={[
+                                                        styles.shimmer,
+                                                        { transform: [{ translateX: shimmerTranslate }] }
+                                                    ]}
+                                                >
+                                                    <LinearGradient
+                                                        colors={['transparent', 'rgba(255,255,255,0.3)', 'transparent']}
+                                                        start={{ x: 0, y: 0 }}
+                                                        end={{ x: 1, y: 0 }}
+                                                        style={{ width: 80, height: '100%' }}
+                                                    />
+                                                </Animated.View>
+                                            </LinearGradient>
                                         </TouchableOpacity>
                                     </View>
 
-                                    <TouchableOpacity
-                                        style={styles.primaryBtn}
-                                        onPress={handleSignup}
-                                        activeOpacity={0.9}
-                                    >
-                                        <LinearGradient
-                                            colors={['#4A7A8C', '#5AB2BF']}
-                                            start={{ x: 0, y: 0 }}
-                                            end={{ x: 1, y: 0 }}
-                                            style={styles.primaryBtnGradient}
-                                        >
-                                            <Text style={styles.primaryBtnText}>{loading ? 'Creating...' : 'Sign Up'}</Text>
-                                            {/* Shimmer Effect */}
-                                            <Animated.View
-                                                style={[
-                                                    styles.shimmer,
-                                                    { transform: [{ translateX: shimmerTranslate }] }
-                                                ]}
-                                            >
-                                                <LinearGradient
-                                                    colors={['transparent', 'rgba(255,255,255,0.3)', 'transparent']}
-                                                    start={{ x: 0, y: 0 }}
-                                                    end={{ x: 1, y: 0 }}
-                                                    style={{ width: 80, height: '100%' }}
-                                                />
-                                            </Animated.View>
-                                        </LinearGradient>
-                                    </TouchableOpacity>
+                                    {/* Social Login Divider */}
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 10 }}>
+                                        <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                                        <Text style={{ color: 'rgba(255,255,255,0.4)', marginHorizontal: 10, fontSize: 10 }}>OR CONTINUE WITH</Text>
+                                        <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                                    </View>
+
+                                    {/* Social Buttons */}
+                                    <View style={styles.socialGrid}>
+                                        <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
+                                            <Image
+                                                source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }}
+                                                style={{ width: 24, height: 24 }}
+                                            />
+                                            <Text style={styles.socialButtonText}>Google</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity style={styles.socialButton} onPress={() => alert('Apple Login Coming Soon')}>
+                                            <Image
+                                                source={{ uri: 'https://img.icons8.com/ios-filled/50/ffffff/mac-os.png' }}
+                                                style={{ width: 24, height: 24 }}
+                                            />
+                                            <Text style={styles.socialButtonText}>Apple</Text>
+                                        </TouchableOpacity>
+                                    </View>
+
+                                    <View style={styles.cardFooter}>
+                                        <Text style={styles.footerText}>
+                                            Already a member? <Text style={styles.loginLink} onPress={() => router.back()}>Login</Text>
+                                        </Text>
+                                    </View>
                                 </View>
 
-                                {/* Social Login Divider */}
-                                <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 10 }}>
-                                    <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-                                    <Text style={{ color: 'rgba(255,255,255,0.4)', marginHorizontal: 10, fontSize: 10 }}>OR CONTINUE WITH</Text>
-                                    <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                                {/* Bottom Branding - Now inside ScrollView */}
+                                <View style={styles.bottomBranding}>
+                                    <View style={styles.footerIcons}>
+                                        <Compass color="rgba(255,255,255,0.3)" size={16} />
+                                        <Droplets color="rgba(255,255,255,0.3)" size={16} />
+                                        <Mountain color="rgba(255,255,255,0.3)" size={16} />
+                                    </View>
+                                    <Text style={styles.establishedText}>ESTABLISHED IN THE WILD</Text>
                                 </View>
-
-                                {/* Social Buttons */}
-                                <View style={styles.socialGrid}>
-                                    <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
-                                        <Image
-                                            source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }}
-                                            style={{ width: 24, height: 24 }}
-                                        />
-                                        <Text style={styles.socialButtonText}>Google</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.socialButton} onPress={() => alert('Apple Login Coming Soon')}>
-                                        <Image
-                                            source={{ uri: 'https://img.icons8.com/ios-filled/50/ffffff/mac-os.png' }}
-                                            style={{ width: 24, height: 24 }}
-                                        />
-                                        <Text style={styles.socialButtonText}>Apple</Text>
-                                    </TouchableOpacity>
-                                </View>
-
-                                <View style={styles.cardFooter}>
-                                    <Text style={styles.footerText}>
-                                        Already a member? <Text style={styles.loginLink} onPress={() => router.back()}>Login</Text>
-                                    </Text>
-                                </View>
-                            </View>
+                            </ScrollView>
                         </KeyboardAvoidingView>
-
-                        {/* Bottom Branding */}
-                        <View style={styles.bottomBranding}>
-                            <View style={styles.footerIcons}>
-                                <Compass color="rgba(255,255,255,0.3)" size={16} />
-                                <Droplets color="rgba(255,255,255,0.3)" size={16} />
-                                <Mountain color="rgba(255,255,255,0.3)" size={16} />
-                            </View>
-                            <Text style={styles.establishedText}>ESTABLISHED IN THE WILD</Text>
-                        </View>
                     </View>
                 </LinearGradient>
             </ImageBackground>
@@ -356,38 +361,42 @@ const styles = StyleSheet.create({
     },
     mainContent: {
         flex: 1,
+        width: '100%',
+    },
+    scrollContent: {
+        flexGrow: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        width: '100%',
+        paddingVertical: 10,
     },
     logoSection: {
         alignItems: 'center',
-        marginBottom: 32,
+        marginBottom: 16,
     },
     logoCircle: {
-        width: 56,
-        height: 56,
-        borderRadius: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 16,
         backgroundColor: 'rgba(255,255,255,0.1)',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.2)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 8,
     },
     mainTitle: {
-        fontSize: 24,
+        fontSize: 18,
         fontWeight: '800',
         color: '#FFF',
-        letterSpacing: 6,
+        letterSpacing: 4,
         textTransform: 'uppercase',
     },
     fluCard: {
         width: '100%',
         // Increased opacity and switched to a dark tint for better white text readability
         backgroundColor: 'rgba(13, 26, 31, 0.60)',
-        borderRadius: 24,
-        padding: 32,
+        borderRadius: 20,
+        padding: 20,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.15)',
         // Shadow for depth
@@ -395,56 +404,56 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.5,
         shadowRadius: 20,
-        gap: 24,
+        gap: 16,
     },
     cardHeader: {
         alignItems: 'center',
-        gap: 4,
-        marginBottom: 8,
+        gap: 2,
+        marginBottom: 4,
     },
     welcomeTitle: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: 'bold',
         color: '#FFF',
     },
     welcomeSubtitle: {
         color: 'rgba(255,255,255,0.6)',
-        fontSize: 12,
+        fontSize: 11,
     },
     form: {
-        gap: 16,
+        gap: 12,
     },
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        height: 56,
+        height: 48,
         backgroundColor: 'rgba(0,0,0,0.2)', // Slightly darker input bg for contrast
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 16,
-        paddingHorizontal: 16,
+        borderRadius: 14,
+        paddingHorizontal: 14,
     },
     inputIcon: {
-        marginRight: 12,
+        marginRight: 10,
     },
     input: {
         flex: 1,
         color: '#FFF',
-        fontSize: 16,
+        fontSize: 15,
         height: '100%',
     },
     primaryBtn: {
         width: '100%',
-        height: 56,
+        height: 48,
         backgroundColor: ADVENTURE_THEME.primary,
-        borderRadius: 16,
+        borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: ADVENTURE_THEME.primary,
-        shadowOffset: { width: 0, height: 8 },
+        shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.4,
-        shadowRadius: 16,
-        marginTop: 8,
+        shadowRadius: 12,
+        marginTop: 4,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.2)',
         overflow: 'hidden',
@@ -454,7 +463,7 @@ const styles = StyleSheet.create({
         height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: 16,
+        borderRadius: 14,
         overflow: 'hidden',
     },
     shimmer: {
@@ -467,7 +476,7 @@ const styles = StyleSheet.create({
     },
     primaryBtnText: {
         color: '#FFF',
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: 'bold',
     },
     cardFooter: {
@@ -475,7 +484,7 @@ const styles = StyleSheet.create({
     },
     footerText: {
         color: 'rgba(255,255,255,0.4)',
-        fontSize: 12,
+        fontSize: 11,
     },
     loginLink: {
         color: ADVENTURE_THEME.primary,
@@ -483,12 +492,13 @@ const styles = StyleSheet.create({
     },
     bottomBranding: {
         alignItems: 'center',
-        gap: 12,
-        paddingTop: 20,
+        gap: 8,
+        paddingTop: 12,
+        paddingBottom: 12,
     },
     footerIcons: {
         flexDirection: 'row',
-        gap: 24,
+        gap: 16,
         opacity: 0.5,
     },
     establishedText: {
@@ -500,23 +510,23 @@ const styles = StyleSheet.create({
     },
     socialGrid: {
         flexDirection: 'row',
-        gap: 16,
+        gap: 12,
     },
     socialButton: {
         flex: 1,
-        height: 50,
+        height: 44,
         backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 16,
+        borderRadius: 14,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 10,
+        gap: 8,
     },
     socialButtonText: {
         color: '#FFF',
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: 'bold',
     },
 });

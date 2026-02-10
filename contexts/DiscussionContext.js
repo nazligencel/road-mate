@@ -4,27 +4,6 @@ import { DiscussionService } from '../services/api';
 
 const DiscussionContext = createContext();
 
-const INITIAL_DISCUSSIONS = [
-    {
-        id: 1,
-        title: 'Help with Solar Setup?',
-        author: 'NewbieVan',
-        replies: 24,
-        tag: 'Electrical',
-        preview: 'I have 200W panels but my battery keeps draining...',
-        time: '2h ago',
-        image: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&q=80'
-    },
-    {
-        id: 2,
-        title: 'Best insulation for cold climates?',
-        author: 'SnowSeeker',
-        replies: 12,
-        tag: 'General',
-        preview: 'Looking at Havelock wool vs Spray foam. Thoughts?',
-        time: '5h ago'
-    },
-];
 
 // Map backend DTO to frontend format
 const mapDtoToDiscussion = (dto) => ({
@@ -42,7 +21,7 @@ const mapDtoToDiscussion = (dto) => ({
 });
 
 export function DiscussionProvider({ children }) {
-    const [discussions, setDiscussions] = useState(INITIAL_DISCUSSIONS);
+    const [discussions, setDiscussions] = useState([]);
     const [savedIds, setSavedIds] = useState([]);
     const [loading, setLoading] = useState(false);
 

@@ -14,34 +14,9 @@ import { useSettings } from '../../contexts/SettingsContext';
 
 const { width, height } = Dimensions.get('window');
 
-// Helper function to generate places near the user's location
-const generateNearbyPlaces = (userLat, userLng) => {
-    const mechanics = [
-        { id: 101, name: "Jake's Garage", type: 'mechanic', distance: 3.2, coordinate: { latitude: userLat + 0.01, longitude: userLng + 0.008 }, image: 'https://images.unsplash.com/photo-1487754180477-db33d3d63b0a?w=100&q=80', status: 'Open', vehicle: 'Repair', vehicle_model: 'All Types' },
-        { id: 102, name: "AutoFix Center", type: 'mechanic', distance: 5.5, coordinate: { latitude: userLat - 0.015, longitude: userLng + 0.012 }, image: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=100&q=80', status: 'Closed', vehicle: 'Service', vehicle_model: 'Engine Specialist' },
-        { id: 103, name: "Pro Mechanics", type: 'mechanic', distance: 2.1, coordinate: { latitude: userLat + 0.005, longitude: userLng - 0.01 }, image: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=100&q=80', status: 'Open', vehicle: 'Repair', vehicle_model: 'German Cars' },
-    ];
-
-    const markets = [
-        { id: 201, name: "Bio Store", type: 'market', distance: 1.8, coordinate: { latitude: userLat - 0.005, longitude: userLng + 0.005 }, image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=100&q=80', status: 'Open 24/7', vehicle: 'Groceries', vehicle_model: 'Organic' },
-        { id: 202, name: "City Supermarket", type: 'market', distance: 4.0, coordinate: { latitude: userLat + 0.02, longitude: userLng - 0.015 }, image: 'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?w=100&q=80', status: 'Open', vehicle: 'Supplies', vehicle_model: 'General' },
-        { id: 203, name: "Fresh Market", type: 'market', distance: 0.8, coordinate: { latitude: userLat + 0.002, longitude: userLng + 0.003 }, image: 'https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=100&q=80', status: 'Open', vehicle: 'Fresh Food', vehicle_model: 'Local' },
-    ];
-
-    const fuelStations = [
-        { id: 301, name: "Shell Station", type: 'fuel', distance: 2.5, coordinate: { latitude: userLat + 0.008, longitude: userLng + 0.015 }, image: 'https://images.unsplash.com/photo-1545459720-aac3e5c2fa0c?w=100&q=80', status: 'Open 24/7', vehicle: 'Fuel', vehicle_model: 'Diesel/Petrol' },
-        { id: 302, name: "BP Express", type: 'fuel', distance: 6.2, coordinate: { latitude: userLat - 0.025, longitude: userLng + 0.02 }, image: 'https://images.unsplash.com/photo-1626847037657-fd3622613ce3?w=100&q=80', status: 'Open', vehicle: 'Fuel', vehicle_model: 'EV Charging' },
-        { id: 303, name: "Total Petrol", type: 'fuel', distance: 1.5, coordinate: { latitude: userLat - 0.003, longitude: userLng - 0.008 }, image: 'https://images.unsplash.com/photo-1611735341450-74d61e660ad2?w=100&q=80', status: 'Open 24/7', vehicle: 'Fuel', vehicle_model: 'LPG/Diesel' },
-    ];
-
-    const nomads = [
-        { id: 1, name: 'Selin', distance: 2.4, status: 'Active', vehicle: '4x4 Off-road', vehicleModel: 'VW Transporter T4', route: 'North', image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80', coordinate: { latitude: userLat + 0.012, longitude: userLng - 0.008 }, type: 'nomad' },
-        { id: 2, name: 'Jax', distance: 5.1, status: 'Offline', vehicle: 'Ford Transit', vehicleModel: 'Ford Transit Custom', route: 'South', image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&q=80', coordinate: { latitude: userLat - 0.018, longitude: userLng + 0.015 }, type: 'nomad' },
-        { id: 3, name: 'Sage', distance: 8.2, status: 'Active', vehicle: 'Vanagon', vehicleModel: 'VW Westfalia', route: 'West', image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&q=80', coordinate: { latitude: userLat + 0.025, longitude: userLng + 0.02 }, type: 'nomad' },
-        { id: 4, name: 'Luna', distance: 1.2, status: 'Active', vehicle: 'Sprinter', vehicleModel: 'Mercedes Sprinter', route: 'East', image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&q=80', coordinate: { latitude: userLat - 0.004, longitude: userLng - 0.006 }, type: 'nomad' },
-    ];
-
-    return { mechanics, markets, fuelStations, nomads };
+// Returns empty place categories — real data comes from API
+const generateEmptyPlaces = () => {
+    return { mechanics: [], markets: [], fuelStations: [], nomads: [] };
 };
 
 // Default location fallback
@@ -95,7 +70,7 @@ export default function ExploreScreen() {
         }
     });
     const [loading, setLoading] = useState(false); // Do not block UI with loading state
-    const [nearbyPlaces, setNearbyPlaces] = useState(() => generateNearbyPlaces(DEFAULT_LAT, DEFAULT_LNG));
+    const [nearbyPlaces, setNearbyPlaces] = useState(() => generateEmptyPlaces());
     const [activeMarkers, setActiveMarkers] = useState([]); // Current markers on map
     const [isFetching, setIsFetching] = useState(false);
     const [activeCategory, setActiveCategory] = useState('nomads'); // nomads, mechanics, markets, fuel
@@ -131,13 +106,6 @@ export default function ExploreScreen() {
                             setLocation(newLocation);
                             setLoading(false);
 
-                            // Generate mock places as fallback
-                            const mockPlaces = generateNearbyPlaces(
-                                newLocation.coords.latitude,
-                                newLocation.coords.longitude
-                            );
-                            setNearbyPlaces(mockPlaces);
-
                             // Fetch real nomads on initial location
                             if (!initialFetchDone && activeCategory === 'nomads') {
                                 initialFetchDone = true;
@@ -149,13 +117,11 @@ export default function ExploreScreen() {
                                         token
                                     );
                                     const nomadsWithType = (realNomads || []).map(n => ({ ...n, type: 'nomad' }));
-                                    // Merge real nomads with mock, avoid duplicate IDs
-                                    const realIds = new Set(nomadsWithType.map(n => n.id));
-                                    const filtered = mockPlaces.nomads.filter(m => !realIds.has(m.id));
-                                    setActiveMarkers([...nomadsWithType, ...filtered]);
+                                    setNearbyPlaces(prev => ({ ...prev, nomads: nomadsWithType }));
+                                    setActiveMarkers(nomadsWithType);
                                 } catch (err) {
                                     console.log("Initial nomad fetch error:", err);
-                                    setActiveMarkers(mockPlaces.nomads);
+                                    setActiveMarkers([]);
                                 }
 
                                 // Fetch SOS users

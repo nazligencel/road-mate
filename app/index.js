@@ -101,10 +101,9 @@ export default function LoginScreen() {
         }
 
         try {
-            // Test login - backend'de test kullanıcısı oluşturur ve token döner
-            const response = await AuthService.testLogin();
+            const response = await AuthService.login(email, password);
             if (response.token) {
-                console.log("Test login successful");
+                console.log("Login successful");
                 router.replace('/(tabs)/home');
             }
         } catch (error) {

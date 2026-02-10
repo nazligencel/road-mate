@@ -44,25 +44,7 @@ export default function ActivityDetailScreen() {
             setActivity(activityData);
         } catch (error) {
             console.error(error);
-            // Fallback for dummy data if backend fails (only for dev)
-            if (id.toString().startsWith('dummy')) {
-                setActivity({
-                    id: id,
-                    title: 'Sunset Bonfire & Music',
-                    description: 'Gathering around the fire for some acoustic tunes and s\'mores.',
-                    location: 'Joshua Tree, CA',
-                    date: 'Today',
-                    time: '18:30',
-                    type: 'Social',
-                    image: 'https://images.unsplash.com/photo-1517824806704-9040b037703b?w=500&auto=format&fit=crop&q=60',
-                    creatorName: 'Alex Nomad',
-                    creatorId: 999, // mismatch
-                    creatorImage: 'https://randomuser.me/api/portraits/men/32.jpg',
-                    status: 'ACTIVE'
-                });
-            } else {
-                Alert.alert('Error', 'Failed to load activity details');
-            }
+            Alert.alert('Error', 'Failed to load activity details');
         } finally {
             setLoading(false);
         }

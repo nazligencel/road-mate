@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
-    Platform, RefreshControl, Modal, FlatList, ActivityIndicator, Alert, KeyboardAvoidingView
+    Platform, RefreshControl, Modal, FlatList, ActivityIndicator, Alert, KeyboardAvoidingView, Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -10,10 +10,10 @@ import { getColors } from '../constants/Colors';
 import { router } from 'expo-router';
 import {
     ArrowLeft, Plus, MapPin, Clock, CheckCircle, AlertCircle,
-    Send, MessageSquare, X, User, AlertTriangle, Crown
+    Send, MessageSquare, X, User, AlertTriangle, Crown, Pencil, MoreVertical, Trash2
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AssistService, SOSService } from '../services/api';
+import { AssistService, SOSService, UserService } from '../services/api';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { useSettings } from '../contexts/SettingsContext';
 import * as Location from 'expo-location';
@@ -41,6 +41,12 @@ export default function AssistScreen() {
     const [creating, setCreating] = useState(false);
     const [sendingMessage, setSendingMessage] = useState(false);
     const [userLocation, setUserLocation] = useState(null);
+    const [editing, setEditing] = useState(false);
+    const [editTitle, setEditTitle] = useState('');
+    const [editDescription, setEditDescription] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState(null);
+    const [showMenu, setShowMenu] = useState(false);
 
     const handleSOS = async () => {
         if (!isPro) {
@@ -123,6 +129,15 @@ export default function AssistScreen() {
     useEffect(() => {
         loadRequests();
         getUserLocation();
+        (async () => {
+            try {
+                const token = await AsyncStorage.getItem('userToken');
+                if (token) {
+                    const user = await UserService.getUserDetails(token);
+                    if (user?.id) setCurrentUserId(user.id);
+                }
+            } catch (e) {}
+        })();
     }, [filter]);
 
     const getUserLocation = async () => {
@@ -202,11 +217,60 @@ export default function AssistScreen() {
                 messages: [...(prev.messages || []), msg]
             }));
             setNewMessage('');
+            loadRequests();
         } catch (error) {
             Alert.alert('Error', error.message);
         } finally {
             setSendingMessage(false);
         }
+    };
+
+    const startEditing = () => {
+        setEditTitle(selectedRequest.title);
+        setEditDescription(selectedRequest.description || '');
+        setEditing(true);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editTitle.trim()) {
+            Alert.alert('Required', 'Title cannot be empty.');
+            return;
+        }
+        setSaving(true);
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+            const updated = await AssistService.edit(selectedRequest.id, {
+                title: editTitle.trim(),
+                description: editDescription.trim(),
+            }, token);
+            setSelectedRequest(prev => ({ ...prev, title: updated.title, description: updated.description }));
+            setEditing(false);
+            loadRequests();
+        } catch (error) {
+            Alert.alert('Error', error.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDelete = () => {
+        setShowMenu(false);
+        Alert.alert('Delete Request', 'Are you sure you want to delete this request?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete', style: 'destructive', onPress: async () => {
+                    try {
+                        const token = await AsyncStorage.getItem('userToken');
+                        await AssistService.delete(selectedRequest.id, token);
+                        setShowDetailModal(false);
+                        setSelectedRequest(null);
+                        loadRequests();
+                    } catch (error) {
+                        Alert.alert('Error', error.message);
+                    }
+                }
+            }
+        ]);
     };
 
     const handleResolve = async () => {
@@ -331,19 +395,29 @@ export default function AssistScreen() {
                                     ) : null}
                                     <View style={styles.requestFooter}>
                                         <View style={styles.authorRow}>
-                                            <View style={styles.authorAvatar}>
-                                                <User size={12} color="#FFF" />
-                                            </View>
+                                            {req.userImage ? (
+                                                <Image source={{ uri: req.userImage }} style={styles.authorAvatarImage} />
+                                            ) : (
+                                                <View style={styles.authorAvatar}>
+                                                    <User size={12} color="#FFF" />
+                                                </View>
+                                            )}
                                             <Text style={styles.authorName}>{req.userName || 'Anonymous'}</Text>
                                         </View>
-                                        {req.latitude && (
-                                            <View style={styles.locationRow}>
-                                                <MapPin size={12} color={colors.textSecondary} />
-                                                <Text style={styles.locationText}>
-                                                    {req.latitude.toFixed(2)}, {req.longitude.toFixed(2)}
-                                                </Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                            <View style={styles.timeRow}>
+                                                <MessageSquare size={12} color={colors.textSecondary} />
+                                                <Text style={styles.timeText}>{req.messageCount || 0}</Text>
                                             </View>
-                                        )}
+                                            {req.latitude && (
+                                                <View style={styles.locationRow}>
+                                                    <MapPin size={12} color={colors.textSecondary} />
+                                                    <Text style={styles.locationText}>
+                                                        {req.latitude.toFixed(2)}, {req.longitude.toFixed(2)}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </View>
                                     </View>
                                 </View>
                             </View>
@@ -420,83 +494,148 @@ export default function AssistScreen() {
                         <View style={styles.detailModalContent}>
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle} numberOfLines={1}>{selectedRequest?.title}</Text>
-                                <TouchableOpacity onPress={() => { setShowDetailModal(false); setSelectedRequest(null); }}>
-                                    <X color={colors.text} size={24} />
-                                </TouchableOpacity>
+                                <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                                    {selectedRequest && currentUserId && String(selectedRequest.userId) === String(currentUserId) && selectedRequest.status === 'open' && !editing && (
+                                        <TouchableOpacity onPress={() => setShowMenu(!showMenu)} style={{ padding: 4 }}>
+                                            <MoreVertical color={colors.text} size={22} />
+                                        </TouchableOpacity>
+                                    )}
+                                    <TouchableOpacity onPress={() => { setShowDetailModal(false); setSelectedRequest(null); setEditing(false); setShowMenu(false); }}>
+                                        <X color={colors.text} size={24} />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
+                            {showMenu && (
+                                <View style={styles.menuDropdown}>
+                                    <TouchableOpacity style={styles.menuItem} onPress={() => { setShowMenu(false); startEditing(); }}>
+                                        <Pencil size={16} color={colors.primary} />
+                                        <Text style={[styles.menuItemText, { color: colors.text }]}>Edit</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.menuItem} onPress={handleDelete}>
+                                        <Trash2 size={16} color="#EF4444" />
+                                        <Text style={[styles.menuItemText, { color: '#EF4444' }]}>Delete</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
 
                             {selectedRequest && (
                                 <>
-                                    <View style={styles.detailMeta}>
-                                        <View style={[styles.statusBadge, selectedRequest.status === 'resolved' ? styles.resolvedBadge : styles.openBadge]}>
-                                            <Text style={styles.statusText}>{selectedRequest.status}</Text>
-                                        </View>
-                                        <Text style={styles.detailAuthor}>by {selectedRequest.userName}</Text>
-                                    </View>
-
-                                    {selectedRequest.description ? (
-                                        <Text style={styles.detailDescription}>{selectedRequest.description}</Text>
-                                    ) : null}
-
-                                    {/* Messages */}
-                                    <View style={styles.messagesSection}>
-                                        <Text style={styles.messagesTitle}>
-                                            <MessageSquare size={14} color={colors.text} /> Responses ({selectedRequest.messages?.length || 0})
-                                        </Text>
-                                        <FlatList
-                                            data={selectedRequest.messages || []}
-                                            keyExtractor={item => item.id.toString()}
-                                            style={styles.messagesList}
-                                            renderItem={({ item }) => (
-                                                <View style={styles.messageItem}>
-                                                    <View style={styles.messageAvatar}>
-                                                        <User size={12} color="#FFF" />
-                                                    </View>
-                                                    <View style={styles.messageBody}>
-                                                        <Text style={styles.messageName}>{item.userName}</Text>
-                                                        <Text style={styles.messageContent}>{item.content}</Text>
-                                                        <Text style={styles.messageTime}>{formatTime(item.createdAt)}</Text>
-                                                    </View>
-                                                </View>
-                                            )}
-                                            ListEmptyComponent={
-                                                <Text style={styles.noMessages}>No responses yet. Be the first to help!</Text>
-                                            }
-                                        />
-                                    </View>
-
-                                    {/* Reply input */}
-                                    {selectedRequest.status === 'open' && (
-                                        <View style={styles.replyContainer}>
+                                    {editing ? (
+                                        <View style={{ gap: 12, marginBottom: 16 }}>
                                             <TextInput
-                                                style={styles.replyInput}
-                                                placeholder="Write a response or solution..."
+                                                style={styles.modalInput}
+                                                value={editTitle}
+                                                onChangeText={setEditTitle}
+                                                placeholder="Title"
                                                 placeholderTextColor={colors.textSecondary}
-                                                value={newMessage}
-                                                onChangeText={setNewMessage}
+                                                maxLength={100}
+                                            />
+                                            <TextInput
+                                                style={[styles.modalInput, styles.modalTextArea]}
+                                                value={editDescription}
+                                                onChangeText={setEditDescription}
+                                                placeholder="Description"
+                                                placeholderTextColor={colors.textSecondary}
                                                 multiline
                                                 maxLength={500}
+                                                textAlignVertical="top"
                                             />
-                                            <TouchableOpacity
-                                                onPress={handleSendMessage}
-                                                disabled={!newMessage.trim() || sendingMessage}
-                                                style={styles.replySendBtn}
-                                            >
-                                                {sendingMessage ? (
-                                                    <ActivityIndicator size="small" color={colors.primary} />
-                                                ) : (
-                                                    <Send size={20} color={newMessage.trim() ? colors.primary : colors.textSecondary} />
-                                                )}
-                                            </TouchableOpacity>
+                                            <View style={{ flexDirection: 'row', gap: 10 }}>
+                                                <TouchableOpacity
+                                                    style={[styles.resolveBtn, { flex: 1, borderColor: colors.cardBorder }]}
+                                                    onPress={() => setEditing(false)}
+                                                >
+                                                    <Text style={[styles.resolveBtnText, { color: colors.textSecondary }]}>Cancel</Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={[styles.createSubmitBtn, { flex: 1 }]}
+                                                    onPress={handleSaveEdit}
+                                                    disabled={saving}
+                                                >
+                                                    <LinearGradient colors={[colors.primary, colors.online]} style={[styles.createSubmitGradient, { height: 42, borderRadius: 12 }]}>
+                                                        {saving ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={styles.createSubmitText}>Save</Text>}
+                                                    </LinearGradient>
+                                                </TouchableOpacity>
+                                            </View>
                                         </View>
+                                    ) : (
+                                        <>
+                                            <View style={styles.detailMeta}>
+                                                <View style={[styles.statusBadge, selectedRequest.status === 'resolved' ? styles.resolvedBadge : styles.openBadge]}>
+                                                    <Text style={styles.statusText}>{selectedRequest.status}</Text>
+                                                </View>
+                                                <Text style={styles.detailAuthor}>by {selectedRequest.userName}</Text>
+                                            </View>
+
+                                            {selectedRequest.description ? (
+                                                <Text style={styles.detailDescription}>{selectedRequest.description}</Text>
+                                            ) : null}
+                                        </>
                                     )}
 
-                                    {/* Resolve button */}
-                                    {selectedRequest.status === 'open' && (
-                                        <TouchableOpacity style={styles.resolveBtn} onPress={handleResolve}>
-                                            <CheckCircle size={16} color="#10B981" />
-                                            <Text style={styles.resolveBtnText}>Mark as Resolved</Text>
-                                        </TouchableOpacity>
+                                    {!editing && (
+                                        <>
+                                            {/* Messages */}
+                                            <View style={styles.messagesSection}>
+                                                <Text style={styles.messagesTitle}>
+                                                    <MessageSquare size={14} color={colors.text} /> Responses ({selectedRequest.messages?.length || 0})
+                                                </Text>
+                                                <FlatList
+                                                    data={selectedRequest.messages || []}
+                                                    keyExtractor={item => item.id.toString()}
+                                                    style={styles.messagesList}
+                                                    renderItem={({ item }) => (
+                                                        <View style={styles.messageItem}>
+                                                            <View style={styles.messageAvatar}>
+                                                                <User size={12} color="#FFF" />
+                                                            </View>
+                                                            <View style={styles.messageBody}>
+                                                                <Text style={styles.messageName}>{item.userName}</Text>
+                                                                <Text style={styles.messageContent}>{item.content}</Text>
+                                                                <Text style={styles.messageTime}>{formatTime(item.createdAt)}</Text>
+                                                            </View>
+                                                        </View>
+                                                    )}
+                                                    ListEmptyComponent={
+                                                        <Text style={styles.noMessages}>No responses yet. Be the first to help!</Text>
+                                                    }
+                                                />
+                                            </View>
+
+                                            {/* Reply input */}
+                                            {selectedRequest.status === 'open' && (
+                                                <View style={styles.replyContainer}>
+                                                    <TextInput
+                                                        style={styles.replyInput}
+                                                        placeholder="Write a response or solution..."
+                                                        placeholderTextColor={colors.textSecondary}
+                                                        value={newMessage}
+                                                        onChangeText={setNewMessage}
+                                                        multiline
+                                                        maxLength={500}
+                                                    />
+                                                    <TouchableOpacity
+                                                        onPress={handleSendMessage}
+                                                        disabled={!newMessage.trim() || sendingMessage}
+                                                        style={styles.replySendBtn}
+                                                    >
+                                                        {sendingMessage ? (
+                                                            <ActivityIndicator size="small" color={colors.primary} />
+                                                        ) : (
+                                                            <Send size={20} color={newMessage.trim() ? colors.primary : colors.textSecondary} />
+                                                        )}
+                                                    </TouchableOpacity>
+                                                </View>
+                                            )}
+
+                                            {/* Resolve button */}
+                                            {selectedRequest.status === 'open' && (
+                                                <TouchableOpacity style={styles.resolveBtn} onPress={handleResolve}>
+                                                    <CheckCircle size={16} color="#10B981" />
+                                                    <Text style={styles.resolveBtnText}>Mark as Resolved</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                        </>
                                     )}
                                 </>
                             )}
@@ -574,6 +713,7 @@ const createStyles = (colors) => StyleSheet.create({
     requestFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.cardBorder, paddingTop: 10 },
     authorRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     authorAvatar: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center' },
+    authorAvatarImage: { width: 24, height: 24, borderRadius: 12 },
     authorName: { fontSize: 13, color: colors.text, fontWeight: '500' },
     locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     locationText: { fontSize: 11, color: colors.textSecondary },
@@ -630,4 +770,16 @@ const createStyles = (colors) => StyleSheet.create({
         backgroundColor: '#10B98115', borderWidth: 1, borderColor: '#10B98140',
     },
     resolveBtnText: { fontSize: 14, fontWeight: '600', color: '#10B981' },
+    menuDropdown: {
+        position: 'absolute', top: 56, right: 24, zIndex: 100,
+        backgroundColor: colors.card, borderRadius: 12, borderWidth: 1,
+        borderColor: colors.cardBorder, overflow: 'hidden',
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15, shadowRadius: 8, elevation: 8,
+    },
+    menuItem: {
+        flexDirection: 'row', alignItems: 'center', gap: 10,
+        paddingHorizontal: 16, paddingVertical: 12,
+    },
+    menuItemText: { fontSize: 15, fontWeight: '500' },
 });

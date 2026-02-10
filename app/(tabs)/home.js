@@ -18,30 +18,6 @@ import { useSettings } from '../../contexts/SettingsContext';
 
 const { width } = Dimensions.get('window');
 
-const DUMMY_ACTIVITIES = [{
-    id: 'dummy-1',
-    title: 'Sunset Bonfire & Music',
-    description: 'Gathering around the fire for some acoustic tunes and s\'mores.',
-    location: 'Joshua Tree, CA',
-    date: 'Today',
-    time: '18:30',
-    type: 'Social',
-    image: 'https://images.unsplash.com/photo-1517824806704-9040b037703b?w=500&auto=format&fit=crop&q=60',
-    creatorName: 'Alex Nomad',
-    creatorImage: 'https://randomuser.me/api/portraits/men/32.jpg'
-}, {
-    id: 'dummy-2',
-    title: 'Morning Mountain Hike',
-    description: 'Early bird hike up the trail. Coffee included!',
-    location: 'Aspen, CO',
-    date: 'Tomorrow',
-    time: '06:00',
-    type: 'Adventure',
-    image: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=500&auto=format&fit=crop&q=60',
-    creatorName: 'Sarah Climber',
-    creatorImage: 'https://randomuser.me/api/portraits/women/44.jpg'
-}];
-
 const mapStyle = [
     { "elementType": "geometry", "stylers": [{ "color": "#05080a" }] },
     { "elementType": "labels.text.fill", "stylers": [{ "color": "#475569" }] },
@@ -71,7 +47,7 @@ export default function HomeScreen() {
     const styles = useMemo(() => createStyles(colors), [colors]);
     const [location, setLocation] = useState(null);
     const [nearbyNomads, setNearbyNomads] = useState([]);
-    const [activities, setActivities] = useState(DUMMY_ACTIVITIES);
+    const [activities, setActivities] = useState([]);
     const [user, setUser] = useState(null);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isFetching, setIsFetching] = useState(false);
@@ -106,28 +82,16 @@ export default function HomeScreen() {
                     UserService.getUserDetails(token).then(setUser).catch(console.log);
 
                     // Fetch Activities
-                    // Fetch Activities
-                    // ActivityService.getActivities(token).then(data => {
-                    //     if (data && data.length > 0) {
-                    //         setActivities(data);
-                    //     } else {
-                    //         setActivities([]);
-                    //     }
-                    // }).catch(err => {
-                    //     console.log('Activity fetch failed', err);
-                    //      setActivities([{
-                    //         id: 'dummy-1',
-                    //         title: 'Sunset Bonfire & Music',
-                    //         description: 'Gathering around the fire for some acoustic tunes and s\'mores.',
-                    //         location: 'Joshua Tree, CA',
-                    //         date: 'Today',
-                    //         time: '18:30',
-                    //         type: 'Social',
-                    //         image: 'https://images.unsplash.com/photo-1517824806704-9040b037703b?w=500&auto=format&fit=crop&q=60',
-                    //         creatorName: 'Alex Nomad',
-                    //         creatorImage: 'https://randomuser.me/api/portraits/men/32.jpg'
-                    //     }]);
-                    // });
+                    ActivityService.getActivities(token).then(data => {
+                        if (data && data.length > 0) {
+                            setActivities(data);
+                        } else {
+                            setActivities([]);
+                        }
+                    }).catch(err => {
+                        console.log('Activity fetch failed', err);
+                        setActivities([]);
+                    });
 
                     // Fetch Notifications (only if enabled)
                     if (notifications) {

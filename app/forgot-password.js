@@ -6,6 +6,7 @@ import { Mail, ChevronLeft, Tent, CheckCircle2, ArrowRight, Lock, KeyRound, Eye,
 import { getColors } from '../constants/Colors';
 import { useTheme } from '../contexts/ThemeContext';
 import { isValidEmail } from '../utils/validation';
+import { BASE_URL } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -57,11 +58,18 @@ export default function ForgotPasswordScreen() {
         }
         setLoading(true);
         try {
-            // Mock API: Send code to email
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            const response = await fetch(`${BASE_URL}/auth/forgot-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.message || 'Failed to send email');
+            }
             setStep('code');
         } catch (error) {
-            Alert.alert('Error', 'Failed to send email. Try again.');
+            Alert.alert('Error', error.message || 'Failed to send email. Try again.');
         } finally {
             setLoading(false);
         }
@@ -74,8 +82,7 @@ export default function ForgotPasswordScreen() {
         }
         setLoading(true);
         try {
-            // Mock API: Verify code
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // Code will be verified together with password reset
             setStep('password');
         } catch (error) {
             Alert.alert('Error', 'Invalid or expired code.');
@@ -95,11 +102,18 @@ export default function ForgotPasswordScreen() {
         }
         setLoading(true);
         try {
-            // Mock API: Reset password
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            const response = await fetch(`${BASE_URL}/auth/reset-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, code, newPassword }),
+            });
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.message || 'Failed to reset password');
+            }
             setStep('success');
         } catch (error) {
-            Alert.alert('Error', 'Failed to reset password.');
+            Alert.alert('Error', error.message || 'Failed to reset password.');
         } finally {
             setLoading(false);
         }
