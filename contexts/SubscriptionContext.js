@@ -7,7 +7,7 @@ import Purchases, { LOG_LEVEL } from 'react-native-purchases';
 const SubscriptionContext = createContext();
 
 // ⚠️ TEST MODE: Set to true to simulate Pro user (set false for production)
-const DEV_FORCE_PRO = __DEV__ ? true : false;
+const DEV_FORCE_PRO = false;
 
 // RevenueCat API keys from .env
 const REVENUECAT_API_KEY = Platform.OS === 'ios'

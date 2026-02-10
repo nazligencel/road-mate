@@ -1,14 +1,19 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform, KeyboardAvoidingView, Image, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Save, Car, Truck, Info } from 'lucide-react-native';
+import { ArrowLeft, Save, Car, Truck, Info, Plus, Camera } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserService } from '../services/api';
+import * as ImagePicker from 'expo-image-picker';
+import { UserService, BASE_URL } from '../services/api';
 import { getColors } from '../constants/Colors';
 import { useTheme } from '../contexts/ThemeContext';
+
+const { width } = Dimensions.get('window');
+const PHOTO_SIZE = (width - 56) / 3;
+const MAX_VEHICLE_PHOTOS = 6;
 
 export default function VehicleInfoScreen() {
     const router = useRouter();
@@ -16,6 +21,8 @@ export default function VehicleInfoScreen() {
     const colors = getColors(isDarkMode);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [vehiclePhotos, setVehiclePhotos] = useState([]);
     const [vehicleData, setVehicleData] = useState({
         vehicle: '',
         vehicleBrand: '',
@@ -37,6 +44,13 @@ export default function VehicleInfoScreen() {
                     vehicleBrand: user.vehicleBrand || '',
                     vehicleModel: user.vehicleModel || ''
                 });
+                // Load vehicle photos from separate endpoint
+                try {
+                    const photos = await UserService.getVehiclePhotos(token);
+                    setVehiclePhotos(photos || []);
+                } catch (e) {
+                    console.log('Vehicle photos load error:', e);
+                }
             }
         } catch (error) {
             console.error('Failed to load vehicle data:', error);
@@ -75,6 +89,74 @@ export default function VehicleInfoScreen() {
         } finally {
             setSaving(false);
         }
+    };
+
+    const pickVehicleImage = async () => {
+        if (vehiclePhotos.length >= MAX_VEHICLE_PHOTOS) {
+            Alert.alert('Limit Reached', `You can add up to ${MAX_VEHICLE_PHOTOS} vehicle photos.`);
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets[0]) {
+            setUploading(true);
+            try {
+                const token = await AsyncStorage.getItem('userToken');
+                if (token) {
+                    const data = await UserService.uploadVehicleImage(result.assets[0].uri, token);
+                    setVehiclePhotos(prev => [...prev, data]);
+                }
+            } catch (error) {
+                console.error('Upload vehicle image error:', error);
+                Alert.alert('Error', 'Failed to upload photo');
+            } finally {
+                setUploading(false);
+            }
+        }
+    };
+
+    const handleDeletePhoto = (photo, index) => {
+        Alert.alert(
+            'Delete Photo',
+            'Are you sure you want to delete this photo?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const token = await AsyncStorage.getItem('userToken');
+                            if (token) {
+                                const imageId = typeof photo === 'object' && photo.id ? photo.id : index;
+                                await UserService.deleteVehicleImage(imageId, token);
+                                setVehiclePhotos(prev => prev.filter((_, i) => i !== index));
+                            }
+                        } catch (error) {
+                            console.error('Delete vehicle image error:', error);
+                            Alert.alert('Error', 'Failed to delete photo');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const getImageUri = (photo) => {
+        if (typeof photo === 'string') {
+            return photo.startsWith('http') ? photo : `${BASE_URL}${photo}`;
+        }
+        const url = photo?.photoUrl || photo?.url;
+        if (url) {
+            return url.startsWith('http') ? url : `${BASE_URL}${url}`;
+        }
+        return '';
     };
 
     if (loading) {
@@ -183,6 +265,67 @@ export default function VehicleInfoScreen() {
                             </View>
                         </View>
 
+                        {/* Vehicle Photos Section */}
+                        <View style={{ marginTop: 24 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                <Camera size={20} color={colors.primary} />
+                                <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>Vehicle Photos</Text>
+                                <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                                    ({vehiclePhotos.length}/{MAX_VEHICLE_PHOTOS})
+                                </Text>
+                            </View>
+
+                            <View style={styles.galleryGrid}>
+                                {/* Add Photo Button */}
+                                {vehiclePhotos.length < MAX_VEHICLE_PHOTOS && (
+                                    <TouchableOpacity
+                                        style={[styles.galleryItem, {
+                                            backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : colors.card,
+                                            borderWidth: 1.5,
+                                            borderStyle: 'dashed',
+                                            borderColor: uploading ? colors.primary : colors.cardBorder,
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            gap: 4,
+                                        }]}
+                                        onPress={pickVehicleImage}
+                                        disabled={uploading}
+                                        activeOpacity={0.7}
+                                    >
+                                        {uploading ? (
+                                            <ActivityIndicator size="small" color={colors.primary} />
+                                        ) : (
+                                            <>
+                                                <Plus color={colors.primary} size={24} />
+                                                <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '600' }}>Add Photo</Text>
+                                            </>
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+
+                                {/* Photo Grid */}
+                                {vehiclePhotos.map((photo, index) => (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={styles.galleryItem}
+                                        onLongPress={() => handleDeletePhoto(photo, index)}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Image
+                                            source={{ uri: getImageUri(photo) }}
+                                            style={styles.galleryImage}
+                                        />
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            {vehiclePhotos.length > 0 && (
+                                <Text style={{ color: colors.textSecondary, fontSize: 11, marginTop: 8, textAlign: 'center' }}>
+                                    Long press on a photo to delete
+                                </Text>
+                            )}
+                        </View>
+
                         <TouchableOpacity
                             style={styles.bottomSaveBtn}
                             onPress={handleSave}
@@ -287,6 +430,21 @@ const styles = StyleSheet.create({
     input: {
         flex: 1,
         fontSize: 16,
+        height: '100%',
+    },
+    galleryGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    galleryItem: {
+        width: PHOTO_SIZE,
+        height: PHOTO_SIZE,
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    galleryImage: {
+        width: '100%',
         height: '100%',
     },
     bottomSaveBtn: {

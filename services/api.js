@@ -268,7 +268,7 @@ export const UserService = {
 
             formData.append('file', { uri: imageUri, name: filename, type });
 
-            const response = await fetch(`${BASE_URL}/api/users/gallery-image`, {
+            const response = await fetch(`${BASE_URL}/api/users/gallery`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -339,6 +339,19 @@ export const UserService = {
         }
     },
 
+    async getGalleryPhotos(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/users/gallery`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch gallery');
+            return await response.json();
+        } catch (error) {
+            console.error('Get gallery photos error:', error);
+            throw error;
+        }
+    },
+
     async deleteGalleryImage(imageId, token) {
         try {
             const response = await fetch(`${BASE_URL}/api/users/gallery/${imageId}`, {
@@ -355,6 +368,66 @@ export const UserService = {
             return true;
         } catch (error) {
             console.error('Delete gallery image error:', error);
+            throw error;
+        }
+    },
+
+    async getVehiclePhotos(token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/users/vehicle-images`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch vehicle photos');
+            return await response.json();
+        } catch (error) {
+            console.error('Get vehicle photos error:', error);
+            throw error;
+        }
+    },
+
+    async uploadVehicleImage(imageUri, token) {
+        try {
+            const formData = new FormData();
+            const filename = imageUri.split('/').pop();
+            const match = /\.(\w+)$/.exec(filename);
+            const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+            formData.append('file', { uri: imageUri, name: filename, type });
+
+            const response = await fetch(`${BASE_URL}/api/users/vehicle-image`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data',
+                },
+                body: formData,
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Upload failed');
+            return data;
+        } catch (error) {
+            console.error('Upload vehicle image error:', error);
+            throw error;
+        }
+    },
+
+    async deleteVehicleImage(imageId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/users/vehicle-image/${imageId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                }
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.message || 'Delete failed');
+            }
+            return true;
+        } catch (error) {
+            console.error('Delete vehicle image error:', error);
             throw error;
         }
     }
@@ -698,6 +771,25 @@ export const ActivityService = {
             return await response.json();
         } catch (error) {
             console.error('Get activity error:', error);
+            throw error;
+        }
+    },
+
+    async updateActivity(activityId, activityData, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/activities/${activityId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(activityData)
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Failed to update activity');
+            return data;
+        } catch (error) {
+            console.error('Update activity error:', error);
             throw error;
         }
     },

@@ -6,7 +6,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { ArrowLeft, MessageSquare, Clock, User, Bookmark, Send, MoreHorizontal, ThumbsUp } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useDiscussions } from '../../contexts/DiscussionContext';
-import { DiscussionService } from '../../services/api';
+import { DiscussionService, BASE_URL } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function DiscussionDetailScreen() {
@@ -166,9 +166,13 @@ export default function DiscussionDetailScreen() {
                 {/* Author Info */}
                 <View style={styles.metaRow}>
                     <View style={styles.authorContainer}>
-                        <View style={styles.avatarPlaceholder}>
-                            <User size={16} color="#FFF" />
-                        </View>
+                        {discussion.authorImage ? (
+                            <Image source={{ uri: discussion.authorImage.startsWith('http') ? discussion.authorImage : `${BASE_URL}${discussion.authorImage}` }} style={styles.avatarPlaceholder} />
+                        ) : (
+                            <View style={styles.avatarPlaceholder}>
+                                <User size={16} color="#FFF" />
+                            </View>
+                        )}
                         <Text style={styles.authorName}>{discussion.author}</Text>
                     </View>
                     <View style={styles.timeContainer}>
@@ -195,9 +199,13 @@ export default function DiscussionDetailScreen() {
                             <View key={comment.id} style={styles.commentCard}>
                                 <View style={styles.commentHeader}>
                                     <View style={styles.authorContainer}>
-                                        <View style={[styles.avatarPlaceholder, { width: 32, height: 32, borderRadius: 16, backgroundColor: comment.isOwn ? colors.primary : colors.secondary }]}>
-                                            <Text style={styles.avatarText}>{comment.author[0]}</Text>
-                                        </View>
+                                        {comment.authorImage ? (
+                                            <Image source={{ uri: comment.authorImage.startsWith('http') ? comment.authorImage : `${BASE_URL}${comment.authorImage}` }} style={[styles.avatarPlaceholder, { width: 32, height: 32, borderRadius: 16 }]} />
+                                        ) : (
+                                            <View style={[styles.avatarPlaceholder, { width: 32, height: 32, borderRadius: 16, backgroundColor: comment.isOwn ? colors.primary : colors.secondary }]}>
+                                                <Text style={styles.avatarText}>{comment.author[0]}</Text>
+                                            </View>
+                                        )}
                                         <View>
                                             <Text style={styles.commentAuthor}>{comment.author}</Text>
                                             <Text style={styles.commentTime}>{comment.time}</Text>
