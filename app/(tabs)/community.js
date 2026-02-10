@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo, useState, useEffect } from 'react';
 import { useDiscussions } from '../../contexts/DiscussionContext';
 import { useSubscription } from '../../contexts/SubscriptionContext';
-import { SOSService } from '../../services/api';
+import { SOSService, BASE_URL } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 
@@ -217,7 +217,11 @@ export default function CommunityScreen() {
 
                                     <View style={styles.discussionFooter}>
                                         <View style={styles.authorRow}>
-                                            <View style={styles.avatarPlaceholder} />
+                                            {item.authorImage ? (
+                                                <Image source={{ uri: item.authorImage.startsWith('http') ? item.authorImage : `${BASE_URL}${item.authorImage}` }} style={styles.avatarImage} />
+                                            ) : (
+                                                <View style={styles.avatarPlaceholder} />
+                                            )}
                                             <Text style={styles.authorName}>{item.author}</Text>
                                         </View>
                                         <View style={styles.statsRow}>
@@ -453,6 +457,11 @@ const createStyles = (colors) => StyleSheet.create({
         height: 24,
         borderRadius: 12,
         backgroundColor: colors.primary,
+    },
+    avatarImage: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
     },
     authorName: {
         color: colors.text, // Improved contrast

@@ -13,7 +13,7 @@ import {
     Send, MessageSquare, X, User, AlertTriangle, Crown, Pencil, MoreVertical, Trash2
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AssistService, SOSService, UserService } from '../services/api';
+import { AssistService, SOSService, UserService, BASE_URL } from '../services/api';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { useSettings } from '../contexts/SettingsContext';
 import * as Location from 'expo-location';
@@ -396,7 +396,7 @@ export default function AssistScreen() {
                                     <View style={styles.requestFooter}>
                                         <View style={styles.authorRow}>
                                             {req.userImage ? (
-                                                <Image source={{ uri: req.userImage }} style={styles.authorAvatarImage} />
+                                                <Image source={{ uri: req.userImage.startsWith('http') ? req.userImage : `${BASE_URL}${req.userImage}` }} style={styles.authorAvatarImage} />
                                             ) : (
                                                 <View style={styles.authorAvatar}>
                                                     <User size={12} color="#FFF" />
@@ -505,19 +505,6 @@ export default function AssistScreen() {
                                     </TouchableOpacity>
                                 </View>
                             </View>
-                            {showMenu && (
-                                <View style={styles.menuDropdown}>
-                                    <TouchableOpacity style={styles.menuItem} onPress={() => { setShowMenu(false); startEditing(); }}>
-                                        <Pencil size={16} color={colors.primary} />
-                                        <Text style={[styles.menuItemText, { color: colors.text }]}>Edit</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.menuItem} onPress={handleDelete}>
-                                        <Trash2 size={16} color="#EF4444" />
-                                        <Text style={[styles.menuItemText, { color: '#EF4444' }]}>Delete</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            )}
-
                             {selectedRequest && (
                                 <>
                                     {editing ? (
@@ -586,9 +573,13 @@ export default function AssistScreen() {
                                                     style={styles.messagesList}
                                                     renderItem={({ item }) => (
                                                         <View style={styles.messageItem}>
-                                                            <View style={styles.messageAvatar}>
-                                                                <User size={12} color="#FFF" />
-                                                            </View>
+                                                            {item.userImage ? (
+                                                                <Image source={{ uri: item.userImage.startsWith('http') ? item.userImage : `${BASE_URL}${item.userImage}` }} style={styles.messageAvatarImage} />
+                                                            ) : (
+                                                                <View style={styles.messageAvatar}>
+                                                                    <User size={12} color="#FFF" />
+                                                                </View>
+                                                            )}
                                                             <View style={styles.messageBody}>
                                                                 <Text style={styles.messageName}>{item.userName}</Text>
                                                                 <Text style={styles.messageContent}>{item.content}</Text>
@@ -638,6 +629,20 @@ export default function AssistScreen() {
                                         </>
                                     )}
                                 </>
+                            )}
+
+                            {/* Dropdown menu - rendered last to appear on top */}
+                            {showMenu && (
+                                <View style={styles.menuDropdown}>
+                                    <TouchableOpacity style={styles.menuItem} onPress={() => { setShowMenu(false); startEditing(); }}>
+                                        <Pencil size={16} color={colors.primary} />
+                                        <Text style={[styles.menuItemText, { color: colors.text }]}>Edit</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.menuItem} onPress={handleDelete}>
+                                        <Trash2 size={16} color="#EF4444" />
+                                        <Text style={[styles.menuItemText, { color: '#EF4444' }]}>Delete</Text>
+                                    </TouchableOpacity>
+                                </View>
                             )}
                         </View>
                     </KeyboardAvoidingView>
@@ -750,6 +755,7 @@ const createStyles = (colors) => StyleSheet.create({
     messagesList: { maxHeight: 250 },
     messageItem: { flexDirection: 'row', gap: 10, marginBottom: 12 },
     messageAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center' },
+    messageAvatarImage: { width: 28, height: 28, borderRadius: 14 },
     messageBody: { flex: 1, backgroundColor: colors.card, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: colors.cardBorder },
     messageName: { fontSize: 12, fontWeight: '600', color: colors.primary, marginBottom: 2 },
     messageContent: { fontSize: 14, color: colors.text, lineHeight: 20 },

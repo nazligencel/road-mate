@@ -23,7 +23,6 @@ import {
     Bell,
     Moon,
     MapPin,
-    Car,
     Lock,
     UserX,
     Trash2,
@@ -37,6 +36,7 @@ import {
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import { UserService, BASE_URL } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -129,9 +129,15 @@ export default function SettingsScreen() {
 
     const loadUserData = async () => {
         try {
-            const userDataStr = await AsyncStorage.getItem('userData');
-            if (userDataStr) {
-                setUserData(JSON.parse(userDataStr));
+            const token = await AsyncStorage.getItem('userToken');
+            if (token) {
+                const profileData = await UserService.getUserDetails(token);
+                setUserData(profileData);
+            } else {
+                const userDataStr = await AsyncStorage.getItem('userData');
+                if (userDataStr) {
+                    setUserData(JSON.parse(userDataStr));
+                }
             }
         } catch (error) {
             console.error('Error loading user data:', error);
@@ -185,14 +191,21 @@ export default function SettingsScreen() {
                 {/* Account Section */}
                 <Section title={t('account')} colors={colors} isDarkMode={isDarkMode}>
                     <View style={styles.accountRow}>
-                        <View style={[styles.avatarPlaceholder, {
-                            backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : colors.primary + '20',
-                            borderColor: isDarkMode ? 'rgba(255,255,255,0.2)' : colors.primary + '40'
-                        }]}>
-                            <Text style={[styles.avatarText, { color: isDarkMode ? colors.text : colors.primary }]}>
-                                {userData?.name ? userData.name.substring(0, 2).toUpperCase() : 'AR'}
-                            </Text>
-                        </View>
+                        {userData?.profileImageUrl ? (
+                            <Image
+                                source={{ uri: userData.profileImageUrl.startsWith('http') ? userData.profileImageUrl : `${BASE_URL}${userData.profileImageUrl}` }}
+                                style={styles.avatarImage}
+                            />
+                        ) : (
+                            <View style={[styles.avatarPlaceholder, {
+                                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : colors.primary + '20',
+                                borderColor: isDarkMode ? 'rgba(255,255,255,0.2)' : colors.primary + '40'
+                            }]}>
+                                <Text style={[styles.avatarText, { color: isDarkMode ? colors.text : colors.primary }]}>
+                                    {userData?.name ? userData.name.substring(0, 2).toUpperCase() : 'AR'}
+                                </Text>
+                            </View>
+                        )}
                         <View style={styles.accountInfo}>
                             <Text style={[styles.accountName, { color: colors.text }]}>{userData?.name || t('roadMateUser')}</Text>
                             <Text style={[styles.accountEmail, { color: colors.textSecondary }]}>{userData?.email || 'user@roadmate.com'}</Text>
@@ -294,29 +307,6 @@ export default function SettingsScreen() {
                         value={languageDisplayName}
                         isLast
                         onPress={() => setShowLanguagePicker(true)}
-                        colors={colors}
-                        isDarkMode={isDarkMode}
-                    />
-                </Section>
-
-                {/* Vehicle Section */}
-                <Section title={t('vehicle')} colors={colors} isDarkMode={isDarkMode}>
-                    <View style={styles.vehicleRow}>
-                        <Car size={24} color={colors.primary} style={[styles.vehicleIcon, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : colors.primary + '10' }]} />
-                        <View>
-                            <Text style={[styles.menuLabel, { color: colors.text }]}>{t('myVehicle')}</Text>
-                            <Text style={[styles.menuSubLabel, { color: colors.textSecondary }]}>
-                                {userData?.vehicleBrand && userData?.vehicleModel
-                                    ? `${userData.vehicleBrand} ${userData.vehicleModel}`
-                                    : (userData?.vehicle || t('notSpecified'))}
-                            </Text>
-                        </View>
-                    </View>
-                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
-                    <MenuItem
-                        label={t('editVehicleInfo')}
-                        onPress={() => router.push('/vehicle-info')}
-                        isLast
                         colors={colors}
                         isDarkMode={isDarkMode}
                     />
@@ -483,6 +473,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 16,
     },
+    avatarImage: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+    },
     avatarPlaceholder: {
         width: 48,
         height: 48,
@@ -514,24 +509,6 @@ const styles = StyleSheet.create({
     },
     editProfileText: {
         fontSize: 13,
-    },
-    vehicleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        gap: 12,
-    },
-    vehicleIcon: {
-        padding: 8,
-        borderRadius: 8,
-    },
-    menuSubLabel: {
-        fontSize: 13,
-        marginTop: 2,
-    },
-    divider: {
-        height: 1,
-        marginHorizontal: 16,
     },
     gridRow: {
         flexDirection: 'row',

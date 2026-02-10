@@ -7,6 +7,7 @@ import { ArrowLeft, Bookmark, MessageSquare } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useDiscussions } from '../contexts/DiscussionContext';
+import { BASE_URL } from '../services/api';
 
 const GlassCard = ({ children, style, intensity = 20, tint = 'dark' }) => (
     <View style={[style, { overflow: 'hidden' }]}>
@@ -74,7 +75,11 @@ export default function SavedDiscussionsScreen() {
 
                                 <View style={styles.discussionFooter}>
                                     <View style={styles.authorRow}>
-                                        <View style={styles.avatarPlaceholder} />
+                                        {item.authorImage ? (
+                                            <Image source={{ uri: item.authorImage.startsWith('http') ? item.authorImage : `${BASE_URL}${item.authorImage}` }} style={styles.avatarImage} />
+                                        ) : (
+                                            <View style={styles.avatarPlaceholder} />
+                                        )}
                                         <Text style={styles.authorName}>{item.author}</Text>
                                     </View>
                                     <View style={styles.statsRow}>
@@ -185,6 +190,11 @@ const createStyles = (colors) => StyleSheet.create({
         height: 24,
         borderRadius: 12,
         backgroundColor: colors.primary,
+    },
+    avatarImage: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
     },
     authorName: {
         color: colors.text,

@@ -1,9 +1,9 @@
-import { View, Text, StyleSheet, Image, Pressable, ScrollView, Dimensions, TouchableOpacity, RefreshControl, Platform } from 'react-native';
+import { View, Text, StyleSheet, Image, Pressable, ScrollView, Dimensions, TouchableOpacity, RefreshControl, Platform, Alert, ActivityIndicator, Modal } from 'react-native';
 import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Settings, MapPin, Calendar, Grid, Image as ImageIcon, Plus, Crown, Car, ChevronRight } from 'lucide-react-native';
+import { Settings, MapPin, Grid, Image as ImageIcon, Plus, Crown, Car, ChevronRight, Trash2, X } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ConnectionService, UserService, BASE_URL } from '../../services/api';
@@ -12,6 +12,7 @@ import { useDiscussions } from '../../contexts/DiscussionContext';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 
 const { width } = Dimensions.get('window');
 
@@ -28,6 +29,7 @@ export default function ProfileScreen() {
     const [connectionCount, setConnectionCount] = useState(0);
     const [selectedImage, setSelectedImage] = useState(null);
     const [galleryPhotos, setGalleryPhotos] = useState([]);
+    const [uploading, setUploading] = useState(false);
     const [currentLocation, setCurrentLocation] = useState('');
     const { savedIds } = useDiscussions();
     const { isPro } = useSubscription();
@@ -82,17 +84,20 @@ export default function ProfileScreen() {
                     tagline: profileData.tagline || '',
                     bio: profileData.status || '',
                     location: profileData.location || '',
-                    image: profileData.profileImage ? { uri: profileData.profileImage } : null,
+                    image: profileData.profileImageUrl
+                        ? { uri: profileData.profileImageUrl.startsWith('http') ? profileData.profileImageUrl : `${BASE_URL}${profileData.profileImageUrl}` }
+                        : null,
                     vehicle: profileData.vehicle || '',
                     vehicleBrand: profileData.vehicleBrand || '',
                     vehicleModel: profileData.vehicleModel || '',
-                    joinDate: profileData.createdAt
-                        ? new Date(profileData.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-                        : 'Unknown',
                 });
 
-                if (profileData.galleryImages && profileData.galleryImages.length > 0) {
-                    setGalleryPhotos(profileData.galleryImages);
+                // Load gallery photos from separate endpoint
+                try {
+                    const photos = await UserService.getGalleryPhotos(token);
+                    setGalleryPhotos(photos || []);
+                } catch (e) {
+                    console.log('Gallery load error:', e);
                 }
 
                 setConnectionCount(countData.count);
@@ -110,10 +115,48 @@ export default function ProfileScreen() {
         loadUserProfile();
     };
 
-    const handleImageSelect = () => {
-        // Placeholder for gallery image selection logic
-        // In a real app, this would open the image picker
-        console.log('Select image for gallery');
+    const handleImageSelect = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+                setUploading(true);
+                const token = await AsyncStorage.getItem('userToken');
+                const uploaded = await UserService.uploadGalleryImage(result.assets[0].uri, token);
+                setGalleryPhotos(prev => [...prev, uploaded]);
+                setUploading(false);
+            }
+        } catch (error) {
+            console.error('Gallery upload error:', error);
+            Alert.alert('Error', 'Failed to upload photo.');
+            setUploading(false);
+        }
+    };
+
+    const handleDeletePhoto = (photo, index) => {
+        Alert.alert('Delete Photo', 'Are you sure you want to delete this photo?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete', style: 'destructive', onPress: async () => {
+                    try {
+                        const token = await AsyncStorage.getItem('userToken');
+                        const imageId = typeof photo === 'object' ? photo.id : null;
+                        if (imageId) {
+                            await UserService.deleteGalleryImage(imageId, token);
+                        }
+                        setGalleryPhotos(prev => prev.filter((_, i) => i !== index));
+                    } catch (error) {
+                        console.error('Delete photo error:', error);
+                        Alert.alert('Error', 'Failed to delete photo.');
+                    }
+                }
+            }
+        ]);
     };
 
     return (
@@ -269,15 +312,6 @@ export default function ProfileScreen() {
                         </BlurView>
                     </TouchableOpacity>
 
-                    <BlurView intensity={isDarkMode ? 20 : 40} tint={isDarkMode ? 'dark' : 'light'} style={[styles.infoCard, { marginTop: 10 }]}>
-                        <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>Member Since</Text>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                <Calendar size={14} color={colors.textSecondary} />
-                                <Text style={styles.infoValue}>{user?.joinDate}</Text>
-                            </View>
-                        </View>
-                    </BlurView>
                 </View>
 
                 {/* Gallery Section */}
@@ -299,23 +333,68 @@ export default function ProfileScreen() {
                                 gap: 4
                             }]}
                             onPress={handleImageSelect}
+                            disabled={uploading}
                         >
-                            <Plus color={colors.primary} size={24} />
-                            <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '600' }}>Add Photo</Text>
+                            {uploading ? (
+                                <ActivityIndicator size="small" color={colors.primary} />
+                            ) : (
+                                <>
+                                    <Plus color={colors.primary} size={24} />
+                                    <Text style={{ color: colors.primary, fontSize: 10, fontWeight: '600' }}>Add Photo</Text>
+                                </>
+                            )}
                         </TouchableOpacity>
 
-                        {galleryPhotos.map((photo, index) => (
-                            <TouchableOpacity key={index} style={styles.galleryItem}>
-                                <Image
-                                    source={typeof photo === 'string' ? { uri: photo } : photo}
-                                    style={styles.galleryImage}
-                                />
-                            </TouchableOpacity>
-                        ))}
+                        {galleryPhotos.map((photo, index) => {
+                            const photoUrl = typeof photo === 'object' ? (photo.photoUrl || photo.url) : photo;
+                            const uri = photoUrl
+                                ? (photoUrl.startsWith('http') ? photoUrl : `${BASE_URL}${photoUrl}`)
+                                : null;
+                            return (
+                                <TouchableOpacity
+                                    key={typeof photo === 'object' ? photo.id || index : index}
+                                    style={styles.galleryItem}
+                                    onPress={() => setSelectedImage({ photo, index, uri })}
+                                >
+                                    {uri && <Image source={{ uri }} style={styles.galleryImage} />}
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
                 </View>
 
             </ScrollView>
+
+            {/* Photo Preview Modal */}
+            <Modal visible={!!selectedImage} transparent animationType="fade">
+                <View style={styles.previewOverlay}>
+                    <View style={styles.previewHeader}>
+                        <TouchableOpacity
+                            style={styles.previewDeleteBtn}
+                            onPress={() => {
+                                const { photo, index } = selectedImage;
+                                setSelectedImage(null);
+                                handleDeletePhoto(photo, index);
+                            }}
+                        >
+                            <Trash2 size={22} color="#EF4444" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.previewCloseBtn}
+                            onPress={() => setSelectedImage(null)}
+                        >
+                            <X size={24} color="#FFF" />
+                        </TouchableOpacity>
+                    </View>
+                    {selectedImage?.uri && (
+                        <Image
+                            source={{ uri: selectedImage.uri }}
+                            style={styles.previewImage}
+                            resizeMode="contain"
+                        />
+                    )}
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -508,5 +587,40 @@ const createStyles = (colors) => StyleSheet.create({
     galleryImage: {
         width: '100%',
         height: '100%',
+    },
+    previewOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.95)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    previewHeader: {
+        position: 'absolute',
+        top: Platform.OS === 'ios' ? 56 : 40,
+        right: 20,
+        flexDirection: 'row',
+        gap: 16,
+        zIndex: 10,
+    },
+    previewDeleteBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(239,68,68,0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    previewCloseBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    previewImage: {
+        width: width - 32,
+        height: width - 32,
+        borderRadius: 12,
     },
 });

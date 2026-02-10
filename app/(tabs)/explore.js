@@ -309,13 +309,7 @@ export default function ExploreScreen() {
                             tracksViewChanges={false}
                             anchor={{ x: 0.5, y: 0.5 }}
                         >
-                            <View style={{
-                                width: 42, height: 42, borderRadius: 21,
-                                backgroundColor: '#EF4444', borderWidth: 3, borderColor: '#FCA5A5',
-                                justifyContent: 'center', alignItems: 'center',
-                                elevation: 8, shadowColor: '#EF4444', shadowOffset: { width: 0, height: 0 },
-                                shadowOpacity: 0.6, shadowRadius: 10,
-                            }}>
+                            <View style={styles.sosMarker}>
                                 <AlertTriangle size={20} color="#FFF" />
                             </View>
                         </Marker>
@@ -352,33 +346,25 @@ export default function ExploreScreen() {
                                 key={`${activeCategory}-${marker.id}`}
                                 coordinate={coord}
                                 onPress={() => setSelectedNomad(marker)}
-                                tracksViewChanges={true}
+                                tracksViewChanges={false}
                                 anchor={{ x: 0.5, y: 0.5 }}
                             >
-                                <View style={{
-                                    width: 34,
-                                    height: 34,
-                                    borderRadius: 17,
-                                    backgroundColor: activeCategory === 'nomads' ? '#FFF' : iconBgColor,
-                                    borderWidth: 2,
-                                    borderColor: activeCategory === 'nomads'
-                                        ? (marker.sosActive ? '#EF4444' : marker.status === 'Active' ? colors.online : colors.primary)
-                                        : '#FFF',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    elevation: 5,
-                                    shadowColor: '#000',
-                                    shadowOffset: { width: 0, height: 2 },
-                                    shadowOpacity: 0.3,
-                                    shadowRadius: 3,
-                                }}>
+                                <View style={[
+                                    styles.markerBubble,
+                                    {
+                                        backgroundColor: activeCategory === 'nomads' ? '#FFF' : iconBgColor,
+                                        borderColor: activeCategory === 'nomads'
+                                            ? (marker.sosActive ? '#EF4444' : marker.status === 'Active' ? colors.online : colors.primary)
+                                            : '#FFF',
+                                    }
+                                ]}>
                                     {activeCategory === 'nomads' ? (
                                         marker.sosActive ? (
                                             <AlertTriangle size={18} color="#EF4444" />
                                         ) : (
                                             <Image
                                                 source={{ uri: marker.image || 'https://via.placeholder.com/100' }}
-                                                style={{ width: 26, height: 26, borderRadius: 13 }}
+                                                style={styles.markerAvatarImage}
                                             />
                                         )
                                     ) : (
@@ -561,9 +547,9 @@ export default function ExploreScreen() {
                                 </View>
                                 {/* SOS Alert Banner */}
                                 {(selectedNomad.sosActive || selectedNomad.isSOS) && (
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#EF444420', padding: 12, borderRadius: 12, marginBottom: 16 }}>
+                                    <View style={styles.sosBanner}>
                                         <AlertTriangle size={18} color="#EF4444" />
-                                        <Text style={{ color: '#EF4444', fontWeight: '600', fontSize: 14 }}>SOS Active - Needs Roadside Help</Text>
+                                        <Text style={styles.sosBannerText}>SOS Active - Needs Roadside Help</Text>
                                     </View>
                                 )}
 
@@ -781,4 +767,23 @@ const createStyles = (colors) => StyleSheet.create({
     mainActionBtnText: { color: '#000', fontWeight: 'bold', fontSize: 16 },
     blockUserBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 12, paddingVertical: 10 },
     blockUserBtnText: { color: '#EF4444', fontSize: 14, fontWeight: '600' },
+    sosMarker: {
+        width: 42, height: 42, borderRadius: 21,
+        backgroundColor: '#EF4444', borderWidth: 3, borderColor: '#FCA5A5',
+        justifyContent: 'center', alignItems: 'center',
+        elevation: 8, shadowColor: '#EF4444', shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6, shadowRadius: 10,
+    },
+    markerBubble: {
+        width: 34, height: 34, borderRadius: 17,
+        borderWidth: 2, justifyContent: 'center', alignItems: 'center',
+        elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3, shadowRadius: 3,
+    },
+    markerAvatarImage: { width: 26, height: 26, borderRadius: 13 },
+    sosBanner: {
+        flexDirection: 'row', alignItems: 'center', gap: 8,
+        backgroundColor: '#EF444420', padding: 12, borderRadius: 12, marginBottom: 16,
+    },
+    sosBannerText: { color: '#EF4444', fontWeight: '600', fontSize: 14 },
 });

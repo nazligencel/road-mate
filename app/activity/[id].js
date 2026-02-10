@@ -3,10 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, MapPin, Calendar, Clock, User as UserIcon, AlertCircle } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Calendar, Clock, User as UserIcon, AlertCircle, Pencil } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../constants/Colors';
-import { ActivityService, UserService } from '../../services/api';
+import { ActivityService, UserService, BASE_URL } from '../../services/api';
 
 export default function ActivityDetailScreen() {
     const { id } = useLocalSearchParams();
@@ -130,7 +130,11 @@ export default function ActivityDetailScreen() {
 
                     {/* Creator */}
                     <View style={[styles.creatorCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-                        <Image source={{ uri: activity.creatorImage || 'https://via.placeholder.com/40' }} style={styles.creatorImage} />
+                        <Image source={{ uri: (() => {
+                            const img = activity.creatorImageUrl || activity.creatorProfileImageUrl || activity.creatorImage;
+                            if (!img) return 'https://via.placeholder.com/40';
+                            return img.startsWith('http') ? img : `${BASE_URL}${img}`;
+                        })() }} style={styles.creatorImage} />
                         <View>
                             <Text style={[styles.creatorLabel, { color: colors.textSecondary }]}>Hosted by</Text>
                             <Text style={[styles.creatorName, { color: colors.text }]}>{activity.creatorName}</Text>
@@ -150,17 +154,26 @@ export default function ActivityDetailScreen() {
                                 <Text style={[styles.statusText, { color: colors.error }]}>This activity has been cancelled by the host.</Text>
                             </View>
                         ) : isCreator ? (
-                            <TouchableOpacity
-                                style={[styles.cancelButton, { borderColor: colors.error }]}
-                                onPress={handleCancel}
-                                disabled={cancelling}
-                            >
-                                {cancelling ? (
-                                    <ActivityIndicator color={colors.error} />
-                                ) : (
-                                    <Text style={[styles.cancelButtonText, { color: colors.error }]}>Cancel Activity</Text>
-                                )}
-                            </TouchableOpacity>
+                            <View style={{ width: '100%', gap: 12 }}>
+                                <TouchableOpacity
+                                    style={[styles.editButton, { backgroundColor: colors.primary }]}
+                                    onPress={() => router.push('/edit-activity?id=' + id)}
+                                >
+                                    <Pencil size={18} color="#FFF" />
+                                    <Text style={styles.editButtonText}>Edit Activity</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.cancelButton, { borderColor: colors.error }]}
+                                    onPress={handleCancel}
+                                    disabled={cancelling}
+                                >
+                                    {cancelling ? (
+                                        <ActivityIndicator color={colors.error} />
+                                    ) : (
+                                        <Text style={[styles.cancelButtonText, { color: colors.error }]}>Cancel Activity</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
                         ) : (
                             <TouchableOpacity style={[styles.joinButton, { backgroundColor: colors.primary }]}>
                                 <Text style={styles.joinButtonText}>Join Activity</Text>
@@ -282,6 +295,20 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     joinButtonText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    editButton: {
+        width: '100%',
+        paddingVertical: 14,
+        borderRadius: 24,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 8,
+    },
+    editButtonText: {
         color: '#FFF',
         fontSize: 16,
         fontWeight: 'bold',

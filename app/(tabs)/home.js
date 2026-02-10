@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Platform } from 'react-native';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -9,7 +9,7 @@ import { Bell, Navigation, Flame, Plus, MapPin, Sparkles, Crown, ChevronRight } 
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
-import { NomadService, ActivityService, UserService, NotificationService } from '../../services/api';
+import { NomadService, ActivityService, UserService, NotificationService, BASE_URL } from '../../services/api';
 import { BlurView } from 'expo-blur';
 import { useFocusEffect } from 'expo-router';
 import { useSubscription } from '../../contexts/SubscriptionContext';
@@ -54,6 +54,9 @@ export default function HomeScreen() {
     const [weather, setWeather] = useState(null);
     const [address, setAddress] = useState('Locating...');
     const [joiningId, setJoiningId] = useState(null);
+    const lastGeocodeTime = useRef(0);
+    const lastWeatherTime = useRef(0);
+
     const handleJoin = async (activityId) => {
         try {
             setJoiningId(activityId);
@@ -108,6 +111,7 @@ export default function HomeScreen() {
     useEffect(() => {
         let locationSubscription = null;
         let userToken = null;
+        let isFetchingNomads = false;
 
         if (!locationServices) {
             setAddress(t('locationDisabled'));
@@ -126,27 +130,32 @@ export default function HomeScreen() {
                     locationSubscription = await Location.watchPositionAsync(
                         {
                             accuracy: Location.Accuracy.Balanced,
-                            timeInterval: 10000,
-                            distanceInterval: 20,
+                            timeInterval: 30000,
+                            distanceInterval: 50,
                         },
                         async (newLocation) => {
                             setLocation(newLocation);
+                            const now = Date.now();
 
-                            // Reverse Geocode
-                            try {
-                                const [place] = await Location.reverseGeocodeAsync({
-                                    latitude: newLocation.coords.latitude,
-                                    longitude: newLocation.coords.longitude
-                                });
-                                if (place) {
-                                    setAddress(`${place.city || place.subregion}, ${place.region || place.country}`);
+                            // Reverse Geocode — throttle to once per 60s
+                            if (now - lastGeocodeTime.current > 60000) {
+                                lastGeocodeTime.current = now;
+                                try {
+                                    const [place] = await Location.reverseGeocodeAsync({
+                                        latitude: newLocation.coords.latitude,
+                                        longitude: newLocation.coords.longitude
+                                    });
+                                    if (place) {
+                                        setAddress(`${place.city || place.subregion}, ${place.region || place.country}`);
+                                    }
+                                } catch (e) {
+                                    console.log('Geocode error:', e);
                                 }
-                            } catch (e) {
-                                console.log('Geocode error:', e);
                             }
 
-                            if (!isFetching) {
-                                setIsFetching(true);
+                            // Nomads + location update — prevent parallel fetches
+                            if (!isFetchingNomads) {
+                                isFetchingNomads = true;
                                 try {
                                     const nomads = await NomadService.getNearbyNomads(
                                         newLocation.coords.latitude,
@@ -157,7 +166,7 @@ export default function HomeScreen() {
                                 } catch (err) {
                                     console.log("Nomad Fetch Error:", err);
                                 } finally {
-                                    setIsFetching(false);
+                                    isFetchingNomads = false;
                                 }
                                 NomadService.updateLocation(
                                     newLocation.coords.latitude,
@@ -166,16 +175,19 @@ export default function HomeScreen() {
                                 );
                             }
 
-                            // Weather
-                            try {
-                                const weatherResponse = await fetch(
-                                    `https://api.open-meteo.com/v1/forecast?latitude=${newLocation.coords.latitude}&longitude=${newLocation.coords.longitude}&current_weather=true`
-                                );
-                                const weatherData = await weatherResponse.json();
-                                if (weatherData.current_weather) {
-                                    setWeather(Math.round(weatherData.current_weather.temperature));
-                                }
-                            } catch (err) { console.log("Weather Fetch Error:", err); }
+                            // Weather — throttle to once per 5 minutes
+                            if (now - lastWeatherTime.current > 300000) {
+                                lastWeatherTime.current = now;
+                                try {
+                                    const weatherResponse = await fetch(
+                                        `https://api.open-meteo.com/v1/forecast?latitude=${newLocation.coords.latitude}&longitude=${newLocation.coords.longitude}&current_weather=true`
+                                    );
+                                    const weatherData = await weatherResponse.json();
+                                    if (weatherData.current_weather) {
+                                        setWeather(Math.round(weatherData.current_weather.temperature));
+                                    }
+                                } catch (err) { console.log("Weather Fetch Error:", err); }
+                            }
                         }
                     ).catch(err => { console.log("WatchPosition Error:", err.message); });
                 }
@@ -187,12 +199,12 @@ export default function HomeScreen() {
         };
     }, [locationServices]);
 
-    const initialRegion = {
+    const initialRegion = useMemo(() => ({
         latitude: location ? location.coords.latitude : 37.0322,
         longitude: location ? location.coords.longitude : 28.3242,
         latitudeDelta: 0.1,
         longitudeDelta: 0.1,
-    };
+    }), [location?.coords?.latitude, location?.coords?.longitude]);
     return (
         <View style={styles.container}>
             {/* Top Gradient Glow matching Profile */}
@@ -222,7 +234,7 @@ export default function HomeScreen() {
                                     >
                                         <View style={styles.avatarInner}>
                                             <Image
-                                                source={{ uri: user?.profileImage || user?.image || 'https://via.placeholder.com/150' }}
+                                                source={{ uri: user?.profileImageUrl ? (user.profileImageUrl.startsWith('http') ? user.profileImageUrl : `${BASE_URL}${user.profileImageUrl}`) : 'https://via.placeholder.com/150' }}
                                                 style={styles.avatar}
                                             />
                                         </View>
