@@ -2,12 +2,19 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 
+// Production backend URL — set this after deploying backend
+const PRODUCTION_API_URL = null; // e.g. 'https://roadmate-backend.up.railway.app'
+
 const getApiUrl = () => {
-    // 1. Get the IP address of the machine running the Expo server
+    // Use production URL if set
+    if (PRODUCTION_API_URL) {
+        return PRODUCTION_API_URL;
+    }
+
+    // Development: auto-detect from Expo debugger host
     const debuggerHost = Constants.expoConfig?.hostUri;
     const localhost = debuggerHost ? debuggerHost.split(':')[0] : 'localhost';
 
-    // 2. Determine base URL based on platform
     let ip = localhost;
 
     // Android Emulator special IP
@@ -15,7 +22,6 @@ const getApiUrl = () => {
         ip = '10.0.2.2';
     }
 
-    // 3. Return full URL with Java Spring Boot Port (5000)
     return `http://${ip}:5000`;
 };
 
@@ -228,6 +234,56 @@ export const ConnectionService = {
             console.error('Error rejecting connection:', error);
             return { success: false };
         }
+    },
+
+    async sendConnectionRequest(targetUserId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/connections/request/${targetUserId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                return { success: false, message: data.message };
+            }
+            return data;
+        } catch (error) {
+            console.error('Error sending connection request:', error);
+            return { success: false, message: 'Connection error' };
+        }
+    },
+
+    async getConnectionStatus(targetUserId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/connections/status/${targetUserId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!response.ok) return { status: 'NONE' };
+            return await response.json();
+        } catch (error) {
+            console.error('Error getting connection status:', error);
+            return { status: 'NONE' };
+        }
+    },
+
+    async removeConnection(targetUserId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/connections/user/${targetUserId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Error removing connection:', error);
+            return { success: false };
+        }
     }
 };
 
@@ -428,6 +484,19 @@ export const UserService = {
             return true;
         } catch (error) {
             console.error('Delete vehicle image error:', error);
+            throw error;
+        }
+    },
+
+    async getPublicProfile(userId, token) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/users/${userId}/public-profile`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch public profile');
+            return await response.json();
+        } catch (error) {
+            console.error('Get public profile error:', error);
             throw error;
         }
     }

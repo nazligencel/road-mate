@@ -89,6 +89,7 @@ export default function ActivityDetailScreen() {
 
     const isCreator = currentUser?.id === activity.creatorId;
     const isCancelled = activity.status === 'CANCELLED';
+    const isPast = activity.isPast;
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -105,6 +106,12 @@ export default function ActivityDetailScreen() {
                         <View style={styles.cancelledBadge}>
                             <AlertCircle size={16} color="#FFF" />
                             <Text style={styles.cancelledText}>CANCELLED</Text>
+                        </View>
+                    )}
+                    {isPast && !isCancelled && (
+                        <View style={styles.pastBadge}>
+                            <Clock size={16} color="#FFF" />
+                            <Text style={styles.pastBadgeText}>PAST EVENT</Text>
                         </View>
                     )}
                 </View>
@@ -152,6 +159,10 @@ export default function ActivityDetailScreen() {
                         {isCancelled ? (
                             <View style={[styles.statusMessage, { backgroundColor: colors.error + '20' }]}>
                                 <Text style={[styles.statusText, { color: colors.error }]}>This activity has been cancelled by the host.</Text>
+                            </View>
+                        ) : isPast ? (
+                            <View style={[styles.statusMessage, { backgroundColor: colors.textSecondary + '20' }]}>
+                                <Text style={[styles.statusText, { color: colors.textSecondary }]}>This activity has already taken place.</Text>
                             </View>
                         ) : isCreator ? (
                             <View style={{ width: '100%', gap: 12 }}>
@@ -223,6 +234,23 @@ const styles = StyleSheet.create({
         borderRadius: 20,
     },
     cancelledText: {
+        color: '#FFF',
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    pastBadge: {
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: 'rgba(107,114,128,0.85)',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+    },
+    pastBadgeText: {
         color: '#FFF',
         fontWeight: 'bold',
         fontSize: 14,

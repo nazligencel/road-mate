@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getColors } from '../../constants/Colors';
-import { ArrowLeft, Send, Phone, Video, MoreVertical, ShieldOff, ShieldBan } from 'lucide-react-native';
+import { ArrowLeft, Send, MoreVertical, ShieldOff, ShieldBan } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MessageService, BlockService } from '../../services/api';
@@ -165,12 +165,6 @@ export default function ChatDetailScreen() {
                     </View>
 
                     <View style={styles.headerActions}>
-                        <TouchableOpacity style={styles.iconButton}>
-                            <Phone size={20} color={colors.primary} />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.iconButton}>
-                            <Video size={20} color={colors.primary} />
-                        </TouchableOpacity>
                         <TouchableOpacity style={styles.iconButton} onPress={() => setShowMenu(true)}>
                             <MoreVertical size={20} color={colors.textSecondary} />
                         </TouchableOpacity>

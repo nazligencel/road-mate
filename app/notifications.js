@@ -12,7 +12,7 @@ import {
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Bell, MessageSquare, Users, MapPin, Calendar } from 'lucide-react-native';
+import { ArrowLeft, Bell, MessageSquare, Users, MapPin, Calendar, UserPlus, UserCheck, Navigation } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getColors } from '../constants/Colors';
 import { useTheme } from '../contexts/ThemeContext';
@@ -44,6 +44,12 @@ const getNotificationIcon = (type, colors) => {
             return <Calendar size={20} color="#22c55e" />;
         case 'ACTIVITY_JOIN':
             return <Users size={20} color="#3b82f6" />;
+        case 'FRIEND_REQUEST':
+            return <UserPlus size={20} color="#a855f7" />;
+        case 'FRIEND_ACCEPTED':
+            return <UserCheck size={20} color="#22c55e" />;
+        case 'ROUTE_UPDATE':
+            return <Navigation size={20} color="#f97316" />;
         default:
             return <Bell size={20} color={colors.primary} />;
     }
@@ -93,12 +99,21 @@ export default function NotificationsScreen() {
     };
 
     const handleNotificationPress = (notification) => {
+        // Parse senderId from data if available
+        let senderId = notification.senderId;
+        if (!senderId && notification.data) {
+            try {
+                const parsed = JSON.parse(notification.data);
+                senderId = parsed.senderId;
+            } catch (e) {}
+        }
+
         // Navigate based on notification type
         switch (notification.type) {
             case 'MESSAGE':
-                if (notification.senderId) {
+                if (senderId) {
                     router.push({
-                        pathname: `/chat/${notification.senderId}`,
+                        pathname: `/chat/${senderId}`,
                         params: { name: notification.senderName, avatar: notification.senderImage }
                     });
                 }
@@ -109,6 +124,19 @@ export default function NotificationsScreen() {
             case 'NEW_ACTIVITY':
             case 'ACTIVITY_JOIN':
                 router.push('/(tabs)/home');
+                break;
+            case 'FRIEND_REQUEST':
+                router.push('/friends');
+                break;
+            case 'FRIEND_ACCEPTED':
+                if (senderId) {
+                    router.push({ pathname: '/user-profile', params: { id: senderId } });
+                }
+                break;
+            case 'ROUTE_UPDATE':
+                if (senderId) {
+                    router.push({ pathname: '/user-profile', params: { id: senderId } });
+                }
                 break;
             default:
                 break;

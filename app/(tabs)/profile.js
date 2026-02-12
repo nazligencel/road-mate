@@ -3,7 +3,8 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Settings, MapPin, Grid, Image as ImageIcon, Plus, Crown, Car, ChevronRight, Trash2, X } from 'lucide-react-native';
+import { Settings, MapPin, Grid, Image as ImageIcon, Plus, Crown, Car, ChevronRight, Trash2, X, QrCode, ScanLine } from 'lucide-react-native';
+import QRCode from 'react-native-qrcode-svg';
 import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ConnectionService, UserService, BASE_URL } from '../../services/api';
@@ -28,6 +29,7 @@ export default function ProfileScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [connectionCount, setConnectionCount] = useState(0);
     const [selectedImage, setSelectedImage] = useState(null);
+    const [showQR, setShowQR] = useState(false);
     const [galleryPhotos, setGalleryPhotos] = useState([]);
     const [uploading, setUploading] = useState(false);
     const [currentLocation, setCurrentLocation] = useState('');
@@ -240,10 +242,10 @@ export default function ProfileScreen() {
 
                     {/* Stats */}
                     <View style={styles.statsContainer}>
-                        <View style={styles.stat}>
+                        <TouchableOpacity style={styles.stat} onPress={() => router.push('/friends')}>
                             <Text style={[styles.statValue, { color: colors.text }]}>{connectionCount}</Text>
                             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Connections</Text>
-                        </View>
+                        </TouchableOpacity>
                         <View style={[styles.statDivider, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }]} />
                         <View style={styles.stat}>
                             <Text style={[styles.statValue, { color: colors.text }]}>{galleryPhotos.length}</Text>
@@ -266,6 +268,22 @@ export default function ProfileScreen() {
                             <Text style={styles.editBtnText}>Edit Profile</Text>
                         </LinearGradient>
                     </TouchableOpacity>
+
+                    {/* QR & Scan Buttons */}
+                    <View style={{ flexDirection: 'row', gap: 8, width: '100%', marginTop: 8 }}>
+                        <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowQR(true)}>
+                            <View style={[styles.qrBtn, { borderColor: colors.primary }]}>
+                                <QrCode size={18} color={colors.primary} />
+                                <Text style={[styles.qrBtnText, { color: colors.primary }]}>My QR</Text>
+                            </View>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={{ flex: 1 }} onPress={() => router.push('/scan-qr')}>
+                            <View style={[styles.qrBtn, { borderColor: colors.primary }]}>
+                                <ScanLine size={18} color={colors.primary} />
+                                <Text style={[styles.qrBtnText, { color: colors.primary }]}>Scan QR</Text>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
 
                     {!isPro && (
                         <TouchableOpacity style={{ width: '100%', marginTop: 8 }} onPress={() => router.push('/paywall')}>
@@ -393,6 +411,36 @@ export default function ProfileScreen() {
                             resizeMode="contain"
                         />
                     )}
+                </View>
+            </Modal>
+
+            {/* QR Code Modal */}
+            <Modal visible={showQR} transparent animationType="fade">
+                <View style={styles.qrOverlay}>
+                    <View style={[styles.qrModal, { backgroundColor: isDarkMode ? '#1a1a2e' : '#fff' }]}>
+                        <View style={styles.qrModalHeader}>
+                            <Text style={[styles.qrModalTitle, { color: colors.text }]}>My QR Code</Text>
+                            <TouchableOpacity onPress={() => setShowQR(false)}>
+                                <X size={24} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={{ color: colors.textSecondary, fontSize: 13, textAlign: 'center', marginBottom: 20 }}>
+                            Let others scan this to connect with you
+                        </Text>
+                        <View style={styles.qrContainer}>
+                            {user?.id && (
+                                <QRCode
+                                    value={`road-mate://nomad/${user.id}`}
+                                    size={200}
+                                    color={isDarkMode ? '#FFF' : '#000'}
+                                    backgroundColor={isDarkMode ? '#1a1a2e' : '#fff'}
+                                />
+                            )}
+                        </View>
+                        <Text style={{ color: colors.textSecondary, fontSize: 12, textAlign: 'center', marginTop: 16 }}>
+                            {user?.name || 'Nomad'} | @{user?.username || ''}
+                        </Text>
+                    </View>
                 </View>
             </Modal>
         </View>
@@ -536,6 +584,47 @@ const createStyles = (colors) => StyleSheet.create({
         color: '#FFF',
         fontSize: 14,
         fontWeight: 'bold',
+    },
+    qrBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 12,
+        borderRadius: 12,
+        borderWidth: 1.5,
+    },
+    qrBtnText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    qrOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    qrModal: {
+        width: width - 60,
+        borderRadius: 24,
+        padding: 24,
+        alignItems: 'center',
+    },
+    qrModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+        marginBottom: 8,
+    },
+    qrModalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+    },
+    qrContainer: {
+        padding: 20,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255,255,255,0.05)',
     },
     section: {
         paddingHorizontal: 20,

@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert,
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Save, User, Mail, FileText, Camera, Sparkles, Wand2, X } from 'lucide-react-native';
+import { ArrowLeft, Save, User, Mail, FileText, Camera, Sparkles, Wand2, X, Navigation } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { UserService, BASE_URL } from '../services/api';
@@ -31,6 +31,7 @@ export default function EditProfileScreen() {
         bio: '',
         tagline: '',
         location: '',
+        route: '',
         profileImageUrl: null
     });
 
@@ -53,6 +54,7 @@ export default function EditProfileScreen() {
                     bio: user.status || '',
                     tagline: user.tagline || '',
                     location: user.location || '',
+                    route: user.route || '',
                     profileImageUrl: user.profileImageUrl ?
                         (user.profileImageUrl.startsWith('http') ? user.profileImageUrl : `${BASE_URL}${user.profileImageUrl}`)
                         : null
@@ -84,6 +86,7 @@ export default function EditProfileScreen() {
                     name: userData.name,
                     status: userData.bio,
                     tagline: userData.tagline,
+                    route: userData.route,
                 };
 
                 await UserService.updateProfile(updateData, token);
@@ -335,6 +338,24 @@ export default function EditProfileScreen() {
                                             placeholder="Tell us about your journey..."
                                             placeholderTextColor={colors.textSecondary + '80'}
                                             multiline
+                                        />
+                                    </View>
+                                </View>
+
+                                <View style={styles.inputGroup}>
+                                    <Text style={[styles.label, { color: colors.textSecondary }]}>Current Route</Text>
+                                    <View style={[styles.inputWrapper, {
+                                        backgroundColor: isDarkMode ? 'rgba(0,0,0,0.2)' : colors.background,
+                                        borderColor: colors.border
+                                    }]}>
+                                        <Navigation size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                                        <TextInput
+                                            style={[styles.input, { color: colors.text }]}
+                                            value={userData.route}
+                                            onChangeText={(text) => setUserData({ ...userData, route: text })}
+                                            placeholder="e.g. Istanbul → Antalya"
+                                            placeholderTextColor={colors.textSecondary + '80'}
+                                            maxLength={100}
                                         />
                                     </View>
                                 </View>

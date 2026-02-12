@@ -139,6 +139,9 @@ function RootLayoutNav() {
                     <Stack.Screen name="vehicle-info" options={{ headerShown: false }} />
                     <Stack.Screen name="blocked-users" options={{ headerShown: false }} />
                     <Stack.Screen name="edit-activity" options={{ headerShown: false }} />
+                    <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
+                    <Stack.Screen name="user-profile" options={{ headerShown: false }} />
+                    <Stack.Screen name="friends" options={{ headerShown: false }} />
                 </Stack>
             </SafeAreaProvider>
         </GestureHandlerRootView>

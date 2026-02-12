@@ -1,11 +1,11 @@
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Platform, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { getColors } from '../../constants/Colors';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Bell, Navigation, Flame, Plus, MapPin, Sparkles, Crown, ChevronRight } from 'lucide-react-native';
+import { Bell, Navigation, Flame, Plus, MapPin, Sparkles, Crown, ChevronRight, X } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
@@ -54,6 +54,9 @@ export default function HomeScreen() {
     const [weather, setWeather] = useState(null);
     const [address, setAddress] = useState('Locating...');
     const [joiningId, setJoiningId] = useState(null);
+    const [showRouteModal, setShowRouteModal] = useState(false);
+    const [routeInput, setRouteInput] = useState('');
+    const [savingRoute, setSavingRoute] = useState(false);
     const lastGeocodeTime = useRef(0);
     const lastWeatherTime = useRef(0);
 
@@ -72,6 +75,23 @@ export default function HomeScreen() {
             console.error('Join activity error:', error);
         } finally {
             setJoiningId(null);
+        }
+    };
+
+    const handleSaveRoute = async () => {
+        setSavingRoute(true);
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+            if (token) {
+                await UserService.updateProfile({ route: routeInput }, token);
+                setUser(prev => ({ ...prev, route: routeInput }));
+                setShowRouteModal(false);
+            }
+        } catch (error) {
+            console.error('Route update error:', error);
+            Alert.alert('Error', 'Failed to update route');
+        } finally {
+            setSavingRoute(false);
         }
     };
 
@@ -260,7 +280,14 @@ export default function HomeScreen() {
                     </View>
 
                     {/* Road Ahead / Real Map Card */}
-                    <View style={styles.mapCardContainer}>
+                    <TouchableOpacity
+                        style={styles.mapCardContainer}
+                        activeOpacity={0.9}
+                        onPress={() => {
+                            setRouteInput(user?.route || '');
+                            setShowRouteModal(true);
+                        }}
+                    >
                         <View style={[styles.mapCard, { overflow: 'hidden' }]}>
                             <MapView
                                 style={styles.mapBackground}
@@ -278,10 +305,12 @@ export default function HomeScreen() {
                                 style={styles.mapOverlay}
                             />
 
-                            <View style={styles.routeBadge}>
-                                <View style={styles.pulsingDot} />
-                                <Text style={styles.routeText}>On Route</Text>
-                            </View>
+                            {user?.route ? (
+                                <View style={styles.routeBadge}>
+                                    <View style={styles.pulsingDot} />
+                                    <Text style={styles.routeText}>On Route</Text>
+                                </View>
+                            ) : null}
 
                             <View style={styles.weatherBadge}>
                                 <Text style={styles.weatherText}>☀️ {weather !== null ? `${weather}°C` : '--°C'}</Text>
@@ -289,13 +318,12 @@ export default function HomeScreen() {
 
                             <View style={styles.mapContent}>
                                 <Text style={styles.sectionLabel}>ROAD AHEAD</Text>
-                                <Text style={styles.nextStop}>Next: Grand Canyon South Rim</Text>
+                                <Text style={styles.nextStop}>
+                                    {user?.route || 'Tap to set your route'}
+                                </Text>
 
                                 <View style={styles.mapFooter}>
-                                    <View>
-                                        <Text style={styles.metaLabel}>Remaining</Text>
-                                        <Text style={styles.metaValue}>120 miles</Text>
-                                    </View>
+                                    <View />
                                     <TouchableOpacity
                                         style={styles.navButton}
                                         onPress={() => router.push('/(tabs)/explore')}
@@ -306,7 +334,7 @@ export default function HomeScreen() {
                                 </View>
                             </View>
                         </View>
-                    </View>
+                    </TouchableOpacity>
 
                     {/* AI Road Assistant */}
                     <TouchableOpacity
@@ -392,7 +420,7 @@ export default function HomeScreen() {
                         <View style={styles.feedList}>
                             {activities.length > 0 ? activities.map((item) => (
                                 <TouchableOpacity key={item.id} onPress={() => router.push(`/activity/${item.id}`)}>
-                                    <View style={styles.activityCard}>
+                                    <View style={[styles.activityCard, item.isPast && { opacity: 0.6 }]}>
                                         <Image
                                             source={{ uri: item.image || `https://source.unsplash.com/random/200x200?sig=${item.id}&camping` }}
                                             style={styles.activityImage}
@@ -406,15 +434,21 @@ export default function HomeScreen() {
                                                 <View style={styles.attendees}>
                                                     <Text style={{ fontSize: 10, color: colors.textSecondary }}>{item.location}</Text>
                                                 </View>
-                                                <TouchableOpacity
-                                                    style={[styles.joinButton, item.hasJoined && { backgroundColor: colors.online }]}
-                                                    onPress={(e) => { e.stopPropagation?.(); handleJoin(item.id); }}
-                                                    disabled={item.hasJoined || joiningId === item.id}
-                                                >
-                                                    <Text style={styles.joinText}>
-                                                        {item.hasJoined ? 'Joined' : joiningId === item.id ? '...' : 'Join'}
-                                                    </Text>
-                                                </TouchableOpacity>
+                                                {item.isPast ? (
+                                                    <View style={styles.pastBadge}>
+                                                        <Text style={styles.pastBadgeText}>Past</Text>
+                                                    </View>
+                                                ) : (
+                                                    <TouchableOpacity
+                                                        style={[styles.joinButton, item.hasJoined && { backgroundColor: colors.online }]}
+                                                        onPress={(e) => { e.stopPropagation?.(); handleJoin(item.id); }}
+                                                        disabled={item.hasJoined || joiningId === item.id}
+                                                    >
+                                                        <Text style={styles.joinText}>
+                                                            {item.hasJoined ? 'Joined' : joiningId === item.id ? '...' : 'Join'}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                )}
                                             </View>
                                         </View>
                                     </View>
@@ -430,6 +464,51 @@ export default function HomeScreen() {
                 </ScrollView>
 
             </SafeAreaView>
+
+            {/* Route Edit Modal */}
+            <Modal visible={showRouteModal} transparent animationType="slide">
+                <View style={styles.routeModalOverlay}>
+                    <View style={[styles.routeModalContent, { backgroundColor: isDarkMode ? '#1a1a2e' : '#fff' }]}>
+                        <View style={styles.routeModalHeader}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <Navigation size={20} color={colors.primary} />
+                                <Text style={[styles.routeModalTitle, { color: colors.text }]}>Set Your Route</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowRouteModal(false)}>
+                                <X size={22} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 16 }}>
+                            Where are you heading next?
+                        </Text>
+                        <View style={[styles.routeModalInput, {
+                            backgroundColor: isDarkMode ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)',
+                            borderColor: colors.border,
+                        }]}>
+                            <TextInput
+                                style={{ color: colors.text, fontSize: 16, flex: 1 }}
+                                value={routeInput}
+                                onChangeText={setRouteInput}
+                                placeholder="e.g. Istanbul → Antalya"
+                                placeholderTextColor={colors.textSecondary + '80'}
+                                maxLength={100}
+                                autoFocus
+                            />
+                        </View>
+                        <TouchableOpacity
+                            style={[styles.routeModalSaveBtn, { backgroundColor: colors.primary }]}
+                            onPress={handleSaveRoute}
+                            disabled={savingRoute}
+                        >
+                            {savingRoute ? (
+                                <ActivityIndicator color="#FFF" />
+                            ) : (
+                                <Text style={styles.routeModalSaveBtnText}>Save Route</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -835,6 +914,17 @@ const createStyles = (colors) => StyleSheet.create({
         fontSize: 13,
         fontWeight: '700',
     },
+    pastBadge: {
+        backgroundColor: colors.textSecondary + '25',
+        paddingHorizontal: 14,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    pastBadgeText: {
+        color: colors.textSecondary,
+        fontSize: 12,
+        fontWeight: '700',
+    },
     addActivityBtnContainer: {
         shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 0 },
@@ -857,5 +947,45 @@ const createStyles = (colors) => StyleSheet.create({
         backgroundColor: '#1e293b',
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    // Route Modal
+    routeModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    routeModalContent: {
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+    },
+    routeModalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    routeModalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    routeModalInput: {
+        borderRadius: 12,
+        borderWidth: 1,
+        paddingHorizontal: 16,
+        height: 56,
+        justifyContent: 'center',
+        marginBottom: 16,
+    },
+    routeModalSaveBtn: {
+        height: 52,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    routeModalSaveBtnText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
 });
