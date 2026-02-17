@@ -166,8 +166,9 @@ We may update this Privacy Policy from time to time. We will notify you of any m
 
 If you have any questions or concerns about this Privacy Policy or our data practices, please contact us at:
 
-**Email**: support@roadmate.app
+**Email**: nazligencel82@gmail.com
 
 ---
 
 By using Road Mate, you acknowledge that you have read and understood this Privacy Policy and agree to its terms.
+
