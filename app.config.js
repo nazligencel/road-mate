@@ -16,11 +16,13 @@ export default {
         ios: {
             supportsTablet: true,
             bundleIdentifier: "com.nazligencel.roadmate",
+            buildNumber: "3",
             config: {
                 googleMapsApiKey: process.env.GOOGLE_MAPS_IOS_KEY
             },
             infoPlist: {
-                NSLocationWhenInUseUsageDescription: "Uygulama, yakındaki nomadları görebilmeniz için konumunuza ihtiyaç duyar."
+                NSLocationWhenInUseUsageDescription: "Uygulama, yakındaki nomadları görebilmeniz için konumunuza ihtiyaç duyar.",
+                ITSAppUsesNonExemptEncryption: false
             }
         },
         android: {

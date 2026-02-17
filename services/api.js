@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 
 
 // Production backend URL — set this after deploying backend
-const PRODUCTION_API_URL = null; // e.g. 'https://roadmate-backend.up.railway.app'
+const PRODUCTION_API_URL = 'https://road-mate-backend-production.up.railway.app';
 
 const getApiUrl = () => {
     // Use production URL if set
